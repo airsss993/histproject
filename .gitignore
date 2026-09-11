@@ -1,0 +1,17 @@
+# Рабочие записки между сессиями, вне git
+CLAUDE.md
+HANDOFF.md
+
+.DS_Store
+.idea/
+.vscode/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Секреты
+.env
+.env.local
+.env*.local
