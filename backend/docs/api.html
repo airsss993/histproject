@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌍 API — Россия, страна Героев</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f9f9f9;
+      color: #111;
+      display: flex;
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Sidebar ── */
+    nav {
+      width: 256px;
+      min-width: 256px;
+      background: #fff;
+      border-right: 1px solid #e2e2e2;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 0 0 40px;
+    }
+
+    nav .logo {
+      font-size: 14px;
+      font-weight: 700;
+      color: #000;
+      padding: 22px 18px 18px;
+      border-bottom: 1px solid #e2e2e2;
+      letter-spacing: -.2px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    nav .logo svg { flex-shrink: 0; }
+
+    nav .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #aaa;
+      padding: 22px 18px 7px;
+    }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 18px;
+      text-decoration: none;
+      color: #555;
+      font-size: 13.5px;
+      transition: color .12s, background .12s;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+    }
+    nav a:hover { color: #000; background: #f5f5f5; }
+    nav a.active { color: #000; background: #f5f5f5; font-weight: 600; border-left-color: #000; }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: .3px;
+      flex-shrink: 0;
+      font-family: 'Menlo', 'Monaco', monospace;
+    }
+    .get   { background: #dcfce7; color: #15803d; }
+    .post  { background: #dbeafe; color: #1d4ed8; }
+    .del   { background: #fee2e2; color: #b91c1c; }
+    .patch { background: #fef9c3; color: #854d0e; }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      padding: 52px 64px;
+      max-width: 900px;
+    }
+
+    h1 {
+      font-size: 30px;
+      font-weight: 700;
+      color: #000;
+      margin-bottom: 8px;
+      letter-spacing: -.6px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 44px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .subtitle code {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      padding: 2px 8px;
+      border-radius: 5px;
+      color: #222;
+      font-family: 'Menlo', monospace;
+      font-size: 13px;
+    }
+
+    /* ── Card ── */
+    .endpoint-card {
+      border: 1px solid #e2e2e2;
+      border-radius: 10px;
+      margin-bottom: 28px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 22px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e2e2e2;
+    }
+
+    .method {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 5px;
+      letter-spacing: .5px;
+      font-family: 'Menlo', monospace;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    .path {
+      font-family: 'Menlo', 'Monaco', monospace;
+      font-size: 15px;
+      color: #000;
+      font-weight: 600;
+    }
+    .path .param { color: #0070f3; }
+
+    .lock-badge {
+      margin-left: auto;
+      font-size: 12px;
+      color: #555;
+      background: #efefef;
+      border: 1px solid #ddd;
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .super-badge {
+      font-size: 12px;
+      color: #6d28d9;
+      background: #ede9fe;
+      border: 1px solid #c4b5fd;
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .card-body { padding: 22px; }
+
+    .desc {
+      color: #333;
+      font-size: 15px;
+      margin-bottom: 22px;
+      line-height: 1.65;
+    }
+    .desc code {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: 'Menlo', monospace;
+      font-size: 13px;
+      color: #222;
+    }
+
+    .section-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #999;
+      margin-bottom: 9px;
+      margin-top: 20px;
+    }
+    .section-label:first-of-type { margin-top: 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-bottom: 4px;
+      border: 1px solid #e2e2e2;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th {
+      text-align: left;
+      padding: 10px 16px;
+      background: #f5f5f5;
+      color: #777;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      border-bottom: 1px solid #e2e2e2;
+    }
+    td {
+      padding: 11px 16px;
+      border-bottom: 1px solid #efefef;
+      vertical-align: top;
+      color: #333;
+    }
+    tr:last-child td { border-bottom: none; }
+    td:first-child {
+      font-family: 'Menlo', monospace;
+      color: #0070f3;
+      font-size: 13px;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    td:nth-child(2) {
+      font-family: 'Menlo', monospace;
+      color: #888;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    td:nth-child(4) { color: #aaa; font-size: 13px; }
+
+    td code {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: 'Menlo', monospace;
+      font-size: 12px;
+      color: #222;
+    }
+
+    .required-mark { color: #dc2626; }
+    .optional-mark { color: #ccc; }
+
+    pre {
+      background: #0d0d0d;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-family: 'Menlo', 'Monaco', monospace;
+      font-size: 13.5px;
+      color: #ededed;
+      overflow-x: auto;
+      line-height: 1.75;
+      margin-bottom: 4px;
+    }
+    pre .key  { color: #93c5fd; }
+    pre .str  { color: #86efac; }
+    pre .num  { color: #fdba74; }
+    pre .cm   { color: #555; font-style: italic; }
+
+    .note {
+      display: flex;
+      gap: 12px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 14px;
+      color: #1e3a5f;
+      margin-bottom: 4px;
+      line-height: 1.65;
+    }
+    .note .icon { flex-shrink: 0; }
+    .note code {
+      background: #dbeafe;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: 'Menlo', monospace;
+      font-size: 12.5px;
+      color: #1d4ed8;
+    }
+    .note.warn {
+      background: #fffbeb;
+      border-color: #fde68a;
+      color: #78350f;
+    }
+    .note.warn code {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .section-anchor { scroll-margin-top: 32px; }
+
+    hr { border: none; border-top: 1px solid #f0f0f0; margin: 12px 0; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ Sidebar ══════════ -->
+<nav>
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+    </svg>
+    Россия — страна Героев
+  </div>
+
+  <div class="section-title">Публичные</div>
+  <a href="#ping"><span class="badge get">GET</span>Ping</a>
+  <a href="#objects-list"><span class="badge get">GET</span>Список объектов</a>
+  <a href="#object-data"><span class="badge get">GET</span>Данные объекта</a>
+  <a href="#create-request"><span class="badge post">POST</span>Создать заявку</a>
+
+  <div class="section-title">Авторизация</div>
+  <a href="#login"><span class="badge post">POST</span>Войти</a>
+  <a href="#refresh"><span class="badge post">POST</span>Обновить токен</a>
+  <a href="#logout"><span class="badge post">POST</span>Выйти</a>
+
+  <div class="section-title">Заявки</div>
+  <a href="#requests-list"><span class="badge get">GET</span>Список заявок</a>
+  <a href="#requests-detail"><span class="badge get">GET</span>Карточка заявки</a>
+  <a href="#requests-review"><span class="badge patch">PATCH</span>Взять на проверку</a>
+  <a href="#requests-publish"><span class="badge patch">PATCH</span>Опубликовать заявку</a>
+  <a href="#requests-reject"><span class="badge patch">PATCH</span>Отклонить заявку</a>
+  <a href="#requests-history"><span class="badge get">GET</span>История действий</a>
+
+  <div class="section-title">Объекты на карте</div>
+  <a href="#delete-object"><span class="badge del">DEL</span>Удалить метку</a>
+  <a href="#update-object-coordinates"><span class="badge patch">PATCH</span>Обновить координаты</a>
+
+  <div class="section-title">Управление</div>
+  <a href="#list-admins"><span class="badge get">GET</span>Список админов</a>
+  <a href="#create-admin"><span class="badge post">POST</span>Создать админа</a>
+  <a href="#delete-admin"><span class="badge del">DEL</span>Удалить админа</a>
+  <a href="#update-admin-role"><span class="badge patch">PATCH</span>Сменить роль</a>
+</nav>
+
+<!-- ══════════ Main ══════════ -->
+<main>
+  <h1>Документация API</h1>
+  <div class="subtitle">
+    Базовый URL: <code id="base-url">https://your-domain.com/api</code>
+  </div>
+
+  <!-- ── Ping ── -->
+  <div class="endpoint-card section-anchor" id="ping">
+    <div class="card-header">
+      <span class="method get">GET</span>
+      <span class="path">/ping</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Проверка работоспособности сервера.</p>
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"pong"</span> }</pre>
+    </div>
+  </div>
+
+  <!-- ── Список объектов ── -->
+  <div class="endpoint-card section-anchor" id="objects-list">
+    <div class="card-header">
+      <span class="method get">GET</span>
+      <span class="path">/objects</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Список опубликованных исторических объектов на карте. Все фильтры опциональны — без параметров вернёт все объекты.</p>
+
+      <div class="section-label">Query-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>eventTypeIds<span class="optional-mark">?</span></td>
+          <td>int[]</td>
+          <td>Фильтр по типам событий. Передаётся повторением параметра.</td>
+          <td>нет</td>
+        </tr>
+        <tr>
+          <td>dateFrom<span class="optional-mark">?</span></td>
+          <td>string</td>
+          <td>Дата от, формат <code>YYYY-MM-DD</code></td>
+          <td>нет</td>
+        </tr>
+        <tr>
+          <td>dateTo<span class="optional-mark">?</span></td>
+          <td>string</td>
+          <td>Дата до, формат <code>YYYY-MM-DD</code></td>
+          <td>нет</td>
+        </tr>
+      </table>
+
+      <div class="note" style="margin-top:12px;">
+        <span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8" stroke-width="3"/><line x1="12" y1="12" x2="12" y2="16"/></svg></span>
+        <span>Для нескольких типов событий повторяйте параметр:<br>
+        <code>?eventTypeIds=1&amp;eventTypeIds=2&amp;eventTypeIds=3</code></span>
+      </div>
+
+      <div class="section-label">Примеры</div>
+      <pre><span class="cm">// Все объекты</span>
+GET /api/objects
+
+<span class="cm">// Только типы 1 и 3</span>
+GET /api/objects?eventTypeIds=1&amp;eventTypeIds=3
+
+<span class="cm">// С диапазоном дат</span>
+GET /api/objects?dateFrom=2020-01-01&amp;dateTo=2023-12-31
+
+<span class="cm">// Комбинация</span>
+GET /api/objects?eventTypeIds=2&amp;dateFrom=2015-01-01&amp;dateTo=2020-01-01</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{
+  <span class="key">"objects"</span>: [
+    {
+      <span class="key">"id"</span>:              <span class="num">1</span>,
+      <span class="key">"title"</span>:           <span class="str">"Сражение при Бородино"</span>,
+      <span class="key">"description"</span>:    <span class="str">"Крупнейшее сражение Отечественной войны 1812 года"</span>,
+      <span class="key">"latitude"</span>:        <span class="str">"55.5167"</span>,
+      <span class="key">"longitude"</span>:       <span class="str">"35.8167"</span>,
+      <span class="key">"eventDate"</span>:       <span class="str">"1812-09-07"</span>,
+      <span class="key">"eventType"</span>:       <span class="num">2</span>,
+      <span class="key">"previewUrlImage"</span>: <span class="str">"https://storage.example.com/sites/1/screenshot.png"</span>
+    }
+  ]
+}</pre>
+    </div>
+  </div>
+
+  <!-- ── Данные объекта ── -->
+  <div class="endpoint-card section-anchor" id="object-data">
+    <div class="card-header">
+      <span class="method get">GET</span>
+      <span class="path">/objects/<span class="param">:id</span></span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Полные данные одного объекта по ID, включая ссылку на сайт.</p>
+
+      <div class="section-label">Path-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>id<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID объекта</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Пример</div>
+      <pre>GET /api/objects/1</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{
+  <span class="key">"object"</span>: {
+    <span class="key">"id"</span>:              <span class="num">1</span>,
+    <span class="key">"title"</span>:           <span class="str">"Сражение при Бородино"</span>,
+    <span class="key">"description"</span>:    <span class="str">"Крупнейшее сражение Отечественной войны 1812 года"</span>,
+    <span class="key">"eventDate"</span>:       <span class="str">"1812-09-07"</span>,
+    <span class="key">"previewUrlImage"</span>: <span class="str">"https://storage.example.com/sites/1/screenshot.png"</span>,
+    <span class="key">"siteUrl"</span>:         <span class="str">"https://storage.example.com/sites/1/index.html"</span>
+  }
+}</pre>
+    </div>
+  </div>
+
+
+  <!-- ── Создать заявку ── -->
+  <div class="endpoint-card section-anchor" id="create-request">
+    <div class="card-header">
+      <span class="method post">POST</span>
+      <span class="path">/requests</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Отправка заявки на публикацию объекта. Тип запроса — <code>multipart/form-data</code>.</p>
+
+      <div class="note warn">
+        <span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="3"/></svg></span>
+        <span>
+          Архив должен быть в формате <strong>.zip</strong> и не превышать <strong>50 МБ</strong>.<br>
+          Внутри архива в корне или на первом уровне вложенности должен быть <strong>index.html</strong>.
+        </span>
+      </div>
+
+      <div class="section-label">Тело запроса — multipart/form-data</div>
+      <table>
+        <tr><th>Поле</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>title<span class="required-mark">*</span></td>
+          <td>string</td>
+          <td>Название события, макс. 200 символов</td>
+          <td>да</td>
+        </tr>
+        <tr>
+          <td>description<span class="required-mark">*</span></td>
+          <td>string</td>
+          <td>Описание события</td>
+          <td>да</td>
+        </tr>
+        <tr>
+          <td>eventDate<span class="required-mark">*</span></td>
+          <td>string</td>
+          <td>Дата события, формат <code>YYYY-MM-DD</code></td>
+          <td>да</td>
+        </tr>
+        <tr>
+          <td>eventTypeId<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID типа события</td>
+          <td>да</td>
+        </tr>
+        <tr>
+          <td>email<span class="required-mark">*</span></td>
+          <td>string</td>
+          <td>Email для обратной связи, макс. 70 символов</td>
+          <td>да</td>
+        </tr>
+        <tr>
+          <td>telegramUsername<span class="required-mark">*</span></td>
+          <td>string</td>
+          <td>Имя пользователя в Telegram (без @)</td>
+          <td>да</td>
+        </tr>
+        <tr>
+          <td>archive<span class="required-mark">*</span></td>
+          <td>file</td>
+          <td>ZIP-архив с сайтом</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Ответ 201</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Архив не .zip или превышает 50 МБ</td></tr>
+        <tr><td>400</td><td>Ошибка валидации полей</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Войти ── -->
+  <div class="endpoint-card section-anchor" id="login">
+    <div class="card-header">
+      <span class="method post">POST</span>
+      <span class="path">/admin/login</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Авторизация администратора. При успехе устанавливает два <code>HttpOnly</code> cookie: <code>access_token</code> (15 мин) и <code>refresh_token</code> (7 дней).</p>
+
+      <div class="section-label">Тело запроса — application/json</div>
+      <pre>{
+  <span class="key">"login"</span>:    <span class="str">"admin_XxYyZzAa"</span>,
+  <span class="key">"password"</span>: <span class="str">"P@ssw0rd123!"</span>
+}</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }
+<span class="cm">// Set-Cookie: access_token=...; HttpOnly
+// Set-Cookie: refresh_token=...; HttpOnly; Path=/api/admin/</span></pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>401</td><td>Неверный логин или пароль</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Обновить токен ── -->
+  <div class="endpoint-card section-anchor" id="refresh">
+    <div class="card-header">
+      <span class="method post">POST</span>
+      <span class="path">/admin/refresh</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Обновление пары токенов по <code>refresh_token</code> из cookie. Старый токен инвалидируется.</p>
+
+      <div class="note">
+        <span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8" stroke-width="3"/><line x1="12" y1="12" x2="12" y2="16"/></svg></span>
+        <span>Тело запроса не нужно — <code>refresh_token</code> читается из cookie автоматически.</span>
+      </div>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }
+<span class="cm">// Set-Cookie: access_token=...; HttpOnly
+// Set-Cookie: refresh_token=...; HttpOnly; Path=/api/admin/</span></pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>401</td><td>refresh_token отсутствует или невалиден</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Выйти ── -->
+  <div class="endpoint-card section-anchor" id="logout">
+    <div class="card-header">
+      <span class="method post">POST</span>
+      <span class="path">/admin/logout</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Завершение сессии. Удаляет сессию из БД и очищает cookie.</p>
+
+      <div class="note">
+        <span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8" stroke-width="3"/><line x1="12" y1="12" x2="12" y2="16"/></svg></span>
+        <span>Требует валидный <code>access_token</code> в cookie. Тело запроса не нужно.</span>
+      </div>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }</pre>
+    </div>
+  </div>
+
+  <!-- ── Список заявок ── -->
+  <div class="endpoint-card section-anchor" id="requests-list">
+    <div class="card-header">
+      <span class="method get">GET</span>
+      <span class="path">/admin/requests</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Список всех заявок с пагинацией. Опциональный фильтр по статусу через query-param.</p>
+
+      <div class="section-label">Query-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>status<span class="optional-mark">?</span></td>
+          <td>string</td>
+Фильтр по статусу. Возможные значения: <code>Новая</code>, <code>На проверке</code>, <code>Отклонена</code>, <code>Опубликована</code>
+          <td>нет</td>
+        </tr>
+        <tr>
+          <td>q<span class="optional-mark">?</span></td>
+          <td>string</td>
+          <td>Поиск по названию и ID заявки</td>
+          <td>нет</td>
+        </tr>
+        <tr>
+          <td>page<span class="optional-mark">?</span></td>
+          <td>integer</td>
+          <td>Номер страницы (по умолчанию: <code>1</code>)</td>
+          <td>нет</td>
+        </tr>
+        <tr>
+          <td>limit<span class="optional-mark">?</span></td>
+          <td>integer</td>
+          <td>Количество записей на странице, от 1 до 100 (по умолчанию: <code>20</code>)</td>
+          <td>нет</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Примеры</div>
+      <pre><span class="cm">// Все заявки, первая страница</span>
+GET /api/admin/requests
+
+<span class="cm">// Только новые заявки, страница 2 по 10 записей</span>
+GET /api/admin/requests?status=Новая&amp;page=2&amp;limit=10</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{
+  <span class="key">"requests"</span>: [
+    {
+      <span class="key">"id"</span>:        <span class="num">1</span>,
+      <span class="key">"title"</span>:     <span class="str">"Сражение при Бородино"</span>,
+      <span class="key">"status"</span>:    <span class="str">"Новая"</span>,
+      <span class="key">"createdAt"</span>: <span class="str">"2026-03-25T10:00:00Z"</span>
+    }
+  ],
+  <span class="key">"total"</span>: <span class="num">45</span>,
+  <span class="key">"page"</span>:  <span class="num">1</span>,
+  <span class="key">"limit"</span>: <span class="num">20</span>
+}</pre>
+    </div>
+  </div>
+
+  <!-- ── Карточка заявки ── -->
+  <div class="endpoint-card section-anchor" id="requests-detail">
+    <div class="card-header">
+      <span class="method get">GET</span>
+      <span class="path">/admin/requests/<span class="param">:id</span></span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Полная карточка заявки — все поля включая ссылку на сайт и скриншот.</p>
+
+      <div class="section-label">Path-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>id<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID заявки</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Пример</div>
+      <pre>GET /api/admin/requests/1</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{
+  <span class="key">"request"</span>: {
+    <span class="key">"id"</span>:               <span class="num">1</span>,
+    <span class="key">"title"</span>:            <span class="str">"Сражение при Бородино"</span>,
+    <span class="key">"description"</span>:     <span class="str">"Описание события"</span>,
+    <span class="key">"eventDate"</span>:        <span class="str">"1812-09-07"</span>,
+    <span class="key">"eventTypeId"</span>:      <span class="num">2</span>,
+    <span class="key">"email"</span>:            <span class="str">"user@example.com"</span>,
+    <span class="key">"telegramUsername"</span>: <span class="str">"username"</span>,
+    <span class="key">"status"</span>:           <span class="str">"Новая"</span>,
+    <span class="key">"adminComment"</span>:     <span class="null">null</span>,
+    <span class="key">"siteUrl"</span>:          <span class="str">"https://storage.example.com/sites/1/index.html"</span>,
+    <span class="key">"createdAt"</span>:        <span class="str">"2026-03-25T10:00:00Z"</span>
+  }
+}</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>404</td><td>Заявка не найдена</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Взять заявку на проверку ── -->
+  <div class="endpoint-card section-anchor" id="requests-review">
+    <div class="card-header">
+      <span class="method patch">PATCH</span>
+      <span class="path">/admin/requests/<span class="param">:id</span>/review</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Взять заявку в работу. Допустимый переход: <code>Новая</code> → <code>На проверке</code>.</p>
+
+      <div class="section-label">Path-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>id<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID заявки</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Пример</div>
+      <pre>PATCH /api/admin/requests/1/review</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Заявка не в статусе «Новая»</td></tr>
+        <tr><td>404</td><td>Заявка не найдена</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Опубликовать заявку ── -->
+  <div class="endpoint-card section-anchor" id="requests-publish">
+    <div class="card-header">
+      <span class="method patch">PATCH</span>
+      <span class="path">/admin/requests/<span class="param">:id</span>/publish</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Опубликовать заявку: создаёт объект на карте и отправляет уведомление пользователю. Допустимый переход: <code>На проверке</code> → <code>Опубликована</code>.</p>
+
+      <div class="section-label">Path-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>id<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID заявки</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Тело запроса — application/json</div>
+      <table>
+        <tr><th>Поле</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>latitude<span class="required-mark">*</span></td>
+          <td>float</td>
+          <td>Широта объекта на карте (−90 … 90)</td>
+          <td>да</td>
+        </tr>
+        <tr>
+          <td>longitude<span class="required-mark">*</span></td>
+          <td>float</td>
+          <td>Долгота объекта на карте (−180 … 180)</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <pre>{
+  <span class="key">"latitude"</span>:  <span class="num">55.7308</span>,
+  <span class="key">"longitude"</span>: <span class="num">37.6174</span>
+}</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Заявка не в статусе «На проверке»</td></tr>
+        <tr><td>404</td><td>Заявка не найдена</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Отклонить заявку ── -->
+  <div class="endpoint-card section-anchor" id="requests-reject">
+    <div class="card-header">
+      <span class="method patch">PATCH</span>
+      <span class="path">/admin/requests/<span class="param">:id</span>/reject</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Отклонить заявку с обязательным комментарием. Допустимый переход: <code>На проверке</code> → <code>Отклонена</code>.</p>
+
+      <div class="section-label">Path-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>id<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID заявки</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Тело запроса — application/json</div>
+      <table>
+        <tr><th>Поле</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>comment<span class="required-mark">*</span></td>
+          <td>string</td>
+          <td>Причина отклонения</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <pre>{ <span class="key">"comment"</span>: <span class="str">"Недостаточно исторических данных"</span> }</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Комментарий не передан</td></tr>
+        <tr><td>400</td><td>Заявка не в статусе «На проверке»</td></tr>
+        <tr><td>404</td><td>Заявка не найдена</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── История заявки ── -->
+  <div class="endpoint-card section-anchor" id="requests-history">
+    <div class="card-header">
+      <span class="method get">GET</span>
+      <span class="path">/admin/history</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+      <span class="super-badge">super_admin</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Аудит-лог всех действий администраторов по всем заявкам с пагинацией и поиском. Данные об администраторе сохранены на момент действия.</p>
+
+      <div class="section-label">Query-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>q<span class="optional-mark">?</span></td>
+          <td>string</td>
+          <td>Поиск по названию заявки, ID заявки, действию и логину модератора</td>
+          <td>нет</td>
+        </tr>
+        <tr>
+          <td>page<span class="optional-mark">?</span></td>
+          <td>integer</td>
+          <td>Номер страницы (по умолчанию: <code>1</code>)</td>
+          <td>нет</td>
+        </tr>
+        <tr>
+          <td>limit<span class="optional-mark">?</span></td>
+          <td>integer</td>
+          <td>Количество записей на странице, от 1 до 100 (по умолчанию: <code>20</code>)</td>
+          <td>нет</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{
+  <span class="key">"history"</span>: [
+    {
+      <span class="key">"id"</span>:            <span class="num">1</span>,
+      <span class="key">"requestId"</span>:    <span class="num">42</span>,
+      <span class="key">"requestTitle"</span>: <span class="str">"Памятник героям ВОВ"</span>,
+      <span class="key">"action"</span>:       <span class="str">"Опубликована"</span>,
+      <span class="key">"comment"</span>:      <span class="str">""</span>,
+      <span class="key">"adminLogin"</span>:   <span class="str">"admin_XxYyZzAa"</span>,
+      <span class="key">"adminRole"</span>:    <span class="str">"admin"</span>,
+      <span class="key">"createdAt"</span>:    <span class="str">"2026-04-04T12:00:00Z"</span>
+    }
+  ],
+  <span class="key">"total"</span>: <span class="num">87</span>,
+  <span class="key">"page"</span>:  <span class="num">1</span>,
+  <span class="key">"limit"</span>: <span class="num">20</span>
+}</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Некорректный параметр page или limit</td></tr>
+        <tr><td>401</td><td>Невалидный access_token</td></tr>
+        <tr><td>403</td><td>Недостаточно прав (требуется super_admin)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Список админов ── -->
+  <div class="endpoint-card section-anchor" id="list-admins">
+    <div class="card-header">
+      <span class="method get">GET</span>
+      <span class="path">/admin/admins</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+      <span class="super-badge">super_admin</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Список всех администраторов. Пароли не возвращаются.</p>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{
+  <span class="key">"admins"</span>: [
+    {
+      <span class="key">"id"</span>:         <span class="num">1</span>,
+      <span class="key">"login"</span>:     <span class="str">"admin_XxYyZzAa"</span>,
+      <span class="key">"email"</span>:     <span class="str">"admin@example.com"</span>,
+      <span class="key">"role"</span>:      <span class="str">"super_admin"</span>,
+      <span class="key">"created_at"</span>: <span class="str">"2026-04-01T12:00:00Z"</span>
+    }
+  ]
+}</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>401</td><td>Невалидный access_token</td></tr>
+        <tr><td>403</td><td>Недостаточно прав (требуется super_admin)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Создать админа ── -->
+  <div class="endpoint-card section-anchor" id="create-admin">
+    <div class="card-header">
+      <span class="method post">POST</span>
+      <span class="path">/admin/admins</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+      <span class="super-badge">super_admin</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Создание нового администратора. Логин и пароль генерируются автоматически — сохраните их, повторно получить не получится.</p>
+
+      <div class="section-label">Тело запроса — application/json</div>
+      <table>
+        <tr><th>Поле</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>email<span class="required-mark">*</span></td>
+          <td>string</td>
+          <td>Email администратора</td>
+          <td>да</td>
+        </tr>
+        <tr>
+          <td>role<span class="required-mark">*</span></td>
+          <td>string</td>
+          <td>Роль: <code>admin</code> или <code>super_admin</code></td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <pre>{
+  <span class="key">"email"</span>: <span class="str">"admin@example.com"</span>,
+  <span class="key">"role"</span>:  <span class="str">"admin"</span>
+}</pre>
+
+      <div class="section-label">Ответ 201</div>
+      <pre>{
+  <span class="key">"login"</span>:    <span class="str">"admin_XxYyZzAa"</span>,
+  <span class="key">"password"</span>: <span class="str">"P@ssw0rd123!"</span>
+}</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Некорректная роль</td></tr>
+        <tr><td>401</td><td>Невалидный access_token</td></tr>
+        <tr><td>403</td><td>Недостаточно прав (требуется super_admin)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Удалить метку с карты ── -->
+  <div class="endpoint-card section-anchor" id="delete-object">
+    <div class="card-header">
+      <span class="method del">DELETE</span>
+      <span class="path">/admin/requests/<span class="param">:id</span>/object</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Удаление метки с карты, созданной из заявки. Доступно всем авторизованным администраторам. Заявка должна быть в статусе <strong>Опубликована</strong>.</p>
+
+      <div class="section-label">Path-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>id<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID заявки</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Пример</div>
+      <pre>DELETE /api/admin/requests/42/object</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Некорректный ID</td></tr>
+        <tr><td>400</td><td>Объект для заявки не найден</td></tr>
+        <tr><td>401</td><td>Невалидный access_token</td></tr>
+        <tr><td>403</td><td>Недостаточно прав</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Обновить координаты метки ── -->
+  <div class="endpoint-card section-anchor" id="update-object-coordinates">
+    <div class="card-header">
+      <span class="method patch">PATCH</span>
+      <span class="path">/admin/requests/<span class="param">:id</span>/object/coordinates</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Обновление координат метки на карте, привязанной к заявке. Доступно всем авторизованным администраторам. Заявка должна быть в статусе <strong>Опубликована</strong>.</p>
+
+      <div class="section-label">Path-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>id<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID заявки</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Тело запроса — application/json</div>
+      <table>
+        <tr><th>Поле</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>latitude<span class="required-mark">*</span></td>
+          <td>float</td>
+          <td>Широта (например, 55.751244)</td>
+          <td>да</td>
+        </tr>
+        <tr>
+          <td>longitude<span class="required-mark">*</span></td>
+          <td>float</td>
+          <td>Долгота (например, 37.618423)</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <pre>{
+  <span class="key">"latitude"</span>:  <span class="num">55.751244</span>,
+  <span class="key">"longitude"</span>: <span class="num">37.618423</span>
+}</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Некорректный ID</td></tr>
+        <tr><td>400</td><td>Объект для заявки не найден</td></tr>
+        <tr><td>400</td><td>Ошибка валидации тела запроса</td></tr>
+        <tr><td>401</td><td>Невалидный access_token</td></tr>
+        <tr><td>403</td><td>Недостаточно прав</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Удалить админа ── -->
+  <div class="endpoint-card section-anchor" id="delete-admin">
+    <div class="card-header">
+      <span class="method del">DELETE</span>
+      <span class="path">/admin/admins/<span class="param">:id</span></span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+      <span class="super-badge">super_admin</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Удаление администратора по ID. Нельзя удалить самого себя.</p>
+
+      <div class="section-label">Path-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>id<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID удаляемого администратора</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Пример</div>
+      <pre>DELETE /api/admin/admins/5</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Попытка удалить самого себя</td></tr>
+        <tr><td>400</td><td>Некорректный ID</td></tr>
+        <tr><td>401</td><td>Невалидный access_token</td></tr>
+        <tr><td>403</td><td>Недостаточно прав (требуется super_admin)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Сменить роль ── -->
+  <div class="endpoint-card section-anchor" id="update-admin-role">
+    <div class="card-header">
+      <span class="method patch">PATCH</span>
+      <span class="path">/admin/admins/<span class="param">:id</span>/role</span>
+      <span class="lock-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>JWT</span>
+      <span class="super-badge">super_admin</span>
+    </div>
+    <div class="card-body">
+      <p class="desc">Изменение роли администратора по ID. Нельзя изменить свою собственную роль.</p>
+
+      <div class="section-label">Path-параметры</div>
+      <table>
+        <tr><th>Параметр</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>id<span class="required-mark">*</span></td>
+          <td>int</td>
+          <td>ID администратора</td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <div class="section-label">Тело запроса — application/json</div>
+      <table>
+        <tr><th>Поле</th><th>Тип</th><th>Описание</th><th>Обязательный</th></tr>
+        <tr>
+          <td>role<span class="required-mark">*</span></td>
+          <td>string</td>
+          <td>Новая роль: <code>admin</code> или <code>super_admin</code></td>
+          <td>да</td>
+        </tr>
+      </table>
+
+      <pre>{ <span class="key">"role"</span>: <span class="str">"admin"</span> }</pre>
+
+      <div class="section-label">Ответ 200</div>
+      <pre>{ <span class="key">"message"</span>: <span class="str">"success"</span> }</pre>
+
+      <div class="section-label">Ошибки</div>
+      <table>
+        <tr><th>Статус</th><th>Причина</th></tr>
+        <tr><td>400</td><td>Попытка изменить свою собственную роль</td></tr>
+        <tr><td>400</td><td>Некорректный ID или роль</td></tr>
+        <tr><td>400</td><td>Администратор не найден</td></tr>
+        <tr><td>401</td><td>Невалидный access_token</td></tr>
+        <tr><td>403</td><td>Недостаточно прав (требуется super_admin)</td></tr>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const links = document.querySelectorAll('nav a');
+  const sections = [...links].map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  // Подставляем реальный домен из текущего адреса страницы
+  const baseUrl = window.location.origin + '/api';
+  document.getElementById('base-url').textContent = baseUrl;
+  document.querySelectorAll('pre').forEach(pre => {
+    pre.innerHTML = pre.innerHTML.replaceAll('https://your-domain.com/api', baseUrl);
+  });
+</script>
+</body>
+</html>

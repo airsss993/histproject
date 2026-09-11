@@ -1,0 +1,51 @@
+name: Deploy to Server
+
+on:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy docs to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docs/api.html"
+          target: "/root/histproject-dev/public/"
+          strip_components: 1
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/histproject-dev
+
+            echo "🔄 Скачивание образа ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main"
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main
+
+            echo "🚀 Пересоздание контейнера app..."
+            docker compose up -d --no-deps --force-recreate app
+
+            echo "🧹 Удаление неиспользуемых образов..."
+            docker image prune -f
+
+            echo "✅ Деплой успешен!"
+            docker compose ps
+
+      - name: Notify success
+        if: success()
+        run: echo "✅ Успешно задеплоено на ${{ secrets.SERVER_HOST }}"
