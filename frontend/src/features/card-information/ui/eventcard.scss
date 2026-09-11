@@ -1,0 +1,206 @@
+﻿@use 'sass:color';
+@use 'sass:math';
+
+$card-bg-color: rgb(25, 36, 71);
+$text-color-primary: #ffffff;
+$text-color-secondary: #c0c0c0;
+$button-color: #5685BC;
+$button-hover-color: #4a75b2;
+$button-text-color: #FAFAFA;
+$border-radius: 8px;
+$padding-main: 15px;
+$animation-duration: 0.3s;
+$font-shrift: 'Cruinn', sans-serif;
+
+.event-tooltip-card {
+  position: absolute;
+  top: 120px;
+  right: 0;
+  z-index: 1000;
+  width: auto;
+  height: 100vh;
+  overflow-y: hidden;
+  transition: all $animation-duration ease;
+  background-color: $card-bg-color;
+  padding: 36px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: $text-color-primary;
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 1;
+
+  &.is-closing {
+    opacity: 0 !important;
+    transition: all $animation-duration ease !important;
+    pointer-events: none;
+  }
+
+  .event-tooltip-close-btn {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-family: $font-shrift;
+    color: $button-color;
+    font-size: 36px;
+    font-weight: 100 !important;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 5px;
+    transition: all $animation-duration ease;
+
+    &:hover {
+      transition: all $animation-duration ease;
+      color: $button-hover-color;
+    }
+  }
+
+  .event-tooltip-header {
+    .event-tooltip-image-placeholder {
+      width: 580px;
+      height: 280px;
+      margin-top: 10px;
+      background-color: $button-color;
+      border-radius: 10px;
+      display: flex;
+      justify-content: left;
+      align-items: left;
+      flex-shrink: 0;
+
+      svg {
+        color: $button-color;
+      }
+
+      .event-tooltip-image {
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        transition: all 0.3s ease;
+      }
+    }
+
+    .event-tooltip-info {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-family: $font-shrift;
+
+      .event-tooltip-title {
+        margin-right: 12px;
+        font-size: 20px;
+        font-weight: 500 !important;
+        width: 440px;
+        letter-spacing: 1px;  
+        line-height: 1.4;
+        margin-top: 32px;
+      }
+
+      .event-tooltip-date {
+        font-size: 16px;
+        font-weight: 500 !important;
+        line-height: 1.4;
+        letter-spacing: 2px;
+        margin-top: 36px;
+        right: 40px;
+        position: absolute;
+      }
+    }
+  }
+
+  .event-tooltip-description {
+    font-size: 18px;
+    position: relative;
+    display: block;
+    width: 580px;
+    line-height: 1.3;
+    font-weight: 400;
+    letter-spacing: 1.8px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    max-height: 220px;
+    overflow-y: auto;
+    
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+}
+
+  .event-tooltip-learn-more-btn {
+    background-color: $button-color;
+    color: $button-text-color;
+    font-weight: 300;
+    border: none;
+    border-radius: 14px;
+    padding: 20px 15px;
+    font-size: 18px;
+    cursor: pointer;
+    text-align: center;
+    font-family: $font-shrift;
+    transition: all $animation-duration ease;
+    margin-top: auto;
+    margin-bottom: 160px;
+    text-decoration: none;
+    // display: grid;
+    justify-content: space-between;
+
+    &:hover {
+      background-color: $button-hover-color;
+      transition: all $animation-duration ease;
+    }
+  }
+}
+
+.RightToolTyipe {
+  width: 3px;
+  height: 10000px;
+  margin-top: 4964px;
+  z-index: 999;
+  position: absolute;
+  background: rgb(78, 105, 150);
+  left: -1px;
+  transform: translateY(-50%);
+}
+
+.event-tooltip-card--popup {
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: -2;
+}
+
+.event-card-shell {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  will-change: opacity;
+  
+  &.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease;
+  }
+  
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  
+  &.is-closing {
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+    pointer-events: none;
+  }
+}

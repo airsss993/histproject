@@ -1,0 +1,71 @@
+.SubDropdownBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; // Растянуть текст и чекбокс по краям
+  cursor: pointer;
+  user-select: none;
+  padding: 10px 15px;
+  border: 1px solid #ffe082;
+  border-radius: 5px; // Или 20px, в зависимости от применения
+  background-color: #1a1a1a;
+  color: #ffe082;
+  font-size: 15px;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+
+  input[type="checkbox"] {
+    display: none; // Скрываем стандартный чекбокс
+  }
+
+  /* Если ты используешь кастомный чекбокс, стили будут здесь */
+  /* .checkbox-custom {
+      width: 18px;
+      height: 18px;
+      border: 1px solid #ffe082;
+      border-radius: 4px;
+      display: inline-block;
+      position: relative;
+      background-color: transparent;
+      margin-left: 10px; // Отступ от текста
+
+      &.checked {
+          background-color: #ffe082;
+          &:after {
+              content: '✓';
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              color: #1a1a1a;
+              font-size: 14px;
+              line-height: 1;
+          }
+      }
+  } */
+
+  &.selected {
+    background-color: #ffe082;
+    color: #1a1a1a; // Текст становится темным
+    border-color: #ffe082; // Рамка остается золотистой
+  }
+
+  &.out-of-range {
+    opacity: 0.6; // Приглушаем, если не в диапазоне
+    cursor: not-allowed;
+    border-color: #8c8c8c;
+    color: #8c8c8c;
+
+    &.selected { // Если выбрана и вне диапазона
+        background-color: #8c8c8c;
+        color: #1a1a1a;
+    }
+  }
+
+  &:hover:not(.out-of-range) {
+    background-color: darken(#1a1a1a, 5%);
+    border-color: lighten(#ffe082, 10%);
+
+    &.selected {
+        background-color: lighten(#ffe082, 5%);
+    }
+  }
+}

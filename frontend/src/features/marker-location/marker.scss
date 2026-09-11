@@ -1,0 +1,32 @@
+$font-shrift: 'Cruinn', sans-serif;
+
+.leaflet-popup.event-marker-popup {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  font-family: $font-shrift;
+	
+  &.event-marker-popup-fade-out {
+	  opacity: 0;
+	  transform: translateY(-6px);
+  }
+}
+
+.leaflet-marker-icon {
+  filter: brightness(1);
+  transition: all 0.3s ease;
+  z-index: 1000 !important;
+
+  &:hover {
+	  filter: brightness(0.8); 
+	  transition: all 0.3s ease;
+  }
+
+  &:active,
+  &:focus,
+  &.clicked,
+  .marker.clicked {
+  	filter: brightness(0.6);
+	  transition: all 0.3s ease;
+  }
+}

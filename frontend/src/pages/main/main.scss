@@ -1,0 +1,40 @@
+$text-color: #fafafa;
+
+.RussianFon {
+  width: 100vw;
+  position: relative;
+  background-repeat: no-repeat;
+  background-position-x: center;
+  background-size: cover;
+
+  & h4 {
+    font-size: 96px;
+    top: 20vh;
+    font-weight: 800 !important;
+    line-height: 120px;
+    margin-top: 120px;
+  }
+
+  & h5 {
+    font-size: 44px;
+    top: 23vh;
+    line-height: 70px;
+    font-weight: 400;
+  }
+
+  & h6 {
+    font-size: 18px;
+    top: 25vh;
+    font-weight: 300;
+    line-height: 26px;
+  }
+
+  & h4, & h5, & h6 {
+    position: relative;
+    color: $text-color;
+    font-style: normal;
+    margin-left: 160px;
+    letter-spacing: 0.4px;
+    opacity: 1;
+  }
+}

@@ -1,0 +1,1844 @@
+$header-color: #030816b3;
+$target-color: #c09139;
+$hover-color: #805A13;
+$active-color: #48330C;
+$text-color: #fafafa;
+$popup-color: #2a1d15;
+$shadow-color: #d4a244;
+$backgroundOpacity-color: rgba(212, 162, 68, 0.1);
+$mapp-color: #2c4672;
+$transition-ive: all 0.3s ease;
+$font-shrift: 'Cruinn', sans-serif;
+$font-shrift-weight: 300;
+
+@media screen and (max-width: 1600px) {
+  .modal-content {
+    padding-top: 34px;
+    padding-bottom: 34px;
+
+    .modal-title {
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .modal-description, 
+    .modal-descriptions {
+      font-size: 14px;
+      max-width: 420px;
+    }
+
+    .modal-description {
+      margin-bottom: 16px;
+    }
+    
+    .modal-close {
+      font-size: 26px;
+      top: 32px;
+    }
+
+    form {
+      .form-row {
+        margin-bottom: -14px;
+      }
+
+      .form-group {
+        label, 
+        input, 
+        textarea, 
+        .radio-custom-label {
+          font-size: 14px;
+        }
+
+        input {
+          padding: 8px 15px
+        }
+
+        & [data-index="1"] {
+          margin-bottom: 16px
+        }
+
+        // & [data-index="2"] {
+        //   margin-bottom: 12px
+        // }
+
+        .drop-zone {
+          height: 182px;
+          padding-top: 4px;
+
+          & svg {
+            width: 70px; 
+            height: 70px;
+            margin-bottom: 0
+          }
+        }
+
+        .drop-zone-text {
+          font-size: 14px;
+        }
+
+        #description {
+          height: 20px;
+        }
+
+        .event-type-radios 
+        .radio-button {
+            padding: 8px 15px 8px 15px;
+        }
+
+        .file-format-info {
+          font-size: 11px;
+          margin-top: 0px;
+          margin-bottom: 6px;
+        }
+
+        .browse-files-button {
+          font-size: 12px;
+          padding: 8px 14px 8px 14px;
+          border-radius: 12px;
+        }
+
+        &.file-upload-wrapper {
+          margin-bottom: 20px;
+        }
+
+        .typeven {
+          font-size: 14px;
+          padding: 9px 12px;
+
+          & summary {
+            font-size: 12px !important;
+            bottom: 5px !important
+          }
+        }
+      }
+
+      .uploaded-file-name {
+        padding: 6px 20px;
+        margin-top: -12px !important;
+        margin-bottom: 12px !important;
+
+        & a {
+          margin-top: 4px;
+          font-size: 16px;
+        }
+      }
+
+      .remove-file-button {
+        font-size: 20px !important
+      }   
+    }
+  }
+
+  .event-tooltip-learn-more-btn {
+    margin-top: 0px !important;
+  }
+
+  .RussianFon {
+    background-position-x: right !important;
+    // height: 800px
+  }
+
+  // #map {
+  //   height: 980px !important;
+  // }
+
+  .team-list {
+    gap: 0.6rem !important;
+  }
+
+  .event-tooltip-image-placeholder {
+      height: 260px !important;
+      margin-top: 0px !important;
+    }
+
+  .event-tooltip-title {
+        font-size: 18px !important;
+        margin-top: 24px !important;
+      }
+
+      .event-tooltip-date {
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        margin-top: 28px !important;
+        right: 40px !important;
+      }
+
+  .event-tooltip-description {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    margin-top: 10px !important;
+    margin-bottom: 0px !important;
+  }
+
+  .event-tooltip-learn-more-btn {
+    margin-top: auto !important;
+  }
+
+  .moder-table {
+    &__header, &__row{
+      grid-template-columns: 100px 1fr 240px 200px 180px 120px !important;
+    }
+  }
+
+  .requests-table {
+    &__header, &__row{
+      grid-template-columns: 120px 1fr 280px 300px !important;
+    }
+  }
+
+  .AdminRequests {
+    top: 48px !important;
+
+    & > h1 {
+      font-size: 32px !important;
+    }
+
+    & .admin-buttons {
+      margin-top: 16px !important;
+
+      .admin-filters > button {
+        font-size: 16px !important;
+      }
+    }
+
+    & .found-count {
+      margin-bottom: -10px !important;
+      margin-top: -10px !important
+    }
+
+    .requests-table {
+      &__header {
+        padding: 10px 20px !important;
+      }
+
+      &__row {
+        padding: 18px 20px !important;
+      }
+    }
+
+    .requests-pagination {
+      margin-top: 6px !important;
+    }
+  }
+}
+
+@media screen and (max-width: 1520px) {
+  .RussianText {
+    top: -1vh !important;
+    position: absolute;
+    max-width: 900px
+  }
+
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 84px !important;
+    line-height: 100px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    font-size: 38px !important;
+    line-height: 60px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    font-size: 16px !important;
+    line-height: 24px !important;
+  }
+  
+  .RussianFon button {
+    position: absolute !important;
+    bottom: calc(-96vh + 20px) !important
+  }
+}
+
+@media screen and (max-width: 1450px) {
+  .RussianText {
+    top: -4vh !important;
+    position: absolute;
+    max-width: 900px
+  }
+}
+
+@media screen and (max-width: 1380px) {
+  .RussianText {
+    position: absolute;
+    top: -2vh;
+    margin-left: -10px;
+    margin-bottom: 20px;
+    max-width: 900px
+  }
+
+  #map {
+    height: 116vh;
+  }
+}
+
+@media screen and (max-width: 1260px) {
+  #map {
+    height: 118vh;
+  }
+
+  .RussianText {
+    margin-left: -20px;
+    margin-bottom: 20px;
+  }
+
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 72px !important;
+    line-height: 90px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    font-size: 36px !important;
+    line-height: 54px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    font-size: 14px !important;
+    line-height: 22px !important;
+  }
+
+  .RussianFon button {right: 142px !important;
+    font-size: 16px !important;
+    border: 1.8px solid $target-color !important;
+    box-shadow: 0px 0px 9px 0px $shadow-color;
+    padding: 14px 20px 14px 20px !important;}
+}
+
+@media screen and (max-width: 1200px) {
+  header {
+    height: 200px !important
+  }
+
+  // header img {
+  //   margin-left: 140px !important
+  // }
+
+  header button {
+    top: 120px;
+    font-size: 16px !important;
+    border-width: 1.6px !important;
+    box-shadow: 0px 0px 8px 0px $shadow-color !important;
+    padding: 12px 18px 12px 18px !important;
+    right: 142px !important}
+
+  #map {
+    height: 864px !important;
+  }
+
+  .RussianText {
+    margin-left: -30px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 64px !important;
+    line-height: 86px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 580px !important;
+    font-size: 30px !important;
+    line-height: 44px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    font-size: 12px !important;
+    line-height: 22px !important;
+  }
+}
+
+@media screen and (max-width: 1100px) {
+  header {
+    position: absolute !important
+  }
+
+  // header img {
+  //   margin-left: 120px !important
+  // }
+
+  .RussianText {
+    margin-left: -40px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 58px !important;
+    line-height: 78px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 540px !important;
+    font-size: 28px !important;
+    line-height: 40px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 540px !important;
+    font-size: 11px !important;
+    line-height: 22px !important;
+  }
+
+  #map {
+    height: 134vh;
+  }
+}
+
+@media screen and (max-width: 1040px) {
+  // header img {
+  //   margin-left: 110px !important
+  // }
+
+  .RussianText {
+    margin-left: -48px;
+  }
+
+  header button {
+    font-size: 14px !important;
+    padding: 12px 17px 12px 17px !important;
+  }
+
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 56px !important;
+    line-height: 68px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 520px !important;
+    font-size: 26px !important;
+    line-height: 36px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 540px !important;
+    font-size: 10px !important;
+    line-height: 20px !important;
+  }
+
+  .RussianFon button {right: 112px !important;
+    font-size: 14px !important;
+    border: 1.8px solid $target-color !important;
+    box-shadow: 0px 0px 8px 0px $shadow-color !important;
+    padding: 12px 17px 12px 17px !important;}
+
+  #map {
+    height: 135vh;
+  }
+}
+
+@media screen and (max-width: 980px) {
+  // header img {
+  //   margin-left: 100px !important
+  // }
+
+  .RussianText {
+    margin-left: -56px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 52px !important;
+    line-height: 68px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 1500px !important;
+    font-size: 26px !important;
+    line-height: 34px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 500px !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+
+  #map {
+    height: 140vh;
+  }
+}
+
+@media screen and (max-width: 940px) {
+  // header img {
+  //   margin-left: 90px !important
+  // }
+
+  .RussianText {
+    margin-left: -56px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 52px !important;
+    line-height: 64px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 600px !important;
+    font-size: 24px !important;
+    line-height: 32px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 500px !important;
+    font-size: 10px !important;
+    line-height: 20px !important;
+  }
+
+  #map {
+    height: 141vh;
+  }
+}
+
+@media screen and (max-width: 880px) {
+  // header img {
+  //   margin-left: 80px !important
+  // }
+
+  header button {
+    padding: 11px 16px 11px 16px !important;
+  }
+
+  .RussianText {
+    margin-left: -64px;
+    top: -1vh !important;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 48px !important;
+    line-height: 56px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 400px !important;
+    font-size: 20px !important;
+    line-height: 32px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 8px !important;
+    line-height: 18px !important;
+  }
+
+  .RussianFon button {
+    right: 112px !important;
+    font-size: 13px !important;
+    border: 1.5px solid $target-color !important;
+    box-shadow: 0px 0px 7px 0px $shadow-color !important;
+    padding: 11px 16px 11px 16px !important;
+  }
+}
+
+@media screen and (max-width: 840px) {
+  // header img {
+  //   margin-left: 70px !important
+  // }
+
+  header button {
+    padding: 12px 14px 12px 14px !important;
+  }
+
+  .RussianText {
+    margin-left: -68px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 46px !important;
+    line-height: 54px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 400px !important;
+    font-size: 18px !important;
+    line-height: 30px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 400px !important;
+    font-size: 8px !important;
+    line-height: 16px !important;
+  }
+
+  .RussianFon button {
+    right: 108px !important;
+    font-size: 12px !important;
+    border: 1.4px solid $target-color !important;
+    box-shadow: 0px 0px 7px 0px $shadow-color !important;
+    padding: 10px 15px 10px 15px !important;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  // header img {
+  //   margin-left: 60px !important
+  // }
+
+  .RussianText {
+    margin-left: -74px;
+    top: 0vh !important;
+  }
+
+  header button {
+    padding: 12px 13px 12px 13px !important;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 42px !important;
+    line-height: 48px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 380px !important;
+    font-size: 16px !important;
+    line-height: 26px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 7px !important;
+    line-height: 18px !important;
+  }
+
+  .RussianFon button {
+    right: 94px !important;
+    font-size: 10px !important;
+    border: 1.2px solid $target-color !important;
+    box-shadow: 0px 0px 6px 0px $shadow-color !important;
+    padding: 9px 14px 9px 14px !important;
+  }
+
+  #map {
+    height: 145vh;
+  }
+}
+
+@media screen and (max-width: 770px) {
+  header {
+    padding-top: 28px !important;
+    height: 180px !important
+  }
+
+  // header img {
+  //   margin-left: 50px !important
+  // }
+
+  .RussianText {
+    margin-left: -78px;
+  }
+
+  header button {
+    padding: 11px 12px 11px 12px !important;
+    margin-top: -12px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 40px !important;
+    line-height: 42px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 380px !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 7px !important;
+    line-height: 16px !important;
+  }
+
+  .RussianFon button {
+    bottom: calc(-100vh + 18px) !important;
+    right: 92px !important;
+    font-size: 10px !important;
+    border: 1px solid $target-color !important;
+    box-shadow: 0px 0px 5px 0px $shadow-color !important;
+    padding: 8px 13px 8px 13px !important;
+    border-radius: 10px !important;
+  }
+
+  #map {
+    height: 146vh;
+  }
+}
+
+@media screen and (max-width: 740px) {
+  header {
+    padding-top: 28px !important;
+    height: 170px !important
+  }
+
+  // header img {
+  //   margin-left: 40px !important
+  // }
+
+  #map {
+    height: 1100px !important;
+  }
+
+  .RussianText {
+    margin-left: -82px;
+  }
+
+  header button {
+    box-shadow: 0px 0px 15px 0px $shadow-color !important;
+    margin-top: -16px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 38px !important;
+    line-height: 40px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 340px !important;
+    font-size: 12px !important;
+    line-height: 18px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 400px !important;
+    font-size: 6px !important;
+    line-height: 14px !important;
+  }
+
+  #map {
+    height: 148vh;
+  }
+}
+
+@media screen and (max-width: 710px) {
+  header {
+    padding-top: 24px !important;
+    height: 160px !important
+  }
+
+  // header img {
+  //   margin-left: 30px !important
+  // }
+
+  header h1 {
+    max-width: 540px;
+  }
+
+  .RussianText {
+    top: -3vh !important;
+    margin-left: -86px;
+  }
+
+  header button {
+    margin-top: -22px;
+    padding: 10px 11px 10px 11px !important;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 36px !important;
+    line-height: 38px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 320px !important;
+    font-size: 12px !important;
+    line-height: 16px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 6px !important;
+    line-height: 12px !important;
+  }
+
+  .RussianFon button {
+    right: 82px !important;
+    font-size: 8px !important;
+    box-shadow: 0px 0px 4px 0px $shadow-color !important;
+    padding: 8px 10px 8px 10px !important;
+    border-radius: 8px !important;
+  }
+
+  #map {
+    height: 150vh;
+  }
+}
+
+@media screen and (max-width: 680px) {
+  // header img {
+  //   margin-left: 30px !important
+  // }
+
+  header h1 {
+    max-width: 540px;
+  }
+
+  #map {
+    height: 170vh;
+  }
+}
+
+@media screen and (max-width: 650px) {
+  .RussianFon {
+    background-position-x: right !important;
+    height: 480px
+  }
+
+  header {
+    height: 230px !important
+  }
+
+  header button {
+    margin-top: 40px;
+    padding: 12px 11px 12px 11px !important;
+    border: 1.4px solid $target-color !important;
+    box-shadow: 0px 0px 7px 0px $shadow-color !important;
+  }
+
+  .RussianText {
+    top: 50px !important;
+  }
+
+  .RussianFon button {
+    bottom: 20px !important;
+    right: 82px !important;
+    font-size: 8px !important;
+    box-shadow: 0px 0px 4px 0px $shadow-color !important;
+    padding: 8px 10px 8px 10px !important;
+    border-radius: 8px !important;
+  }
+
+  #map {
+    height: 1700px;
+  }
+}
+
+@media screen and (max-width: 620px) {
+  header h1 {
+    max-width: 380px
+  }
+
+  .RussianText {
+    margin-left: -92px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 34px !important;
+    line-height: 46px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 320px !important;
+    font-size: 16px !important;
+    line-height: 24px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 6px !important;
+    line-height: 16px !important;
+  }
+
+  .RussianFon button {
+    bottom: 16px !important;
+    right: 72px !important;
+    font-size: 6px !important;
+    box-shadow: 0px 0px 3px 0px $shadow-color !important;
+    padding: 6px 8px 6px 8px !important;
+    border-radius: 6px !important;
+  }
+}
+
+@media screen and (max-width: 540px) {
+  header a {
+    margin-left: 100px !important
+  }
+
+  header button {
+    justify-content: center;
+    right: 152px !important;
+    padding: 12px 11px 12px 11px !important;
+    box-shadow: 0px 0px 6px 0px $shadow-color !important;
+    display: flex
+  }
+
+  .RussianText {
+    margin-left: -112px;
+  }
+
+  .RussianFon {
+    height: 460px;
+    margin-top: 20px !important
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 32px !important;
+    line-height: 40px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 280px !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 6px !important;
+    line-height: 16px !important;
+  }
+
+  .RussianFon button {
+    bottom: 30px !important;
+    right: 62px !important;
+    font-size: 5px !important;
+    border: 0.8px solid $target-color !important;
+    box-shadow: 0px 0px 2px 0px $shadow-color !important;
+    padding: 5px 6px 5px 6px !important;
+    border-radius: 6px !important;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  header button {
+    border: 1.2px solid $target-color !important;
+    padding: 12px 12px 12px 12px !important;
+    box-shadow: 0px 0px 5px 0px $shadow-color !important;
+    right: 122px !important
+  }
+
+  .RussianFon {
+    height: 430px;
+  }
+
+  .RussianText {
+    margin-left: -116px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    font-size: 28px !important;
+    line-height: 38px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    max-width: 260px !important;
+    font-size: 12px !important;
+    line-height: 18px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 5px !important;
+    line-height: 16px !important;
+  }
+
+  .RussianFon button {
+    bottom: 26px !important;
+    right: 52px !important;
+    font-size: 5px !important;
+    box-shadow: 0px 0px 1px 0px $shadow-color !important;
+    padding: 5px 6px 5px 6px !important;
+    border-radius: 6px !important;
+  }
+}
+
+@media screen and (max-width: 450px) {
+  header{
+    height: 380px !important
+  }
+
+  header img {
+    margin-left: 90px !important
+  }
+
+  header h1 {
+    margin-left: 150px !important;
+    margin-top: 80px !important;
+    position: absolute;
+    display: flex;
+    max-width: 240px
+  }
+
+  header button {
+    right: 120px !important;
+    padding: 11px 10px 11px 10px !important;
+    box-shadow: 0px 0px 4px 0px $shadow-color !important;
+    margin-top: 160px
+  }
+
+  .RussianFon {
+    height: 440px;
+    margin-top: 180px !important
+  }
+
+  .RussianText {
+    margin-left: -120px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    letter-spacing: 2px !important;
+    font-size: 28px !important;
+    line-height: 38px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {letter-spacing: 1px !important;
+    max-width: 200px !important;
+    font-size: 12px !important;
+    line-height: 18px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 5px !important;
+    line-height: 16px !important;
+  }
+}
+
+@media screen and (max-width: 430px) {
+  // header img {
+  //   margin-left: 190px !important
+  // }
+}
+
+@media screen and (max-width: 420px) {
+  header button {
+    border: 1px solid $target-color !important;
+    padding: 12px 9px 12px 9px !important;
+    box-shadow: 0px 0px 3px 0px $shadow-color !important;
+    right: 110px !important
+  }
+
+  header img {
+    margin-left: 70px !important
+  }
+
+  header h1 {
+    margin-left: 130px !important
+  }
+
+  .RussianFon {
+    height: 420px;
+    margin-top: 200px !important
+  }
+
+  .RussianText {
+    margin-left: -120px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {letter-spacing: 2px !important;
+    font-size: 24px !important;
+    line-height: 32px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {letter-spacing: 1px !important;
+    max-width: 160px !important;
+    font-size: 10px !important;
+    line-height: 16px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 4px !important;
+    line-height: 16px !important;
+  }
+
+  .RussianFon button {
+    bottom: 26px !important;
+    right: 32px !important;
+    font-size: 5px !important;
+    border: 0.6px solid $target-color !important;
+    padding: 5px 6px 5px 6px !important;
+    border-radius: 6px !important;
+  }
+}
+
+@media screen and (max-width: 390px) {
+  header {
+    height: 320px !important
+  }
+  
+  header button {
+    box-shadow: 0px 0px 2px 0px $shadow-color !important;
+    padding: 11px 8px 11px 8px !important;
+    margin-top: 130px;
+    right: 100px !important
+  }
+
+  header img {
+    margin-left: 60px !important
+  }
+
+  header h1 {
+    margin-left: 120px !important
+  }
+
+  .RussianFon {
+    height: 380px;
+    margin-top: 120px !important
+  }
+
+  .RussianText {
+    margin-left: -124px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    letter-spacing: 2px !important;
+    font-size: 20px !important;
+    line-height: 28px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {letter-spacing: 1px !important;
+    max-width: 160px !important;
+    font-size: 10px !important;
+    line-height: 14px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 440px !important;
+    font-size: 4px !important;
+    line-height: 16px !important;
+  }
+
+  .RussianFon button {
+    position: absolute !important;
+    bottom: 20px !important;
+
+    &:hover {
+      transition: color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+      color: $hover-color;
+      border: 2px solid $hover-color;
+      box-shadow: 0px 0px 10px 0px $hover-color;
+    }
+  }
+
+  .FilterList {
+    width: 264px;
+    min-height: 232px !important;
+    top: 340px !important;
+    left: 12px !important;  
+    font-size: 14px !important;
+
+    & button {
+      padding: 10px 0px 10px 20px !important;
+      width: 264px;
+      font-size: 16px !important;
+    }
+
+    .FilterItem {
+      margin-bottom: 20px !important
+    }
+
+    .SubDropdownBtn {
+      padding: 8px 16px;
+      border-radius: 12px !important;
+    }
+
+    .FilterSubDropdown {
+      gap: 8px !important;
+
+      & input[type="text"] {
+        width: 108px !important;
+        border-radius: 12px !important;
+        padding: 8px 0 8px 16px !important;
+        font-size: 14px !important;
+      }
+
+      .dual-range-slider {
+        input[type="range"].dual-range {
+          position: absolute;
+          width: 100%;
+          height: 8px;
+          background: transparent;
+          -webkit-appearance: none;
+          pointer-events: none;
+          top: 0;
+          transition: all 0.3s ease;
+
+          &.min-range {
+            margin-left: -14px !important;
+          }
+
+          &.slider-range {
+            &.slider-track {
+              left: 1200px !important;
+            }
+          }
+        }
+      }
+    }
+    
+    .FilterActions {
+      gap: 10px;
+
+      & button {
+        font-size: 14px !important;
+        border-radius: 12px !important;
+        padding: 8px 0 8px 0 !important;
+      }
+    }
+  }
+
+  .modal-content {
+    border-radius: 16px;
+    padding: 20px !important;
+    width: 100% !important;
+    max-width: 400px !important;
+    height: auto; // 800px
+    color: $text-color;
+    box-sizing: border-box;
+
+    & .modal-close {
+      top: 16px !important;
+      right: 20px;
+      font-weight: 300 !important
+    }
+
+    .modal-title {
+      margin-bottom: 10px;
+    }
+  }
+}
+
+@media screen and (max-width: 370px) {
+  header button {
+    box-shadow: 0px 0px 10px 0px $shadow-color !important;
+    padding: 10px 8px 10px 8px !important;
+    right: 90px !important
+  }
+
+  // header img {
+  //   margin-left: 156px !important
+  // }
+
+  header h1 {
+    margin-left: 110px !important
+  }
+
+  .RussianFon {
+    height: 590px;
+    // margin-top: 210px !important;
+  }
+
+  .RussianText {
+    margin-top: 32px !important;
+    margin-left: -124px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {letter-spacing: 2px !important;
+    font-size: 18px !important;
+    line-height: 24px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {letter-spacing: 1px !important;
+    max-width: 160px !important;
+    font-size: 8px !important;
+    line-height: 12px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 240px !important;
+    font-size: 4px !important;
+    line-height: 12px !important;
+  }
+
+  .RussianFon button {
+    box-shadow: 0px 0px 10px 0px $shadow-color !important;
+    padding: 6px 6px 6px 6px !important;
+    border-radius: 10px !important;
+  }
+
+  .modal-content {
+    width: 340px !important;
+  }
+
+  .modal-title {
+    margin-bottom: 14px !important;
+  }
+
+  .modal-description {
+    margin-bottom: 8px !important;
+    line-height: 1.4;
+  }
+
+  // .modal-description1 {
+  //   margin-top: 20px;
+  // }
+
+  .modal-description2 {
+    margin-top: 0px;
+  }
+
+  .modal-descriptions {
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+
+  .submit-btn-active {
+    margin-top: 10px
+  }
+
+  form {
+    .form-row {
+      margin-bottom: -20px !important
+    }
+
+    .form-group {
+      & input, & textarea {
+        padding-left: 8px !important;
+      }
+    }
+
+    .form-group[data-index="1"], 
+      [data-index="2"] {
+        margin-bottom: 10px !important;
+
+        .event-type-radios{
+          margin-top: 34px !important;
+
+          .radio-button[data-index="3"] {
+            .radio-custom-label {
+              margin-bottom: 0px !important;
+            }
+          }
+        }
+      }
+
+    .drop-zone {
+      border: 2px dashed rgb(192, 145, 57) !important;
+      border-style: dashed;
+      padding-top: 0px !important;
+
+      &:hover {
+        transition: all 0.3s ease;
+      }
+
+      svg {
+        margin-bottom: -8px !important;
+        width: 88px;
+        height: 88px;
+      }
+
+      p {
+        margin: 0;
+        font-size: 13px !important;
+        font-weight: 400;
+        line-height: 1.8 !important;
+      }
+
+      .file-format-info {
+        font-size: 10px !important;
+        margin-top: 4px !important;
+        line-height: 1.8 !important;
+        margin-bottom: 8px;
+      }
+
+      .browse-files-button {
+        padding: 8px 20px !important;
+        border-radius: 10px !important;
+        margin-bottom: 10px !important;
+        font-weight: 500 !important;
+      }
+    }
+
+    .uploaded-file-name { 
+      color: rgb(192, 145, 57) !important;
+      padding-left: 8px !important;
+
+      a {
+        margin-left: -4px;
+      }
+
+      .remove-file-button {
+        font-weight: 300 !important;
+        margin-top: 2px !important;
+      }
+    }
+  }
+
+  #GEMail {
+    margin-top: 16px !important;
+  }
+
+  .GEMail, .TG, #email, #tg, input {
+      color: rgb(192, 145, 57) !important;
+  }
+
+  input {
+    padding-left: 12px !important;
+  }
+}
+
+@media screen and (max-width: 350px) {
+  header button {
+    right: 80px !important
+  }
+
+  header img {
+    margin-left: 46px !important
+  }
+
+  header h1 {
+    margin-left: 80px !important
+  }
+}
+
+@media screen and (max-width: 340px) {
+  header button {
+    right: 70px !important
+  }
+
+  // header img {
+  //   margin-left: 136px !important
+  // }
+
+  header h1 {
+    margin-left: 70px !important
+  }
+}
+
+@media screen and (max-width: 310px) {
+  header button {
+    padding: 8px 5px 8px 5px !important;
+    right: 60px !important
+  }
+
+  header img {
+    margin-left: 26px !important
+  }
+
+  header h1 {
+    margin-left: 80px !important
+  }
+
+  .RussianFon {
+    height: 320px;
+    margin-top: 210px !important
+  }
+
+  .RussianText {
+    margin-left: -128px;
+  }
+  
+  .RussianFon h1,
+  .RussianFon h4 {
+    letter-spacing: 2px !important;
+    font-size: 16px !important;
+    line-height: 20px !important;
+  }
+
+  .RussianFon h2,
+  .RussianFon h5 {
+    letter-spacing: 1px !important;
+    max-width: 140px !important;
+    font-size: 7px !important;
+    line-height: 10px !important;
+  }
+
+  .RussianFon h3,
+  .RussianFon h6 {
+    max-width: 120px !important;
+    font-size: 4px !important;
+    line-height: 8px !important;
+  }
+
+  .RussianFon button {
+    right: 32px !important;
+    font-size: 4px !important;
+    border: 0.4px solid $target-color !important;
+    padding: 3px 4px 3px 4px !important;
+    border-radius: 4px !important;
+  }
+}
+
+@media screen and (max-width: 280px) {
+  header button {
+    right: 46px !important
+  }
+
+  header img {
+    margin-left: 14px !important
+  }
+
+  header h1 {
+    margin-left: 50px !important
+  }
+}
+
+@media screen and (max-width: 260px) {
+  header h1 {
+    margin-left: 50px !important
+  }
+
+  header img {
+    margin-left: 4px !important
+  }
+}
+
+@media screen and (max-width: 1100px) {
+  .Headmer, .Heamoder {
+    & > a { 
+      margin-left: 40px 
+    }
+
+    & .butacc-wrap { 
+      margin-right: 40px
+    }
+
+    & .butnav { 
+      gap: 6px 
+    }
+
+    & .butnav button { 
+      font-size: 16px; 
+      padding: 0 8px
+    }
+  }
+
+  .Hepander > a { 
+    margin-left: 40px 
+  }
+
+  .AdminRequests { 
+    padding: 40px 40px !important 
+  }
+
+  .moder-content { 
+    padding: 40px 40px !important
+  }
+}
+
+@media screen and (max-width: 860px) {
+  .Headmer, .Heamoder {
+    & > a { margin-left: 24px; }
+    & .butacc-wrap { margin-right: 24px; }
+    & .butnav { gap: 2px; }
+    & .butnav button { font-size: 14px; padding: 0 6px; height: 40px; }
+  }
+
+  .Hepander > a { margin-left: 24px; }
+
+  .AdminRequests {
+    padding: 32px 24px !important;
+    & > h1 { font-size: 26px !important; }
+  }
+
+  .moder-content {
+    padding: 32px 24px !important;
+    &__title-block h1 { font-size: 26px !important; }
+  }
+
+  .moder-table {
+    overflow-x: auto;
+    &__header, &__row {
+      grid-template-columns: 100px 1fr 180px 160px 140px 90px !important;
+      padding: 16px 14px !important;
+      font-size: 14px !important;
+    }
+  }
+
+  .requests-table {
+    overflow-x: auto;
+    &__header, &__row {
+      grid-template-columns: 100px 1fr 200px 200px !important;
+      padding: 14px 14px !important;
+      font-size: 14px !important;
+    }
+  }
+}
+
+@media screen and (max-width: 680px) {
+  .Headmer, .Heamoder {
+    height: 56px !important;
+
+    & > a {
+      margin-left: 16px;
+      width: 36px !important;
+      height: 36px !important;
+    }
+
+    & h1 { font-size: 18px; margin-left: 6px; }
+
+    & .butnav {
+      gap: 0;
+      & button {
+        font-size: 13px;
+        padding: 0 5px;
+        height: 36px;
+        border-radius: 4px;
+      }
+    }
+
+    & .butacc-wrap { margin-right: 16px; }
+
+    & .butacc {
+      font-size: 15px;
+      height: 36px;
+      padding-left: 8px;
+      padding-right: 4px;
+    }
+  }
+
+  .Hepander {
+    height: 56px !important;
+    & > a { margin-left: 16px; width: 36px !important; height: 36px !important; }
+    & h1 { font-size: 18px; }
+  }
+
+  .LoginPage {
+    align-items: center;
+    padding: 0 16px;
+    overflow-y: auto !important;
+    padding-top: 72px !important;
+    padding-bottom: 24px !important;
+    box-sizing: border-box;
+  }
+
+  .AdminLogIn {
+    width: 100% !important;
+    max-width: 440px;
+    gap: 16px;
+
+    & h1 { font-size: 22px; }
+
+    .admin-group {
+      gap: 14px;
+
+      & input {
+        font-size: 17px !important;
+        padding: 12px 10px !important;
+        border-radius: 12px;
+      }
+    }
+
+    & button {
+      font-size: 16px !important;
+      padding: 14px 0 !important;
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+  }
+
+  .AdminRequests {
+    top: 56px !important;
+    padding: 24px 16px !important;
+
+    & > h1 { font-size: 22px !important; }
+
+    & > p { font-size: 14px !important; margin-top: 6px !important; }
+
+    .admin-buttons {
+      margin-top: 20px !important;
+      gap: 14px !important;
+
+      .admin-filters {
+        flex-wrap: wrap;
+        gap: 8px !important;
+
+        & > button {
+          font-size: 13px !important;
+          padding: 5px 8px !important;
+        }
+
+        .search {
+          width: 100%;
+          padding: 6px 10px;
+          flex: 1;
+
+          & input[type="search"] {
+            width: 100% !important;
+            font-size: 14px !important;
+          }
+        }
+      }
+
+      .found-count { font-size: 13px !important; }
+    }
+
+    .requests-table {
+      margin-top: 20px !important;
+      overflow-x: auto;
+
+      &__header, &__row {
+        grid-template-columns: 70px 1fr 130px 140px !important;
+        font-size: 13px !important;
+        padding: 10px 12px !important;
+      }
+    }
+
+    .requests-pagination {
+      flex-wrap: wrap;
+      gap: 10px !important;
+      margin-top: 12px !important;
+
+      &__info { font-size: 13px !important; }
+      &__nav { font-size: 14px !important; }
+      &__page { font-size: 14px !important; }
+    }
+  }
+
+  .moder-content {
+    top: 56px !important;
+    padding: 24px 16px !important;
+
+    &__top { flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+
+    &__title-block {
+      h1 { font-size: 22px !important; }
+      p  { font-size: 13px !important; }
+    }
+
+    &__add-btn {
+      font-size: 14px !important;
+      padding: 10px 14px !important;
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .moder-table {
+    overflow-x: auto;
+
+    &__header, &__row {
+      grid-template-columns: 70px 1fr 150px 130px 110px 70px !important;
+      font-size: 13px !important;
+      padding: 12px 10px !important;
+    }
+  }
+
+  .approve-modal {
+    grid-template-columns: 1fr !important;
+    width: calc(100vw - 24px) !important;
+    max-height: calc(100vh - 24px) !important;
+
+    &__left {
+      max-width: 100% !important;
+      padding: 16px !important;
+    }
+
+    &__right { padding: 16px !important; }
+  }
+
+  .request-modal {
+    padding: 24px 16px !important;
+    width: calc(100vw - 24px) !important;
+
+    &__grid { grid-template-columns: 1fr !important; }
+    &__actions { grid-template-columns: 1fr !important; }
+  }
+
+  .reject-modal {
+    padding: 24px 16px !important;
+    width: calc(100vw - 24px) !important;
+  }
+
+  .role-modal {
+    padding: 20px 16px !important;
+    width: calc(100vw - 24px) !important;
+  }
+}
+
+@media screen and (max-width: 420px) {
+  .Headmer, .Heamoder {
+    & h1 { display: none; }
+
+    & .butnav button {
+      font-size: 12px;
+      padding: 0 4px;
+      height: 32px;
+    }
+  }
+
+  .AdminRequests {
+    padding: 18px 12px !important;
+
+    & > h1 { font-size: 19px !important; }
+
+    .admin-buttons .admin-filters {
+      flex-direction: column;
+      align-items: stretch;
+
+      & > button { width: 100%; justify-content: center; }
+    }
+
+    .requests-table {
+      &__header, &__row {
+        grid-template-columns: 54px 1fr 110px 120px !important;
+        font-size: 12px !important;
+        padding: 8px 10px !important;
+      }
+    }
+  }
+
+  .moder-content {
+    padding: 18px 12px !important;
+    &__title-block h1 { font-size: 19px !important; }
+  }
+
+  .moder-table {
+    &__header, &__row {
+      grid-template-columns: 54px 1fr 120px 110px 90px 60px !important;
+      font-size: 12px !important;
+      padding: 10px 8px !important;
+    }
+  }
+
+  .AdminLogIn {
+    & h1 { font-size: 19px; }
+    .admin-group input { font-size: 15px !important; }
+    & button { font-size: 15px !important; }
+  }
+}

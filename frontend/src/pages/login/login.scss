@@ -1,0 +1,142 @@
+$headmer-color: #0F1B32;
+$target-color: #c09139;
+$hover-color: #805A13;
+$active-color: #48330C;
+$text-color: #fafafa;
+$popup-color: #2a1d15;
+$shadow-color: #d4a244;
+$backgroundOpacity-color: rgba(212, 162, 68, 0.1);
+$mapp-color: #2c4672;
+$transition-ive: all 0.3s ease;
+$font-shrift: 'Cruinn', sans-serif;
+$admpanel-font-shrift: 'Geist', sans-serif;
+$font-shrift-weight: 300;
+
+@font-face {
+  font-family: 'Geist';
+  src: url('../../assets/FontShrift/Geist/static/Geist-Medium.ttf') format('truetype'), url('../../assets/FontShrift/Geist/static/Geist-Regular.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('../../assets/FontShrift/Geist/static/Geist-Light.ttf') format('truetype'), url('../../assets/FontShrift/Geist/static/Geist-Thin.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap
+}
+
+.LoginPage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  width: 100vw;
+  height: 100vh;
+  left: 0;
+  font-family: $admpanel-font-shrift !important;
+  background-color: rgb(232, 232, 232);
+  opacity: 1; 
+  position: relative;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position-x: center;
+}
+
+.Hepander {
+  position: absolute;
+  display: flex;
+  justify-content: flex-start;
+  background-color: $headmer-color;
+  z-index: 1001;
+  width: 100vw;
+  height: 68px;
+  align-items: center;
+  top: 0;
+  color: $text-color;
+
+  & a {
+    margin-left: 160px;
+    width: 50px;
+    height: 50px;
+    scale: (0.8);
+    filter: brightness(1);
+    transition: $transition-ive;
+
+    &:hover {
+      filter: brightness(0.8);
+    }
+
+    &:active {
+      filter: brightness(0.6);
+    }
+  }
+
+  & h1 {
+    font-family: $font-shrift;
+    font-weight: $font-shrift-weight !important;
+    font-style: normal;
+    font-size: 24px;
+    letter-spacing: 0.2px;
+    margin-left: 2px
+  }
+}
+
+.AdminLogIn {
+  margin: 0;
+  padding: 0;
+  position: relative;
+  display: grid;
+  width: 520px;
+  gap: 20px;
+
+  & h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 400 !important;
+  }
+
+  .admin-group {
+    display: grid;
+    gap: 20px;
+    font-weight: 300 !important;
+
+    & input {
+      width: 100%;
+      padding: 15px 0 15px 0;
+      border-radius: 16px;
+      font-size: 24px;
+      background-color: rgb(250, 250, 250);
+      border: none;
+      outline: none;
+      box-shadow: none;
+
+      &:hover,
+      &:focus {
+        border: none;
+        outline: none;
+        box-shadow: none;
+      }
+    }
+  }
+
+  & button {
+    background-color: rgb(39, 50, 71);
+    color: rgb(250, 250, 250);
+    border: none;
+    width: 100%;
+    margin-top: 20px;
+    padding: 18px 0 18px 0;
+    border-radius: 16px;
+    font-weight: 100 !important;
+    font-size: 20px;
+    cursor: pointer; 
+    user-select: none;
+    transition: all 0.3s ease;
+  }
+}

@@ -1,0 +1,208 @@
+$header-color: #030816b3;
+$target-color: #c09139;
+$hover-color: #805A13;
+$active-color: #48330C;
+$text-color: #fafafa;
+$popup-color: #2a1d15;
+$shadow-color: #d4a244;
+$backgroundOpacity-color: rgba(212, 162, 68, 0.1);
+$mapp-color: #2c4672;
+$transition-ive: all 0.3s ease;
+$font-shrift: 'Cruinn', sans-serif;
+$font-shrift-weight: 300;
+
+@font-face {
+  font-family: 'Cruinn';
+  src: url('../../assets/FontShrift/Cruinn/Cruinn Medium.ttf') format('truetype'), url('../../assets/FontShrift/Cruinn/Cruinn Regular.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap
+}
+
+@font-face {
+  font-family: 'Cruinn';
+  src: url('../../assets/FontShrift/Cruinn/Cruinn Light.ttf') format('truetype'), url('../../assets/FontShrift/Cruinn/Cruinn Thin.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box
+}
+
+body {
+  font-family: 'Cruinn', sans-serif;
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  width: 100vw
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  position: relative;
+  background-image: url(../../assets/Mapp.png);
+  background-repeat: no-repeat;
+  background-position-x: center;
+  background-size: cover
+}
+
+header {
+  position: absolute;
+  display: flex;
+  justify-content: flex-start;
+  background-color: $header-color;
+  z-index: 1001;
+  width: 100vw;
+  height: 120px;
+  padding-top: 34px;
+  top: 0;
+  color: $text-color;
+
+  & a {
+    margin-left: 160px;
+    width: 50px;
+    height: 50px;
+    filter: brightness(1);
+    transition: $transition-ive;
+
+    &:hover {
+      filter: brightness(0.8);
+    }
+
+    &:active {
+      filter: brightness(0.6);
+    }
+  }
+
+  & h1 {
+    font-family: $font-shrift;
+    font-weight: $font-shrift-weight !important;
+    font-style: normal;
+    font-size: 36px;
+    margin-top: 8px;
+    letter-spacing: 0.2px;
+    margin-left: 12px
+  }
+}
+
+header button,
+.RussianFon button {
+  font-family: $font-shrift;
+  border-radius: 15px;
+  font-weight: $font-shrift-weight !important;
+  font-style: normal;
+  font-size: 18px;
+  right: 162px;
+  padding: 15px 22px 15px 22px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+  color: $target-color;
+  background-color: $backgroundOpacity-color;
+  border: 2px solid $target-color;
+  box-shadow: 0px 0px 10px 0px $shadow-color;
+  position: absolute;
+}
+
+header button:hover,
+.RussianFon button:hover,
+.FilterList button:hover {
+  transition: color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+  color: $hover-color;
+  border: 2px solid $hover-color;
+  box-shadow: 0px 0px 10px 0px $hover-color;
+
+  &:active {
+    color: $active-color;
+    border: 2px solid $active-color;
+    box-shadow: 0px 0px 10px 0px $active-color;
+  }
+}
+
+.RussianFon {
+  width: 100vw;
+  position: relative;
+  background-repeat: no-repeat;
+  background-position-x: center;
+  background-size: cover;
+
+  & h1 {
+    font-size: 96px;
+    top: 20vh;
+    font-weight: 800 !important;
+    line-height: 120px;
+    margin-top: 120px;
+    animation: hs 1.6s 0s cubic-bezier(0.22, 1, 0.36, 1) forwards
+  }
+
+  & h2 {
+    font-size: 44px;
+    top: 23vh;
+    font-weight: 400;
+    line-height: 70px;
+    animation: hs 1.6s 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards
+  }
+
+  & h3 {
+    font-size: 18px;
+    top: 25vh;
+    font-weight: 300;
+    line-height: 26px;
+    animation: hs 1.6s 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards
+  }
+
+  & h1,
+  & h2,
+  & h3 {
+    position: relative;
+    color: $text-color;
+    font-style: normal;
+    margin-left: 160px;
+    letter-spacing: 0.4px;
+    opacity: 0;
+
+    &.visible {
+      opacity: 1
+    }
+  }
+
+  & button {
+    position: fixed; // Вместо absolute
+    right: 162px;
+    bottom: 100px; // Отступ от низа окна
+}
+
+  // .animated {
+  //   & h1 {
+  //     opacity: 0;
+  //   }
+
+  //   & h1 {
+  //     animation: hs 1.6s 0s cubic-bezier(0.22, 1, 0.36, 1) forwards
+  //   }
+  // }
+}
+
+  @keyframes hs {
+    from {
+      opacity: 0;
+      margin-left: 20px
+    }
+
+    to {
+      opacity: 1;
+      margin-left: 160px
+    }
+  }

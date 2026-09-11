@@ -1,0 +1,168 @@
+.active-filter-dropdown {
+  padding: 15px;
+  background-color: #2c2c2c; // Более темный фон для выпадающего списка
+  border: 1px solid #ffe082; // Золотистая рамка
+  border-radius: 8px;
+  color: #ffe082;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  margin-top: 10px; // Отступ от родительского элемента
+  width: 300px; // Примерная ширина
+
+  .active-filter-dropdown-title {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #ffe082;
+  }
+
+  .filter-period-section {
+    .year-inputs {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+
+      .year-input {
+        width: 45%;
+        padding: 8px 10px;
+        background-color: #1a1a1a;
+        border: 1px solid #ffe082;
+        border-radius: 5px;
+        color: #ffe082;
+        font-size: 14px;
+        text-align: center;
+        outline: none;
+
+        &:focus {
+          border-color: lighten(#ffe082, 10%);
+          box-shadow: 0 0 0 2px rgba(255, 224, 130, 0.2);
+        }
+      }
+
+      .year-input-separator {
+        font-size: 16px;
+        color: #ffe082;
+      }
+    }
+
+    .historical-periods-buttons {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap; // Чтобы кнопки переносились на новую строку
+      gap: 10px; // Расстояние между кнопками
+
+      .SubDropdownBtn { // Стили для кнопки из dropbtn.tsx
+        flex-grow: 1; // Занимает доступное место
+        min-width: 45%; // Две кнопки в ряду
+        text-align: center;
+        padding: 8px 12px;
+        background-color: #1a1a1a;
+        border: 1px solid #ffe082;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between; // Чтобы текст и чекбокс были по краям
+
+        span {
+          color: #ffe082;
+          font-size: 14px;
+        }
+
+        input[type="checkbox"] {
+            // Чтобы стилизовать чекбокс так, как ты хочешь, обычно его скрывают
+            // и стилизуют отдельный элемент (например, span с классом)
+            display: none; // Скрываем нативный
+        }
+
+        .checkbox-custom { /* Пример кастомного чекбокса, если ты его используешь */
+            width: 18px;
+            height: 18px;
+            border: 1px solid #ffe082;
+            border-radius: 4px;
+            display: inline-block;
+            position: relative;
+            background-color: transparent; // Изначально прозрачный
+
+            &.checked {
+                background-color: #ffe082; // Заливка при checked
+                &:after {
+                    content: '✓'; // Или свой SVG
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    color: #1a1a1a; // Цвет галки
+                    font-size: 14px;
+                }
+            }
+        }
+
+        &.selected {
+          background-color: lighten(#ffe082, 5%); // Выбранная кнопка
+          span {
+            color: #1a1a1a;
+          }
+        }
+
+        &.out-of-range {
+            opacity: 0.6;
+            cursor: not-allowed;
+            border-color: #8c8c8c;
+            span {
+                color: #8c8c8c;
+            }
+            .checkbox-custom {
+                border-color: #8c8c8c;
+            }
+        }
+
+        &:hover:not(.out-of-range) {
+          background-color: darken(#1a1a1a, 5%);
+          border-color: lighten(#ffe082, 10%);
+        }
+      }
+    }
+  }
+
+  .filter-options-section {
+    display: flex;
+    flex-direction: column; // Опции друг под другом
+    gap: 10px; // Расстояние между кнопками опций
+
+    .SubDropdownBtn { // Стили для кнопок опций
+        padding: 10px 15px;
+        background-color: #1a1a1a;
+        border: 1px solid #ffe082;
+        border-radius: 5px; // Более угловатые кнопки
+        cursor: pointer;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        span {
+          color: #ffe082;
+          font-size: 15px;
+        }
+
+        input[type="checkbox"] {
+            // Для чекбоксов, как и выше, скрывай и стилизуй кастомно
+            // ...
+        }
+
+        &.selected {
+            background-color: lighten(#ffe082, 5%);
+            span {
+                color: #1a1a1a;
+            }
+        }
+
+        &:hover {
+            background-color: darken(#1a1a1a, 5%);
+            border-color: lighten(#ffe082, 10%);
+        }
+    }
+  }
+}
