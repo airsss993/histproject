@@ -72,6 +72,12 @@ func TestLoadFromUsesDevelopmentDefaults(t *testing.T) {
 	if cfg.SitePublicBaseURL != "http://localhost/sites" {
 		t.Errorf("SitePublicBaseURL = %q", cfg.SitePublicBaseURL)
 	}
+	if cfg.NotificationTimeout != 10*time.Second {
+		t.Errorf("NotificationTimeout = %s, want 10s", cfg.NotificationTimeout)
+	}
+	if cfg.AdminPanelURL != "http://localhost:3000/admin" {
+		t.Errorf("AdminPanelURL = %q", cfg.AdminPanelURL)
+	}
 	if len(cfg.CORSOrigins) != 1 || cfg.CORSOrigins[0] != "http://localhost:3000" {
 		t.Errorf("CORSOrigins = %#v, want localhost origin", cfg.CORSOrigins)
 	}
@@ -96,6 +102,12 @@ func TestLoadFromRequiresProductionSecrets(t *testing.T) {
 		"SITE_RENDER_BASE_URL",
 		"SITE_PREVIEW_BASE_URL",
 		"SITE_PUBLIC_BASE_URL",
+		"RESEND_API_KEY",
+		"EMAIL_FROM",
+		"TG_BOT_TOKEN",
+		"TG_ADMIN_CHAT_ID",
+		"ADMIN_PANEL_URL",
+		"NOTIFICATION_TIMEOUT",
 		"COOKIE_DOMAIN",
 		"CORS_ALLOWED_ORIGINS",
 	}
@@ -121,6 +133,12 @@ func TestLoadFromRequiresProductionSecrets(t *testing.T) {
 				"SITE_RENDER_BASE_URL":   "http://minio:9000/sites",
 				"SITE_PREVIEW_BASE_URL":  "https://example.com/preview",
 				"SITE_PUBLIC_BASE_URL":   "https://example.com/sites",
+				"RESEND_API_KEY":         "resend-key",
+				"EMAIL_FROM":             "mail@example.com",
+				"TG_BOT_TOKEN":           "bot-token",
+				"TG_ADMIN_CHAT_ID":       "-100123",
+				"ADMIN_PANEL_URL":        "https://example.com/admin",
+				"NOTIFICATION_TIMEOUT":   "10s",
 				"COOKIE_DOMAIN":          "example.com",
 				"CORS_ALLOWED_ORIGINS":   "https://example.com",
 				"SHUTDOWN_TIMEOUT":       "10s",
@@ -189,6 +207,21 @@ func TestLoadFromRejectsInvalidValues(t *testing.T) {
 			name:   "screenshot timeout",
 			values: map[string]string{"SCREENSHOT_TIMEOUT": "0s"},
 			field:  "SCREENSHOT_TIMEOUT",
+		},
+		{
+			name:   "notification timeout",
+			values: map[string]string{"NOTIFICATION_TIMEOUT": "0s"},
+			field:  "NOTIFICATION_TIMEOUT",
+		},
+		{
+			name:   "incomplete Resend config",
+			values: map[string]string{"RESEND_API_KEY": "key"},
+			field:  "EMAIL_FROM",
+		},
+		{
+			name:   "incomplete Telegram config",
+			values: map[string]string{"TG_BOT_TOKEN": "token"},
+			field:  "TG_ADMIN_CHAT_ID",
 		},
 	}
 

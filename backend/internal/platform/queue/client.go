@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -65,6 +66,9 @@ func (client *Client) EnqueueSubmissionNotification(ctx context.Context, submiss
 		asynq.MaxRetry(10),
 		asynq.Timeout(30*time.Second),
 	)
+	if errors.Is(err, asynq.ErrTaskIDConflict) {
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("enqueue submission notification task: %w", err)
 	}

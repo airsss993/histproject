@@ -25,6 +25,7 @@ type Modules struct {
 
 func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database.Database, redisClient *redisstore.Store, storageClient *storage.MinIO) Modules {
 	adminRepository := admins.NewRepository(databaseClient.Pool())
+	adminService := admins.NewService(adminRepository)
 	authHandler := auth.NewHandler(
 		auth.NewService(adminRepository, auth.NewSessionStore(redisClient.Client()), cfg.SessionTTL),
 		auth.NewLoginLimiter(redisClient.Client()),
@@ -32,19 +33,20 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		cfg.CookieDomain,
 		cfg.SessionTTL,
 	)
-	adminHandler := admins.NewHandler(admins.NewService(adminRepository), logger, func(ctx context.Context) (admins.Actor, bool) {
+	adminHandler := admins.NewHandler(adminService, logger, func(ctx context.Context) (admins.Actor, bool) {
 		identity, ok := auth.IdentityFromContext(ctx)
 		return admins.Actor{AdminID: identity.AdminID, Role: admins.Role(identity.Role)}, ok
 	})
 	eventService := events.NewService(events.NewRepository(databaseClient.Pool()))
 	eventHandler := events.NewHandler(eventService, logger)
 	submissionRepository := submissions.NewRepository(databaseClient.Pool())
+	queueClient := platformqueue.NewClient(redisClient.Client())
 	submissionService := submissions.NewService(
 		submissionRepository,
 		submissionEventPublisher{service: eventService},
 		storageClient,
-		platformqueue.NewClient(redisClient.Client()),
-		nil,
+		queueClient,
+		NewSubmissionNotifier(queueClient),
 		cfg.MaxUploadBytes,
 	)
 	submissionHandler := submissions.NewHandler(
