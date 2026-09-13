@@ -29,11 +29,11 @@
 - Produces: `database.Open(context.Context, string) (*database.Database, error)`.
 - Produces: `Name() string`, `Ping(context.Context) error`, `Close()` и `Pool() *pgxpool.Pool`.
 
-- [ ] Написать failing tests для имени checker, invalid DSN и canceled startup context.
-- [ ] Запустить `go test ./internal/platform/database` и подтвердить failure.
-- [ ] Реализовать adapter через `pgxpool.ParseConfig`, `pgxpool.NewWithConfig` и `Ping`.
-- [ ] Запустить `go test -race ./internal/platform/database ./...`.
-- [ ] Закоммитить как `feat(backend): добавить PostgreSQL adapter`.
+- [x] Написать failing tests для имени checker, invalid DSN и canceled startup context.
+- [x] Запустить `go test ./internal/platform/database` и подтвердить failure.
+- [x] Реализовать adapter через `pgxpool.ParseConfig`, `pgxpool.NewWithConfig` и `Ping`.
+- [x] Запустить `go test -race ./internal/platform/database ./...`.
+- [x] Закоммитить как `feat(backend): добавить PostgreSQL adapter`.
 
 ### Task 2: Redis adapter
 
