@@ -124,6 +124,60 @@ func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
 	}
 }
 
+func TestRepositoryCreatesOnlyOneInitialSuperAdmin(t *testing.T) {
+	databaseURL := os.Getenv("TEST_ADMINS_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_ADMINS_DATABASE_URL is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	db := openTestDatabase(t, ctx, databaseURL)
+	resetTestDatabase(t, ctx, db)
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cleanupCancel()
+		resetTestDatabase(t, cleanupCtx, db)
+		_ = db.Close()
+	})
+
+	if err := legacymigrations.Up(ctx, db); err != nil {
+		t.Fatalf("run legacy migrations: %v", err)
+	}
+	if err := v2migrations.Run(ctx, db); err != nil {
+		t.Fatalf("run V2 migrations: %v", err)
+	}
+
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open pgx pool: %v", err)
+	}
+	t.Cleanup(pool.Close)
+	repository := NewRepository(pool)
+
+	admin, err := repository.CreateInitialSuperAdmin(ctx, CreateRecord{
+		Login:        "root",
+		PasswordHash: "$2a$12$first-hash",
+		Email:        "root@example.test",
+		Role:         RoleSuperAdmin,
+	})
+	if err != nil {
+		t.Fatalf("CreateInitialSuperAdmin() error = %v", err)
+	}
+	if admin.ID != 1 || admin.Role != RoleSuperAdmin {
+		t.Fatalf("initial super admin = %#v", admin)
+	}
+
+	_, err = repository.CreateInitialSuperAdmin(ctx, CreateRecord{
+		Login:        "second-root",
+		PasswordHash: "$2a$12$second-hash",
+		Role:         RoleSuperAdmin,
+	})
+	if !errors.Is(err, ErrSuperAdminExists) {
+		t.Fatalf("second CreateInitialSuperAdmin() error = %v, want ErrSuperAdminExists", err)
+	}
+}
+
 func openTestDatabase(t *testing.T, ctx context.Context, databaseURL string) *sql.DB {
 	t.Helper()
 	db, err := sql.Open("pgx", databaseURL)

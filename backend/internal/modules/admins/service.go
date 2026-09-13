@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	ErrAdminNotFound  = errors.New("admin not found")
-	ErrLoginTaken     = errors.New("admin login already exists")
-	ErrSelfMutation   = errors.New("admin cannot mutate itself")
-	ErrLastSuperAdmin = errors.New("last super admin cannot be changed")
+	ErrAdminNotFound    = errors.New("admin not found")
+	ErrLoginTaken       = errors.New("admin login already exists")
+	ErrSuperAdminExists = errors.New("super admin already exists")
+	ErrSelfMutation     = errors.New("admin cannot mutate itself")
+	ErrLastSuperAdmin   = errors.New("last super admin cannot be changed")
 )
 
 var loginPattern = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
@@ -43,6 +44,7 @@ func (validationError *ValidationError) Error() string {
 
 type Store interface {
 	Create(context.Context, CreateRecord) (Admin, error)
+	CreateInitialSuperAdmin(context.Context, CreateRecord) (Admin, error)
 	List(context.Context) ([]Admin, error)
 	ChangeRole(context.Context, int64, Role) (Admin, error)
 	Delete(context.Context, int64) error
@@ -57,22 +59,39 @@ func NewService(store Store) *Service {
 }
 
 func (service *Service) Create(ctx context.Context, input CreateInput) (Admin, error) {
+	record, err := prepareCreateRecord(input)
+	if err != nil {
+		return Admin{}, err
+	}
+	return service.store.Create(ctx, record)
+}
+
+func (service *Service) Bootstrap(ctx context.Context, input CreateInput) (Admin, error) {
+	input.Role = RoleSuperAdmin
+	record, err := prepareCreateRecord(input)
+	if err != nil {
+		return Admin{}, err
+	}
+	return service.store.CreateInitialSuperAdmin(ctx, record)
+}
+
+func prepareCreateRecord(input CreateInput) (CreateRecord, error) {
 	input.Login = strings.TrimSpace(input.Login)
 	input.Email = strings.TrimSpace(input.Email)
 	if fields := validateCreate(input); len(fields) > 0 {
-		return Admin{}, &ValidationError{Fields: fields}
+		return CreateRecord{}, &ValidationError{Fields: fields}
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return Admin{}, errors.New("hash admin password")
+		return CreateRecord{}, errors.New("hash admin password")
 	}
-	return service.store.Create(ctx, CreateRecord{
+	return CreateRecord{
 		Login:        input.Login,
 		PasswordHash: string(passwordHash),
 		Email:        input.Email,
 		Role:         input.Role,
-	})
+	}, nil
 }
 
 func (service *Service) List(ctx context.Context) ([]Admin, error) {

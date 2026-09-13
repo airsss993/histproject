@@ -47,6 +47,41 @@ func (repository *Repository) Create(ctx context.Context, input CreateRecord) (A
 	return admin, nil
 }
 
+func (repository *Repository) CreateInitialSuperAdmin(ctx context.Context, input CreateRecord) (Admin, error) {
+	tx, err := repository.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return Admin{}, fmt.Errorf("begin super admin bootstrap: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx, `LOCK TABLE auth.admins IN SHARE ROW EXCLUSIVE MODE`); err != nil {
+		return Admin{}, fmt.Errorf("lock admins for bootstrap: %w", err)
+	}
+	var exists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM auth.admins WHERE role = 'super_admin')`).Scan(&exists); err != nil {
+		return Admin{}, fmt.Errorf("check super admin for bootstrap: %w", err)
+	}
+	if exists {
+		return Admin{}, ErrSuperAdminExists
+	}
+
+	admin, err := scanAdmin(tx.QueryRow(ctx, `
+		INSERT INTO auth.admins (login, password_hash, email, role)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, login, email, role::TEXT, created_at
+	`, input.Login, input.PasswordHash, input.Email, input.Role))
+	if isUniqueViolation(err) {
+		return Admin{}, ErrLoginTaken
+	}
+	if err != nil {
+		return Admin{}, fmt.Errorf("create initial super admin: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Admin{}, fmt.Errorf("commit super admin bootstrap: %w", err)
+	}
+	return admin, nil
+}
+
 func (repository *Repository) List(ctx context.Context) ([]Admin, error) {
 	rows, err := repository.pool.Query(ctx, `
 		SELECT id, login, email, role::TEXT, created_at
