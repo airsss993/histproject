@@ -8,7 +8,7 @@ import (
 	"github.com/airsss993/histproject/backend/pkg/telegram"
 )
 
-// Service — оркестрирует отправку уведомлений о событиях с заявками.
+// Service - оркестрирует отправку уведомлений о событиях с заявками.
 type Service struct {
 	mailer        *mailer.Mailer
 	repo          *Repository
@@ -40,7 +40,7 @@ func (s *Service) OnNewRequest(ctx context.Context, requestID int, title, email,
 		tg = "@" + username
 	}
 	text := fmt.Sprintf(
-		"<b>⚡️ НОВАЯ ЗАЯВКА #%d</b>\n\n<b>📂 СВЕДЕНИЯ</b>\n<b>Название:</b> «%s»\n<b>Статус:</b> Ожидает проверки\n\n<b>👤 КОНТАКТЫ</b>\n<b>Email:</b> %s\n<b>Telegram:</b> %s\n\n<b>📥 <a href=\"%s\">Рассмотреть в админке</a></b>",
+		"<b>НОВАЯ ЗАЯВКА #%d</b>\n\n<b>СВЕДЕНИЯ</b>\n<b>Название:</b> \"%s\"\n<b>Статус:</b> Ожидает проверки\n\n<b>КОНТАКТЫ</b>\n<b>Email:</b> %s\n<b>Telegram:</b> %s\n\n<b><a href=\"%s\">Рассмотреть в админке</a></b>",
 		requestID, title, email, tg, s.adminPanelURL,
 	)
 	telegram.SendMessage(s.tgBotToken, s.tgAdminChatID, text)
