@@ -45,12 +45,12 @@ func NewHandler(service HTTPService, limiter CreateLimiter, logger *slog.Logger,
 
 func (handler *Handler) Register(mux *http.ServeMux, protectAdmin, protectSuperAdmin Middleware) {
 	mux.HandleFunc("POST /api/v1/submissions", handler.create)
-	mux.Handle("GET /api/v1/admin/submissions/audit", protectSuperAdmin(http.HandlerFunc(handler.auditLog)))
+	mux.Handle("GET /api/v1/admin/audit-log", protectSuperAdmin(http.HandlerFunc(handler.auditLog)))
 	mux.Handle("GET /api/v1/admin/submissions", protectAdmin(http.HandlerFunc(handler.list)))
 	mux.Handle("GET /api/v1/admin/submissions/{id}", protectAdmin(http.HandlerFunc(handler.get)))
-	mux.Handle("PATCH /api/v1/admin/submissions/{id}/review", protectAdmin(http.HandlerFunc(handler.review)))
-	mux.Handle("PATCH /api/v1/admin/submissions/{id}/reject", protectAdmin(http.HandlerFunc(handler.reject)))
-	mux.Handle("PATCH /api/v1/admin/submissions/{id}/publish", protectAdmin(http.HandlerFunc(handler.publish)))
+	mux.Handle("POST /api/v1/admin/submissions/{id}/review", protectAdmin(http.HandlerFunc(handler.review)))
+	mux.Handle("POST /api/v1/admin/submissions/{id}/reject", protectAdmin(http.HandlerFunc(handler.reject)))
+	mux.Handle("POST /api/v1/admin/submissions/{id}/publish", protectAdmin(http.HandlerFunc(handler.publish)))
 }
 
 func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {

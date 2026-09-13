@@ -176,9 +176,9 @@ func TestHTTPModerationPassesActorAndInput(t *testing.T) {
 		path   string
 		body   string
 	}{
-		{method: http.MethodPatch, path: "/api/v1/admin/submissions/7/review"},
-		{method: http.MethodPatch, path: "/api/v1/admin/submissions/8/reject", body: `{"comment":"duplicate"}`},
-		{method: http.MethodPatch, path: "/api/v1/admin/submissions/9/publish", body: `{"latitude":55.5,"longitude":60.5}`},
+		{method: http.MethodPost, path: "/api/v1/admin/submissions/7/review"},
+		{method: http.MethodPost, path: "/api/v1/admin/submissions/8/reject", body: `{"comment":"duplicate"}`},
+		{method: http.MethodPost, path: "/api/v1/admin/submissions/9/publish", body: `{"latitude":55.5,"longitude":60.5}`},
 	}
 	for _, test := range tests {
 		response := httptest.NewRecorder()
@@ -202,7 +202,7 @@ func TestHTTPPublishMapsCoordinateValidation(t *testing.T) {
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 	response := httptest.NewRecorder()
 
-	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/api/v1/admin/submissions/9/publish", strings.NewReader(`{"latitude":91,"longitude":60}`)))
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/admin/submissions/9/publish", strings.NewReader(`{"latitude":91,"longitude":60}`)))
 
 	assertSubmissionFieldError(t, response, "latitude")
 }
@@ -218,7 +218,7 @@ func TestHTTPAuditUsesSuperAdminProtection(t *testing.T) {
 	listResponse := httptest.NewRecorder()
 	mux.ServeHTTP(listResponse, httptest.NewRequest(http.MethodGet, "/api/v1/admin/submissions", nil))
 	auditResponse := httptest.NewRecorder()
-	mux.ServeHTTP(auditResponse, httptest.NewRequest(http.MethodGet, "/api/v1/admin/submissions/audit?q=Event&page=1&pageSize=20", nil))
+	mux.ServeHTTP(auditResponse, httptest.NewRequest(http.MethodGet, "/api/v1/admin/audit-log?q=Event&page=1&pageSize=20", nil))
 
 	if listResponse.Code != http.StatusOK || auditResponse.Code != http.StatusOK {
 		t.Fatalf("statuses = list:%d audit:%d", listResponse.Code, auditResponse.Code)
@@ -257,7 +257,7 @@ func TestHTTPMapsNotFoundAndInvalidTransition(t *testing.T) {
 	assertSubmissionError(t, missingResponse, http.StatusNotFound, "submission_not_found")
 
 	conflictResponse := httptest.NewRecorder()
-	mux.ServeHTTP(conflictResponse, httptest.NewRequest(http.MethodPatch, "/api/v1/admin/submissions/7/review", nil))
+	mux.ServeHTTP(conflictResponse, httptest.NewRequest(http.MethodPost, "/api/v1/admin/submissions/7/review", nil))
 	assertSubmissionError(t, conflictResponse, http.StatusConflict, "invalid_transition")
 }
 

@@ -73,10 +73,10 @@ go run ./cmd/bootstrap-admin --apply
 - `DELETE /api/v1/admin/events/{id}`
 - `GET /api/v1/admin/submissions`
 - `GET /api/v1/admin/submissions/{id}`
-- `PATCH /api/v1/admin/submissions/{id}/review`
-- `PATCH /api/v1/admin/submissions/{id}/reject`
-- `PATCH /api/v1/admin/submissions/{id}/publish`
-- `GET /api/v1/admin/submissions/audit`
+- `POST /api/v1/admin/submissions/{id}/review`
+- `POST /api/v1/admin/submissions/{id}/reject`
+- `POST /api/v1/admin/submissions/{id}/publish`
+- `GET /api/v1/admin/audit-log`
 
 Admins routes требуют session с ролью `super_admin`. Events и submissions moderation routes доступны ролям `admin` и `super_admin`. Submissions audit доступен только `super_admin`.
 
