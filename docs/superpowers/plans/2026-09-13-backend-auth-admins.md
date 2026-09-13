@@ -73,11 +73,11 @@
 - Create: `backend/internal/modules/admins/http.go`
 - Test: `backend/internal/modules/admins/http_test.go`
 
-- [ ] Написать failing tests на roles, self-change, last super admin, duplicate login, password hashing и authorization.
-- [ ] Подтвердить failure.
-- [ ] Реализовать service и repository transactions для role/delete invariants.
-- [ ] Реализовать admins endpoints и `super_admin` middleware.
-- [ ] Запустить race и integration tests, закоммитить как `feat(backend): добавить admins API`.
+- [x] Написать failing tests на roles, self-change, last super admin, duplicate login, password hashing и authorization.
+- [x] Подтвердить failure.
+- [x] Реализовать service и repository transactions для role/delete invariants.
+- [x] Реализовать admins endpoints и `super_admin` middleware.
+- [x] Запустить race и integration tests, закоммитить как `feat(backend): добавить admins API`.
 
 ### Task 5: Bootstrap super admin
 
