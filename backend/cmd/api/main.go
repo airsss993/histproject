@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,6 +19,7 @@ import (
 
 type dependencySet interface {
 	Checkers() []health.Checker
+	Modules(config.Config, *slog.Logger) app.Modules
 	Close() error
 }
 
@@ -51,7 +53,7 @@ func runWithOpener(ctx context.Context, getenv func(string) string, stdout, stde
 		return 1
 	}
 
-	handler := app.NewAPI(cfg, logger, dependencies.Checkers()...)
+	handler := app.NewAPI(cfg, logger, dependencies.Modules(cfg, logger), dependencies.Checkers()...)
 	server := httpserver.NewServer(httpserver.ServerConfig{
 		Address:         cfg.ServerAddress,
 		ShutdownTimeout: cfg.ShutdownTimeout,

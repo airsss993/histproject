@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"testing"
 
+	"github.com/airsss993/histproject/backend/internal/app"
 	"github.com/airsss993/histproject/backend/internal/platform/config"
 	"github.com/airsss993/histproject/backend/internal/platform/health"
 )
@@ -15,7 +17,8 @@ type fakeDependencies struct {
 	closed bool
 }
 
-func (*fakeDependencies) Checkers() []health.Checker { return nil }
+func (*fakeDependencies) Checkers() []health.Checker                      { return nil }
+func (*fakeDependencies) Modules(config.Config, *slog.Logger) app.Modules { return app.Modules{} }
 func (d *fakeDependencies) Close() error {
 	d.closed = true
 	return nil

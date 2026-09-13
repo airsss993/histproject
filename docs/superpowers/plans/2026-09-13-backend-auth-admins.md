@@ -101,10 +101,10 @@
 - Modify: `backend/cmd/api/main_test.go`
 - Modify: `backend/README.md`
 
-- [ ] Внедрить modules через explicit constructors и route registrars.
-- [ ] Проверить HTTP flow login -> session -> admins -> logout на PostgreSQL 18 и Redis 8.
-- [ ] Повторить login rate limit в Redis без хранения password и login в key.
-- [ ] Удалить `golang-jwt/jwt` и `google/uuid` из direct dependencies, если их больше не использует legacy code на этом этапе.
-- [ ] Обновить README и `.env.example` без secrets.
-- [ ] Запустить `gofmt`, `go test -race ./...`, PostgreSQL/Redis integration tests, `go vet ./...`, scoped `golangci-lint`, сборки всех commands и `git diff --check`.
-- [ ] Закоммитить как `feat(backend): подключить auth и admins modules`.
+- [x] Внедрить modules через explicit constructors и route registrars.
+- [x] Проверить HTTP flow login -> session -> admins -> logout на PostgreSQL 18 и Redis 8.
+- [x] Повторить login rate limit в Redis без хранения password и login в key.
+- [x] Удалить `golang-jwt/jwt` и `google/uuid` из direct dependencies, если их больше не использует legacy code на этом этапе.
+- [x] Обновить README и `.env.example` без secrets.
+- [x] Запустить `gofmt`, `go test -race ./...`, PostgreSQL/Redis integration tests, `go vet ./...`, scoped `golangci-lint`, сборки всех commands и `git diff --check`.
+- [x] Закоммитить как `feat(backend): подключить auth и admins modules`.

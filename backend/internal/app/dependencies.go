@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/airsss993/histproject/backend/internal/platform/config"
 	"github.com/airsss993/histproject/backend/internal/platform/database"
@@ -79,6 +80,10 @@ func (d *Dependencies) Checkers() []health.Checker {
 		checkers = append(checkers, resource.checker)
 	}
 	return checkers
+}
+
+func (d *Dependencies) Modules(cfg config.Config, logger *slog.Logger) Modules {
+	return NewModules(cfg, logger, d.Database, d.Redis)
 }
 
 func (d *Dependencies) Close() error {

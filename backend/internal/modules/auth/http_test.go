@@ -18,7 +18,7 @@ func TestLoginSetsSecureSessionCookie(t *testing.T) {
 		loginToken:    "session-token",
 		loginIdentity: Identity{AdminID: 7, Login: "root", Role: "super_admin"},
 	}
-	handler := NewHandler(service, discardLogger(), "example.test", time.Hour)
+	handler := NewHandler(service, nil, discardLogger(), "example.test", time.Hour)
 	mux := http.NewServeMux()
 	handler.Register(mux)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"login":"root","password":"correct"}`))
@@ -62,7 +62,7 @@ func TestLoginSetsSecureSessionCookie(t *testing.T) {
 }
 
 func TestLoginRejectsMalformedJSON(t *testing.T) {
-	handler := NewHandler(&authServiceStub{}, discardLogger(), "", time.Hour)
+	handler := NewHandler(&authServiceStub{}, nil, discardLogger(), "", time.Hour)
 	mux := http.NewServeMux()
 	handler.Register(mux)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"login":"root","unexpected":true}`))
@@ -75,7 +75,7 @@ func TestLoginRejectsMalformedJSON(t *testing.T) {
 
 func TestLoginUsesGenericInvalidCredentialsError(t *testing.T) {
 	service := &authServiceStub{loginError: ErrInvalidCredentials}
-	handler := NewHandler(service, discardLogger(), "", time.Hour)
+	handler := NewHandler(service, nil, discardLogger(), "", time.Hour)
 	mux := http.NewServeMux()
 	handler.Register(mux)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(`{"login":"missing","password":"wrong"}`))
@@ -90,7 +90,7 @@ func TestLoginUsesGenericInvalidCredentialsError(t *testing.T) {
 }
 
 func TestSessionRequiresValidCookie(t *testing.T) {
-	handler := NewHandler(&authServiceStub{authenticateError: ErrInvalidSession}, discardLogger(), "", time.Hour)
+	handler := NewHandler(&authServiceStub{authenticateError: ErrInvalidSession}, nil, discardLogger(), "", time.Hour)
 	mux := http.NewServeMux()
 	handler.Register(mux)
 	response := httptest.NewRecorder()
@@ -104,7 +104,7 @@ func TestSessionReturnsAuthenticatedIdentity(t *testing.T) {
 	service := &authServiceStub{
 		authenticateIdentity: Identity{AdminID: 9, Login: "admin", Role: "admin"},
 	}
-	handler := NewHandler(service, discardLogger(), "", time.Hour)
+	handler := NewHandler(service, nil, discardLogger(), "", time.Hour)
 	mux := http.NewServeMux()
 	handler.Register(mux)
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/auth/session", nil)
@@ -134,7 +134,7 @@ func TestSessionReturnsAuthenticatedIdentity(t *testing.T) {
 
 func TestLogoutDeletesSessionAndClearsCookie(t *testing.T) {
 	service := &authServiceStub{}
-	handler := NewHandler(service, discardLogger(), "example.test", time.Hour)
+	handler := NewHandler(service, nil, discardLogger(), "example.test", time.Hour)
 	mux := http.NewServeMux()
 	handler.Register(mux)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
