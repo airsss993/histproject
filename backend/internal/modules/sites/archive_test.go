@@ -193,9 +193,10 @@ func TestOpenArchiveStopsForCanceledContext(t *testing.T) {
 }
 
 type zipEntry struct {
-	name string
-	body string
-	mode os.FileMode
+	name  string
+	body  string
+	mode  os.FileMode
+	store bool
 }
 
 func makeZIP(t *testing.T, entries ...zipEntry) []byte {
@@ -204,6 +205,9 @@ func makeZIP(t *testing.T, entries ...zipEntry) []byte {
 	writer := zip.NewWriter(&buffer)
 	for _, entry := range entries {
 		header := &zip.FileHeader{Name: entry.name, Method: zip.Deflate}
+		if entry.store {
+			header.Method = zip.Store
+		}
 		if entry.mode != 0 {
 			header.SetMode(entry.mode)
 		}
