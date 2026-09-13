@@ -66,6 +66,62 @@ func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
 	if !errors.Is(err, pgx.ErrNoRows) {
 		t.Fatalf("missing credentials error = %v, want pgx.ErrNoRows", err)
 	}
+
+	_, err = repository.Create(ctx, CreateRecord{
+		Login:        "root",
+		PasswordHash: "$2a$12$other-hash",
+		Role:         RoleAdmin,
+	})
+	if !errors.Is(err, ErrLoginTaken) {
+		t.Fatalf("duplicate Create() error = %v, want ErrLoginTaken", err)
+	}
+
+	if _, err := repository.ChangeRole(ctx, 1, RoleAdmin); !errors.Is(err, ErrLastSuperAdmin) {
+		t.Fatalf("demote last super admin error = %v, want ErrLastSuperAdmin", err)
+	}
+	if err := repository.Delete(ctx, 1); !errors.Is(err, ErrLastSuperAdmin) {
+		t.Fatalf("delete last super admin error = %v, want ErrLastSuperAdmin", err)
+	}
+
+	secondSuperAdmin, err := repository.Create(ctx, CreateRecord{
+		Login:        "second-root",
+		PasswordHash: "$2a$12$second-hash",
+		Email:        "second@example.test",
+		Role:         RoleSuperAdmin,
+	})
+	if err != nil {
+		t.Fatalf("create second super admin: %v", err)
+	}
+	changedAdmin, err := repository.ChangeRole(ctx, 1, RoleAdmin)
+	if err != nil {
+		t.Fatalf("demote first super admin: %v", err)
+	}
+	if changedAdmin.Role != RoleAdmin {
+		t.Fatalf("changed role = %q, want admin", changedAdmin.Role)
+	}
+	if err := repository.Delete(ctx, secondSuperAdmin.ID); !errors.Is(err, ErrLastSuperAdmin) {
+		t.Fatalf("delete remaining super admin error = %v, want ErrLastSuperAdmin", err)
+	}
+
+	thirdSuperAdmin, err := repository.Create(ctx, CreateRecord{
+		Login:        "third-root",
+		PasswordHash: "$2a$12$third-hash",
+		Role:         RoleSuperAdmin,
+	})
+	if err != nil {
+		t.Fatalf("create third super admin: %v", err)
+	}
+	if err := repository.Delete(ctx, secondSuperAdmin.ID); err != nil {
+		t.Fatalf("delete super admin with replacement: %v", err)
+	}
+
+	admins, err := repository.List(ctx)
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if len(admins) != 2 || admins[0].ID != 1 || admins[1].ID != thirdSuperAdmin.ID {
+		t.Fatalf("admins after changes = %#v", admins)
+	}
 }
 
 func openTestDatabase(t *testing.T, ctx context.Context, databaseURL string) *sql.DB {
