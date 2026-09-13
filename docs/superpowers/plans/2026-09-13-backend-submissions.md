@@ -100,11 +100,11 @@
 - Modify: `backend/internal/modules/submissions/service.go`
 - Modify: `backend/internal/modules/submissions/service_test.go`
 
-- [ ] Написать failing tests на event upsert by submission ID и retry после partial publish failure.
-- [ ] Реализовать `events.Publish(ctx, Snapshot)` с `ON CONFLICT (submission_id) DO UPDATE`.
-- [ ] После status/audit transaction вызвать idempotent event publisher; retry status `published` доводит event до нужного snapshot.
-- [ ] Не отправлять notification до успешной event publication.
-- [ ] Запустить PostgreSQL 18 integration tests и закоммитить как `feat(backend): добавить idempotent publication`.
+- [x] Написать failing tests на event upsert by submission ID и retry после partial publish failure.
+- [x] Реализовать `events.Publish(ctx, Snapshot)` с `ON CONFLICT (submission_id) DO UPDATE`.
+- [x] После status/audit transaction вызвать idempotent event publisher; retry status `published` доводит event до нужного snapshot.
+- [x] Не отправлять notification до успешной event publication.
+- [x] Запустить PostgreSQL 18 integration tests и закоммитить как `feat(backend): добавить idempotent publication`.
 
 ### Task 7: Wiring, E2E и docs
 

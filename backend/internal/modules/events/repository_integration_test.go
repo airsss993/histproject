@@ -97,6 +97,53 @@ func TestRepositoryEventLifecycle(t *testing.T) {
 	}
 }
 
+func TestRepositoryPublishUpsertsBySubmissionID(t *testing.T) {
+	databaseURL := os.Getenv("TEST_EVENTS_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_EVENTS_DATABASE_URL is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	db := prepareEventsDatabase(t, ctx, databaseURL)
+	seedEvents(t, ctx, db)
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open pgx pool: %v", err)
+	}
+	t.Cleanup(pool.Close)
+	repository := NewRepository(pool)
+
+	first, err := repository.Publish(ctx, Snapshot{
+		SubmissionID: 2, Title: "Updated event", Description: "Updated description",
+		Latitude: 50.1, Longitude: 60.2, EventDate: mustDate(t, "1945-05-09"),
+		EventType: "military", SiteURL: "https://storage.test/sites/updated/index.html",
+		PreviewImageURL: "https://storage.test/sites/updated/screenshot.png",
+	})
+	if err != nil {
+		t.Fatalf("Publish() first error = %v", err)
+	}
+	second, err := repository.Publish(ctx, Snapshot{
+		SubmissionID: 2, Title: "Final event", Description: "Final description",
+		Latitude: 51.1, Longitude: 61.2, EventDate: mustDate(t, "1945-05-10"),
+		EventType: "military", SiteURL: "https://storage.test/sites/final/index.html",
+		PreviewImageURL: "https://storage.test/sites/final/screenshot.png",
+	})
+	if err != nil {
+		t.Fatalf("Publish() retry error = %v", err)
+	}
+	if first.ID != second.ID || second.SubmissionID != 2 || second.Title != "Final event" || second.Latitude != 51.1 {
+		t.Fatalf("upsert results = first:%#v second:%#v", first, second)
+	}
+	var count int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM events.events WHERE submission_id = 2`).Scan(&count); err != nil {
+		t.Fatalf("count published events: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("event count = %d, want 1", count)
+	}
+}
+
 func prepareEventsDatabase(t *testing.T, ctx context.Context, databaseURL string) *sql.DB {
 	t.Helper()
 	db, err := sql.Open("pgx", databaseURL)

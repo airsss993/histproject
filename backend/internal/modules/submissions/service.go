@@ -235,14 +235,19 @@ func (service *Service) Publish(ctx context.Context, id int64, actor Actor, lati
 		}
 	}
 	if service.publisher == nil {
-		return Submission{}, errors.New("event publisher is nil")
+		return submission, errors.New("event publisher is nil")
 	}
 	if err := service.publisher.Publish(ctx, EventSnapshot{
 		SubmissionID: submission.ID, Title: submission.Title, Description: submission.Description,
 		Latitude: latitude, Longitude: longitude, EventDate: submission.EventDate,
 		EventType: submission.EventType, SiteURL: submission.SiteURL, PreviewImageURL: submission.ScreenshotURL,
 	}); err != nil {
-		return Submission{}, fmt.Errorf("publish submission event: %w", err)
+		return submission, fmt.Errorf("publish submission event: %w", err)
+	}
+	if service.notifier != nil {
+		if err := service.notifier.SubmissionChanged(ctx, submission, "published"); err != nil {
+			return submission, fmt.Errorf("notify published submission: %w", err)
+		}
 	}
 	return submission, nil
 }

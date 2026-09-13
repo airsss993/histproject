@@ -113,7 +113,8 @@ func TestPublishSendsSnapshotAfterTransition(t *testing.T) {
 		},
 	}
 	publisher := &eventPublisherStub{}
-	service := NewService(store, publisher, nil, nil, nil, 0)
+	notifier := &notifierStub{}
+	service := NewService(store, publisher, nil, nil, notifier, 0)
 
 	result, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55.5, 60.5)
 	if err != nil {
@@ -125,6 +126,31 @@ func TestPublishSendsSnapshotAfterTransition(t *testing.T) {
 	if publisher.snapshot.SubmissionID != 9 || publisher.snapshot.SiteURL != "https://example.test/sites/event/index.html" || publisher.snapshot.Latitude != 55.5 || publisher.snapshot.EventType != "military" {
 		t.Fatalf("snapshot = %#v", publisher.snapshot)
 	}
+	if notifier.calls != 1 || notifier.action != "published" {
+		t.Fatalf("notifier calls = %d, action = %q", notifier.calls, notifier.action)
+	}
+}
+
+func TestPublishDoesNotNotifyBeforeEventPublicationSucceeds(t *testing.T) {
+	date := mustSubmissionDate(t, "2020-01-02")
+	store := &submissionStoreStub{
+		getSubmission: Submission{ID: 9, Title: "Event", EventDate: date, EventType: "military", Status: StatusReview},
+		submission:    Submission{ID: 9, Title: "Event", EventDate: date, EventType: "military", Status: StatusPublished},
+	}
+	publisher := &eventPublisherStub{err: errors.New("events unavailable")}
+	notifier := &notifierStub{}
+	service := NewService(store, publisher, nil, nil, notifier, 0)
+
+	result, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55, 60)
+	if err == nil {
+		t.Fatal("Publish() error = nil")
+	}
+	if result.Status != StatusPublished || !store.transitionCalled {
+		t.Fatalf("published result = %#v, transition called = %v", result, store.transitionCalled)
+	}
+	if notifier.calls != 0 {
+		t.Fatalf("notifier calls = %d, want 0", notifier.calls)
+	}
 }
 
 func TestPublishRetriesEventForAlreadyPublishedSubmission(t *testing.T) {
@@ -134,7 +160,8 @@ func TestPublishRetriesEventForAlreadyPublishedSubmission(t *testing.T) {
 		getSubmission:   Submission{ID: 10, Title: "Event", EventDate: date, EventType: "military", SiteURL: "https://example.test/sites/event", Status: StatusPublished},
 	}
 	publisher := &eventPublisherStub{}
-	service := NewService(store, publisher, nil, nil, nil, 0)
+	notifier := &notifierStub{}
+	service := NewService(store, publisher, nil, nil, notifier, 0)
 
 	_, err := service.Publish(t.Context(), 10, Actor{Login: "editor", Role: "admin"}, 55, 60)
 	if err != nil {
@@ -142,6 +169,9 @@ func TestPublishRetriesEventForAlreadyPublishedSubmission(t *testing.T) {
 	}
 	if publisher.snapshot.SubmissionID != 10 || store.getID != 10 {
 		t.Fatalf("retry snapshot = %#v, get ID = %d", publisher.snapshot, store.getID)
+	}
+	if notifier.calls != 1 {
+		t.Fatalf("notifier calls = %d, want 1", notifier.calls)
 	}
 }
 
@@ -210,6 +240,17 @@ func (stub *submissionStoreStub) AuditLog(context.Context, AuditFilter) (AuditPa
 type eventPublisherStub struct {
 	snapshot EventSnapshot
 	err      error
+}
+
+type notifierStub struct {
+	calls  int
+	action string
+}
+
+func (stub *notifierStub) SubmissionChanged(_ context.Context, _ Submission, action string) error {
+	stub.calls++
+	stub.action = action
+	return nil
 }
 
 func (stub *eventPublisherStub) Publish(_ context.Context, snapshot EventSnapshot) error {
