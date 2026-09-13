@@ -47,18 +47,18 @@
 - `events.events`
 - `notifications.telegram_subscriptions`
 
-- [ ] Создать schemas `auth`, `submissions`, `events`, `notifications`.
-- [ ] Добавить отдельный embedded runner `v2.Run(context.Context, *sql.DB)`, который не импортируется legacy entrypoint.
-- [ ] Перенести и переименовать таблицы, enum types, sequences, constraints и indexes без `CREATE TABLE AS` и без копирования rows.
-- [ ] Переименовать status values в `processing`, `new`, `in_review`, `rejected`, `published`.
-- [ ] Добавить `event_type_code`, backfill `1 -> political`, `2 -> military`, остальные значения -> `legacy_<id>`, затем установить `NOT NULL`.
-- [ ] Сделать Down намеренно недоступным: migration forward-only.
-- [ ] Закоммитить как `feat(backend): добавить модульную схему БД`.
+- [x] Создать schemas `auth`, `submissions`, `events`, `notifications`.
+- [x] Добавить отдельный embedded runner `v2.Run(context.Context, *sql.DB)`, который не импортируется legacy entrypoint.
+- [x] Перенести и переименовать таблицы, enum types, sequences, constraints и indexes без `CREATE TABLE AS` и без копирования rows.
+- [x] Переименовать status values в `processing`, `new`, `in_review`, `rejected`, `published`.
+- [x] Добавить `event_type_code`, backfill `1 -> political`, `2 -> military`, остальные значения -> `legacy_<id>`, затем установить `NOT NULL`.
+- [x] Сделать Down намеренно недоступным: migration forward-only.
+- [x] Закоммитить как `feat(backend): добавить модульную схему БД`.
 
 ### Task 3: Доказать сохранность данных
 
 **Files:**
-- Create: `backend/migrations/migrations_integration_test.go`
+- Create: `backend/migrations/v2/migrations_integration_test.go`
 
 - [ ] Поднять временный PostgreSQL 18 без host volume.
 - [ ] Применить legacy migration к пустой БД и вставить связанные rows во все таблицы.
