@@ -66,11 +66,11 @@
 - Consumes: `events.Service`, shared `httpserver` JSON helpers, auth middleware passed as `events.Middleware`.
 - Produces: `GET /api/v1/events`, `GET /api/v1/events/{id}`, `PATCH /api/v1/admin/events/{id}/coordinates`, `DELETE /api/v1/admin/events/{id}`.
 
-- [ ] Написать failing HTTP tests на list response, detail, malformed query, unknown ID, coordinates, delete и authorization.
-- [ ] Подтвердить expected failure.
-- [ ] Реализовать handlers и unified errors.
-- [ ] Не возвращать internal repository errors в HTTP body.
-- [ ] Запустить race tests и закоммитить как `feat(backend): добавить events API`.
+- [x] Написать failing HTTP tests на list response, detail, malformed query, unknown ID, coordinates, delete и authorization.
+- [x] Подтвердить expected failure.
+- [x] Реализовать handlers и unified errors.
+- [x] Не возвращать internal repository errors в HTTP body.
+- [x] Запустить race tests и закоммитить как `feat(backend): добавить events API`.
 
 ### Task 4: Wiring, E2E и docs
 
