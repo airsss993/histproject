@@ -48,6 +48,30 @@ func TestLoadFromUsesDevelopmentDefaults(t *testing.T) {
 	if cfg.MaxUploadBytes != 52_428_800 {
 		t.Errorf("MaxUploadBytes = %d, want 52428800", cfg.MaxUploadBytes)
 	}
+	if cfg.MaxExtractedBytes != 209_715_200 {
+		t.Errorf("MaxExtractedBytes = %d, want 209715200", cfg.MaxExtractedBytes)
+	}
+	if cfg.MaxArchiveFiles != 2_000 {
+		t.Errorf("MaxArchiveFiles = %d, want 2000", cfg.MaxArchiveFiles)
+	}
+	if cfg.MaxArchiveFileBytes != 52_428_800 {
+		t.Errorf("MaxArchiveFileBytes = %d, want 52428800", cfg.MaxArchiveFileBytes)
+	}
+	if cfg.ChromeURL != "http://localhost:9222" {
+		t.Errorf("ChromeURL = %q, want http://localhost:9222", cfg.ChromeURL)
+	}
+	if cfg.ScreenshotTimeout != 60*time.Second {
+		t.Errorf("ScreenshotTimeout = %s, want 60s", cfg.ScreenshotTimeout)
+	}
+	if cfg.SiteRenderBaseURL != "http://localhost:9000/sites" {
+		t.Errorf("SiteRenderBaseURL = %q", cfg.SiteRenderBaseURL)
+	}
+	if cfg.SitePreviewBaseURL != "http://localhost/preview" {
+		t.Errorf("SitePreviewBaseURL = %q", cfg.SitePreviewBaseURL)
+	}
+	if cfg.SitePublicBaseURL != "http://localhost/sites" {
+		t.Errorf("SitePublicBaseURL = %q", cfg.SitePublicBaseURL)
+	}
 	if len(cfg.CORSOrigins) != 1 || cfg.CORSOrigins[0] != "http://localhost:3000" {
 		t.Errorf("CORSOrigins = %#v, want localhost origin", cfg.CORSOrigins)
 	}
@@ -64,6 +88,14 @@ func TestLoadFromRequiresProductionSecrets(t *testing.T) {
 		"MINIO_ARCHIVE_BUCKET",
 		"MINIO_SITE_BUCKET",
 		"MAX_UPLOAD_BYTES",
+		"MAX_EXTRACTED_BYTES",
+		"MAX_ARCHIVE_FILES",
+		"MAX_ARCHIVE_FILE_BYTES",
+		"CHROME_URL",
+		"SCREENSHOT_TIMEOUT",
+		"SITE_RENDER_BASE_URL",
+		"SITE_PREVIEW_BASE_URL",
+		"SITE_PUBLIC_BASE_URL",
 		"COOKIE_DOMAIN",
 		"CORS_ALLOWED_ORIGINS",
 	}
@@ -71,20 +103,28 @@ func TestLoadFromRequiresProductionSecrets(t *testing.T) {
 	for _, missing := range required {
 		t.Run(missing, func(t *testing.T) {
 			values := map[string]string{
-				"APP_ENV":              "production",
-				"DATABASE_URL":         "postgres://database",
-				"REDIS_ADDRESS":        "redis:6379",
-				"REDIS_PASSWORD":       "redis-password",
-				"MINIO_ENDPOINT":       "minio:9000",
-				"MINIO_ACCESS_KEY":     "access-key",
-				"MINIO_SECRET_KEY":     "secret-key",
-				"MINIO_ARCHIVE_BUCKET": "requests",
-				"MINIO_SITE_BUCKET":    "sites",
-				"MAX_UPLOAD_BYTES":     "52428800",
-				"COOKIE_DOMAIN":        "example.com",
-				"CORS_ALLOWED_ORIGINS": "https://example.com",
-				"SHUTDOWN_TIMEOUT":     "10s",
-				"MINIO_USE_SSL":        "true",
+				"APP_ENV":                "production",
+				"DATABASE_URL":           "postgres://database",
+				"REDIS_ADDRESS":          "redis:6379",
+				"REDIS_PASSWORD":         "redis-password",
+				"MINIO_ENDPOINT":         "minio:9000",
+				"MINIO_ACCESS_KEY":       "access-key",
+				"MINIO_SECRET_KEY":       "secret-key",
+				"MINIO_ARCHIVE_BUCKET":   "requests",
+				"MINIO_SITE_BUCKET":      "sites",
+				"MAX_UPLOAD_BYTES":       "52428800",
+				"MAX_EXTRACTED_BYTES":    "209715200",
+				"MAX_ARCHIVE_FILES":      "2000",
+				"MAX_ARCHIVE_FILE_BYTES": "52428800",
+				"CHROME_URL":             "http://chrome:9222",
+				"SCREENSHOT_TIMEOUT":     "60s",
+				"SITE_RENDER_BASE_URL":   "http://minio:9000/sites",
+				"SITE_PREVIEW_BASE_URL":  "https://example.com/preview",
+				"SITE_PUBLIC_BASE_URL":   "https://example.com/sites",
+				"COOKIE_DOMAIN":          "example.com",
+				"CORS_ALLOWED_ORIGINS":   "https://example.com",
+				"SHUTDOWN_TIMEOUT":       "10s",
+				"MINIO_USE_SSL":          "true",
 			}
 			delete(values, missing)
 
@@ -129,6 +169,26 @@ func TestLoadFromRejectsInvalidValues(t *testing.T) {
 			name:   "upload limit",
 			values: map[string]string{"MAX_UPLOAD_BYTES": "0"},
 			field:  "MAX_UPLOAD_BYTES",
+		},
+		{
+			name:   "extracted limit",
+			values: map[string]string{"MAX_EXTRACTED_BYTES": "0"},
+			field:  "MAX_EXTRACTED_BYTES",
+		},
+		{
+			name:   "archive file count",
+			values: map[string]string{"MAX_ARCHIVE_FILES": "0"},
+			field:  "MAX_ARCHIVE_FILES",
+		},
+		{
+			name:   "archive file limit",
+			values: map[string]string{"MAX_ARCHIVE_FILE_BYTES": "0"},
+			field:  "MAX_ARCHIVE_FILE_BYTES",
+		},
+		{
+			name:   "screenshot timeout",
+			values: map[string]string{"SCREENSHOT_TIMEOUT": "0s"},
+			field:  "SCREENSHOT_TIMEOUT",
 		},
 	}
 
