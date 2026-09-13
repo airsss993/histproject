@@ -48,11 +48,11 @@
 - Produces: `redisstore.Open(context.Context, address, password string, db int) (*redisstore.Store, error)`.
 - Produces: `Name() string`, `Ping(context.Context) error`, `Close() error` и `Client() *redis.Client`.
 
-- [ ] Написать failing tests для `REDIS_DB`, checker name и canceled startup context.
-- [ ] Подтвердить failure.
-- [ ] Реализовать config и adapter через `redis.NewClient` и `Ping`.
-- [ ] Запустить race-тесты пакетов и всего backend.
-- [ ] Закоммитить как `feat(backend): добавить Redis adapter`.
+- [x] Написать failing tests для `REDIS_DB`, checker name и canceled startup context.
+- [x] Подтвердить failure.
+- [x] Реализовать config и adapter через `redis.NewClient` и `Ping`.
+- [x] Запустить race-тесты пакетов и всего backend.
+- [x] Закоммитить как `feat(backend): добавить Redis adapter`.
 
 ### Task 3: MinIO adapter
 
