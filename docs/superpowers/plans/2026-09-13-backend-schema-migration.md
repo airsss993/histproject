@@ -86,7 +86,7 @@
 - Create: `backend/docs/migration-v2.md`
 - Modify: `backend/README.md`
 
-- [ ] Описать backup PostgreSQL, read-only inventory MinIO, dry checks, maintenance window, apply и post-migration checks без значений credentials.
-- [ ] Зафиксировать, что live apply заблокирован до восстановления SSH и создания backup.
-- [ ] Запустить `gofmt`, `go test -race ./...`, integration test, `go vet ./...`, сборки `cmd/api`, `cmd/main.go`, `cmd/migrate` и `git diff --check`.
-- [ ] Закоммитить как `docs(backend): описать безопасную V2 миграцию`.
+- [x] Описать backup PostgreSQL, read-only inventory MinIO, dry checks, maintenance window, apply и post-migration checks без значений credentials.
+- [x] Зафиксировать, что live apply заблокирован до восстановления SSH и создания backup.
+- [x] Запустить `gofmt`, `go test -race ./...`, integration test, `go vet ./...`, сборки `cmd/api`, `cmd/main.go`, `cmd/migrate` и `git diff --check`.
+- [x] Закоммитить как `docs(backend): описать безопасную V2 миграцию`.
