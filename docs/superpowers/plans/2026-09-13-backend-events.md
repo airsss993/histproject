@@ -50,11 +50,11 @@
 - Consumes: `Event`, `Filter`, `Page`, `ErrEventNotFound` и `*pgxpool.Pool`.
 - Produces: implementation of `events.Store` using only `events.events`.
 
-- [ ] Написать failing integration tests на list filters, total count, stable pagination, detail, update и delete.
-- [ ] Подтвердить failure на PostgreSQL 18.
-- [ ] Реализовать parameterized queries без cross-schema JOIN.
-- [ ] Проверить, что delete не изменяет `submissions.submissions` и не требует storage client.
-- [ ] Запустить race и integration tests, закоммитить как `feat(backend): добавить events repository`.
+- [x] Написать failing integration tests на list filters, total count, stable pagination, detail, update и delete.
+- [x] Подтвердить failure на PostgreSQL 18.
+- [x] Реализовать parameterized queries без cross-schema JOIN.
+- [x] Проверить, что delete не изменяет `submissions.submissions` и не требует storage client.
+- [x] Запустить race и integration tests, закоммитить как `feat(backend): добавить events repository`.
 
 ### Task 3: Events HTTP API
 
