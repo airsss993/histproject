@@ -82,9 +82,10 @@
 - Produces: `app.OpenDependencies(context.Context, config.Config) (*app.Dependencies, error)`.
 - Produces: `(*app.Dependencies).Checkers() []health.Checker` и `Close() error`.
 
-- [ ] Написать failing tests на rollback уже открытых ресурсов, порядок Close и передачу трех checkers.
-- [ ] Подтвердить failure.
-- [ ] Реализовать lifecycle и внедрить opener в тестируемый `run`.
+- [x] Написать failing tests на rollback уже открытых ресурсов, порядок Close и передачу трех checkers.
+- [x] Подтвердить failure.
+- [x] Реализовать lifecycle dependencies.
+- [ ] Внедрить opener в тестируемый `run`.
 - [ ] Запустить race-тесты и сборку `./cmd/api`.
 - [ ] Закоммитить как `feat(backend): подключить platform dependencies`.
 
