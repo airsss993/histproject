@@ -12,6 +12,12 @@ go run ./cmd/api
 
 Новый entrypoint подключает PostgreSQL, Redis и MinIO до запуска HTTP-сервера. Legacy buckets `requests` и `sites`, заданные через `MINIO_ARCHIVE_BUCKET` и `MINIO_SITE_BUCKET`, должны существовать заранее. Приложение не создает buckets автоматически.
 
+Обработка ZIP и создание скриншотов запускаются отдельным процессом:
+
+```bash
+go run ./cmd/worker
+```
+
 V2 migration запускается только явной командой `go run ./cmd/migrate --apply`. Перед запуском выполнить `docs/migration-v2.md`. `cmd/api` не запускает migrations автоматически.
 
 Первый `super_admin` создается только после V2 migration:
