@@ -61,3 +61,43 @@ func TestEnqueueArchiveUsesContextCompatiblePayloadAndUniqueTaskID(t *testing.T)
 		t.Fatalf("missing options = %#v", wantOptions)
 	}
 }
+
+func TestEnqueueSubmissionNotificationUsesMinimalPayloadAndUniqueTaskID(t *testing.T) {
+	enqueuer := &enqueuerStub{}
+	client := &Client{enqueuer: enqueuer}
+	ctx := t.Context()
+
+	if err := client.EnqueueSubmissionNotification(ctx, 42, "reviewed"); err != nil {
+		t.Fatalf("EnqueueSubmissionNotification() error = %v", err)
+	}
+	if enqueuer.ctx != ctx || enqueuer.task.Type() != SubmissionNotificationTask {
+		t.Fatalf("task = context:%v type:%q", enqueuer.ctx == ctx, enqueuer.task.Type())
+	}
+	var payload SubmissionNotificationPayload
+	if err := json.Unmarshal(enqueuer.task.Payload(), &payload); err != nil {
+		t.Fatalf("decode payload: %v", err)
+	}
+	if payload.SubmissionID != 42 || payload.Action != "reviewed" {
+		t.Fatalf("payload = %#v", payload)
+	}
+	if string(enqueuer.task.Payload()) != `{"submissionId":42,"action":"reviewed"}` {
+		t.Fatalf("raw payload = %s", enqueuer.task.Payload())
+	}
+
+	wantOptions := map[asynq.OptionType]any{
+		asynq.TaskIDOpt:   "submission-42-notification-reviewed",
+		asynq.MaxRetryOpt: 10,
+		asynq.TimeoutOpt:  30 * time.Second,
+	}
+	for _, option := range enqueuer.options {
+		if want, ok := wantOptions[option.Type()]; ok {
+			if option.Value() != want {
+				t.Errorf("option %v = %v, want %v", option.Type(), option.Value(), want)
+			}
+			delete(wantOptions, option.Type())
+		}
+	}
+	if len(wantOptions) != 0 {
+		t.Fatalf("missing options = %#v", wantOptions)
+	}
+}
