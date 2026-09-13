@@ -382,11 +382,11 @@ git commit -m "feat(backend): добавить новый API entrypoint"
 **Interfaces:**
 - Verifies: весь backend и новый entrypoint.
 
-- [ ] **Step 1: Отформатировать**
+- [x] **Step 1: Отформатировать**
 
 Run: `gofmt -w cmd internal`
 
-- [ ] **Step 2: Запустить quality gates**
+- [x] **Step 2: Запустить quality gates**
 
 Run:
 
@@ -400,7 +400,7 @@ git diff --check
 
 Expected: все команды завершаются с кодом 0.
 
-- [ ] **Step 3: Проверить историю и рабочее дерево**
+- [x] **Step 3: Проверить историю и рабочее дерево**
 
 Run:
 
