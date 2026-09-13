@@ -27,6 +27,9 @@ func TestLoadFromUsesDevelopmentDefaults(t *testing.T) {
 	if cfg.RedisAddress != "localhost:6379" {
 		t.Errorf("RedisAddress = %q, want localhost:6379", cfg.RedisAddress)
 	}
+	if cfg.RedisDB != 0 {
+		t.Errorf("RedisDB = %d, want 0", cfg.RedisDB)
+	}
 	if cfg.MinIOEndpoint != "localhost:9000" {
 		t.Errorf("MinIOEndpoint = %q, want localhost:9000", cfg.MinIOEndpoint)
 	}
@@ -98,6 +101,11 @@ func TestLoadFromRejectsInvalidValues(t *testing.T) {
 			name:   "boolean",
 			values: map[string]string{"MINIO_USE_SSL": "sometimes"},
 			field:  "MINIO_USE_SSL",
+		},
+		{
+			name:   "redis database",
+			values: map[string]string{"REDIS_DB": "cache"},
+			field:  "REDIS_DB",
 		},
 	}
 

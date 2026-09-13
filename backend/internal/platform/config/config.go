@@ -21,6 +21,7 @@ type Config struct {
 	DatabaseURL     string
 	RedisAddress    string
 	RedisPassword   string
+	RedisDB         int
 	MinIOEndpoint   string
 	MinIOAccessKey  string
 	MinIOSecretKey  string
@@ -58,6 +59,12 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	cfg.ShutdownTimeout = shutdownTimeout
+
+	redisDB, err := parseNonNegativeInt(valueOrDefault(getenv, "REDIS_DB", "0"), "REDIS_DB")
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.RedisDB = redisDB
 
 	minIOUseSSL, err := parseBool(valueOrDefault(getenv, "MINIO_USE_SSL", "false"), "MINIO_USE_SSL")
 	if err != nil {
@@ -111,6 +118,14 @@ func parseBool(value, key string) (bool, error) {
 	parsed, err := strconv.ParseBool(value)
 	if err != nil {
 		return false, fmt.Errorf("%s: ожидается boolean", key)
+	}
+	return parsed, nil
+}
+
+func parseNonNegativeInt(value, key string) (int, error) {
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < 0 {
+		return 0, fmt.Errorf("%s: ожидается неотрицательное целое число", key)
 	}
 	return parsed, nil
 }
