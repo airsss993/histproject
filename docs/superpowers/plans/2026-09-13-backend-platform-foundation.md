@@ -29,7 +29,7 @@
 **Interfaces:**
 - Produces: единый import prefix `github.com/airsss993/histproject/backend`.
 
-- [ ] **Step 1: Заменить module path**
+- [x] **Step 1: Заменить module path**
 
 Run:
 
@@ -39,13 +39,13 @@ go mod edit -module github.com/airsss993/histproject/backend
 rg -l 'github.com/airsss993/histproject-backend' --glob '*.go' | xargs sed -i '' 's#github.com/airsss993/histproject-backend#github.com/airsss993/histproject/backend#g'
 ```
 
-- [ ] **Step 2: Проверить сборку**
+- [x] **Step 2: Проверить сборку**
 
 Run: `go test ./...`
 
 Expected: все пакеты компилируются.
 
-- [ ] **Step 3: Закоммитить**
+- [x] **Step 3: Закоммитить**
 
 ```bash
 git add backend/go.mod backend
@@ -62,7 +62,7 @@ git commit -m "chore(backend): обновить путь Go-модуля"
 - Produces: `config.Load() (config.Config, error)`.
 - Produces: `config.LoadFrom(func(string) string) (config.Config, error)` для детерминированных тестов.
 
-- [ ] **Step 1: Написать failing table-driven tests**
+- [x] **Step 1: Написать failing table-driven tests**
 
 Тесты проверяют:
 
@@ -86,13 +86,13 @@ MinIOBucket:     "histproject"
 CORSOrigins:     []string{"http://localhost:3000"}
 ```
 
-- [ ] **Step 2: Запустить tests и подтвердить failure**
+- [x] **Step 2: Запустить tests и подтвердить failure**
 
 Run: `go test ./internal/platform/config`
 
 Expected: FAIL, пакет еще не существует.
 
-- [ ] **Step 3: Реализовать Config**
+- [x] **Step 3: Реализовать Config**
 
 ```go
 type Config struct {
@@ -118,13 +118,13 @@ func Load() (Config, error) {
 
 `LoadFrom` обрезает пробелы, парсит `SHUTDOWN_TIMEOUT` через `time.ParseDuration`, парсит `MINIO_USE_SSL` через `strconv.ParseBool` и разделяет `CORS_ALLOWED_ORIGINS` по запятой. Для `production` он требует `DATABASE_URL`, `REDIS_ADDRESS`, `REDIS_PASSWORD`, `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `COOKIE_DOMAIN` и непустой список origins.
 
-- [ ] **Step 4: Запустить tests**
+- [x] **Step 4: Запустить tests**
 
 Run: `go test -race ./internal/platform/config`
 
 Expected: PASS.
 
-- [ ] **Step 5: Закоммитить**
+- [x] **Step 5: Закоммитить**
 
 ```bash
 git add backend/internal/platform/config
