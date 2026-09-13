@@ -12,11 +12,14 @@ go run ./cmd/api
 
 Новый entrypoint подключает PostgreSQL, Redis и MinIO до запуска HTTP-сервера. MinIO bucket из `MINIO_BUCKET` должен существовать заранее. Приложение не создает bucket автоматически.
 
+V2 migration запускается только явной командой `go run ./cmd/migrate --apply`. Перед запуском выполнить `docs/migration-v2.md`. `cmd/api` не запускает migrations автоматически.
+
 ## Env нового API
 
 - `APP_ENV`: `development` или `production`.
 - `SERVER_ADDRESS`: адрес HTTP-сервера, по умолчанию `:7666`.
 - `SHUTDOWN_TIMEOUT`: таймаут graceful shutdown, по умолчанию `10s`.
+- `MIGRATION_TIMEOUT`: таймаут migration CLI, по умолчанию `2m`.
 - `DATABASE_URL`: PostgreSQL DSN.
 - `REDIS_ADDRESS`, `REDIS_PASSWORD`, `REDIS_DB`: параметры Redis.
 - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_USE_SSL`: параметры MinIO.
