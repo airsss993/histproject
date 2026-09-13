@@ -61,14 +61,14 @@
 - Test: `backend/internal/platform/storage/minio_test.go`
 
 **Interfaces:**
-- Produces: `storage.Open(context.Context, config.Config) (*storage.MinIO, error)`.
+- Produces: `storage.Open(context.Context, storage.Config) (*storage.MinIO, error)`.
 - Produces: `Name() string`, `Ping(context.Context) error` и `Client() *minio.Client`.
 
-- [ ] Написать failing tests для checker name, отсутствующего bucket и ошибки health check.
-- [ ] Подтвердить failure.
-- [ ] Реализовать adapter через `minio.New` и `BucketExists` без `MakeBucket`.
-- [ ] Запустить race-тесты пакета и всего backend.
-- [ ] Закоммитить как `feat(backend): добавить MinIO adapter`.
+- [x] Написать failing tests для checker name, отсутствующего bucket и ошибки health check.
+- [x] Подтвердить failure.
+- [x] Реализовать adapter через `minio.New` и `BucketExists` без `MakeBucket`.
+- [x] Запустить race-тесты пакета и всего backend.
+- [x] Закоммитить как `feat(backend): добавить MinIO adapter`.
 
 ### Task 4: Dependency lifecycle
 
