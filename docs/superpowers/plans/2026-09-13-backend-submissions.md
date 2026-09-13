@@ -56,11 +56,11 @@
 - Create: `backend/internal/modules/submissions/repository.go`
 - Test: `backend/internal/modules/submissions/repository_integration_test.go`
 
-- [ ] Написать failing PostgreSQL 18 tests на create, list, detail, status filters, search, pagination и audit list.
-- [ ] Добавить concurrent transition tests с `FOR UPDATE` и exact previous status condition.
-- [ ] Реализовать status update и audit insert в одной transaction.
-- [ ] Исключить cross-schema JOIN; audit title получать из submissions schema.
-- [ ] Запустить race и integration tests, закоммитить как `feat(backend): добавить submissions repository`.
+- [x] Написать failing PostgreSQL 18 tests на create, list, detail, status filters, search, pagination и audit list.
+- [x] Добавить concurrent transition tests с `FOR UPDATE` и exact previous status condition.
+- [x] Реализовать status update и audit insert в одной transaction.
+- [x] Исключить cross-schema JOIN; audit title получать из submissions schema.
+- [x] Запустить race и integration tests, закоммитить как `feat(backend): добавить submissions repository`.
 
 ### Task 4: Archive intake и queue adapters
 
