@@ -113,9 +113,9 @@
 - Modify: `backend/internal/app/api_integration_test.go`
 - Modify: `backend/README.md`
 
-- [ ] Подключить submissions, storage, queue и event publisher through explicit constructors.
-- [ ] Проверить PostgreSQL 18, Redis 8 и MinIO E2E: create -> processing -> new -> review -> reject и create -> processing -> new -> review -> publish.
-- [ ] Проверить audit atomicity, duplicate job suppression, event idempotency и preserved MinIO key.
-- [ ] Обновить README и `.env.example` без secrets.
-- [ ] Запустить `gofmt`, `go test -race ./...`, PostgreSQL/Redis/MinIO integration tests, `go vet ./...`, scoped `golangci-lint`, `go build ./cmd/...`, `git diff --check` и forbidden character scan.
-- [ ] Закоммитить как `feat(backend): подключить submissions module`.
+- [x] Подключить submissions, storage, queue и event publisher through explicit constructors.
+- [x] Проверить PostgreSQL 18, Redis 8 и MinIO E2E: create -> processing -> new -> review -> reject и create -> processing -> new -> review -> publish.
+- [x] Проверить audit atomicity, duplicate job suppression, event idempotency и preserved MinIO key.
+- [x] Обновить README и `.env.example` без secrets.
+- [x] Запустить `gofmt`, `go test -race ./...`, PostgreSQL/Redis/MinIO integration tests, `go vet ./...`, scoped `golangci-lint`, `go build ./cmd/...`, `git diff --check` и forbidden character scan.
+- [x] Закоммитить как `feat(backend): подключить submissions module`.
