@@ -241,17 +241,17 @@ git commit -m "feat(backend): добавить health endpoints"
 ### Task 5: HTTP server lifecycle
 
 **Files:**
-- Replace: `backend/internal/server/server.go`
-- Test: `backend/internal/server/server_test.go`
+- Create: `backend/internal/platform/httpserver/server.go`
+- Test: `backend/internal/platform/httpserver/server_test.go`
 
 **Interfaces:**
-- Produces: `server.New(server.Config, http.Handler, *slog.Logger) *server.Server`.
-- Produces: `(*server.Server).Run(context.Context) error`.
+- Produces: `httpserver.NewServer(httpserver.ServerConfig, http.Handler, *slog.Logger) *httpserver.Server`.
+- Produces: `(*httpserver.Server).Run(context.Context) error`.
 
-- [ ] **Step 1: Написать failing tests**
+- [x] **Step 1: Написать failing tests**
 
 ```go
-type Config struct {
+type ServerConfig struct {
     Address         string
     ShutdownTimeout time.Duration
     ReadTimeout     time.Duration
@@ -265,26 +265,26 @@ func TestRunReturnsListenError(t *testing.T)
 func TestRunStopsAfterContextCancellation(t *testing.T)
 ```
 
-- [ ] **Step 2: Подтвердить failure**
+- [x] **Step 2: Подтвердить failure**
 
-Run: `go test ./internal/server`
+Run: `go test ./internal/platform/httpserver`
 
 Expected: FAIL из-за отсутствия нового API.
 
-- [ ] **Step 3: Заменить lifecycle**
+- [x] **Step 3: Заменить lifecycle**
 
 `Run` слушает в отдельной goroutine, ожидает ошибку или `ctx.Done()`, вызывает `Shutdown` с новым timeout context и возвращает ошибку. Внутри нет `log.Fatal`.
 
-- [ ] **Step 4: Запустить tests**
+- [x] **Step 4: Запустить tests**
 
-Run: `go test -race ./internal/server`
+Run: `go test -race ./internal/platform/httpserver`
 
 Expected: PASS.
 
-- [ ] **Step 5: Закоммитить**
+- [x] **Step 5: Закоммитить**
 
 ```bash
-git add backend/internal/server
+git add backend/internal/platform/httpserver/server.go backend/internal/platform/httpserver/server_test.go
 git commit -m "refactor(backend): исправить lifecycle HTTP-сервера"
 ```
 
