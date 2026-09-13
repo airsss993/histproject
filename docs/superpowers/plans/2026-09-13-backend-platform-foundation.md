@@ -288,7 +288,46 @@ git add backend/internal/platform/httpserver/server.go backend/internal/platform
 git commit -m "refactor(backend): исправить lifecycle HTTP-сервера"
 ```
 
-### Task 6: Новая API composition root
+### Task 6: Structured logging
+
+**Files:**
+- Create: `backend/internal/platform/logging/logger.go`
+- Test: `backend/internal/platform/logging/logger_test.go`
+
+**Interfaces:**
+- Produces: `logging.New(string, io.Writer) *slog.Logger`.
+
+- [x] **Step 1: Написать failing tests**
+
+```go
+func TestNewUsesJSONInProduction(t *testing.T)
+func TestNewUsesTextOutsideProduction(t *testing.T)
+```
+
+- [x] **Step 2: Подтвердить failure**
+
+Run: `go test ./internal/platform/logging`
+
+Expected: FAIL.
+
+- [x] **Step 3: Реализовать logger factory**
+
+Production использует `slog.NewJSONHandler`, остальные environments используют `slog.NewTextHandler`. Оба handler пишут от `INFO`.
+
+- [x] **Step 4: Запустить tests**
+
+Run: `go test -race ./internal/platform/logging`
+
+Expected: PASS.
+
+- [x] **Step 5: Закоммитить**
+
+```bash
+git add backend/internal/platform/logging docs/superpowers
+git commit -m "feat(backend): добавить structured logging"
+```
+
+### Task 7: Новая API composition root
 
 **Files:**
 - Create: `backend/internal/app/api.go`
@@ -335,7 +374,7 @@ git add backend/cmd/api backend/internal/app/api.go backend/internal/app/api_tes
 git commit -m "feat(backend): добавить новый API entrypoint"
 ```
 
-### Task 7: Общая проверка этапа
+### Task 8: Общая проверка этапа
 
 **Files:**
 - Modify: только файлы, требующие форматирования.

@@ -155,10 +155,10 @@ backend/
 Порядок middleware:
 
 1. Request ID.
-2. Recovery.
-3. Security headers.
-4. CORS с точным сравнением origin.
-5. Structured access log.
+2. Structured access log.
+3. Recovery.
+4. Security headers.
+5. CORS с точным сравнением origin.
 6. Лимит размера body.
 7. Rate limit для login и публичной формы.
 8. Auth и role check на защищенных routes.
