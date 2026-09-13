@@ -1,0 +1,36 @@
+package migrations
+
+import (
+	"database/sql"
+	"strings"
+	"testing"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
+)
+
+func TestLegacyProviderContainsOnlyRootMigration(t *testing.T) {
+	db, err := sql.Open("pgx", "postgres://unused")
+	if err != nil {
+		t.Fatalf("open test database: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	provider, err := newProvider(db, embedMigrations)
+	if err != nil {
+		t.Fatalf("new provider: %v", err)
+	}
+
+	sources := provider.ListSources()
+	if len(sources) != 1 {
+		t.Fatalf("source count = %d, want 1", len(sources))
+	}
+	if !strings.HasSuffix(sources[0].Path, "20260512200000_init.sql") {
+		t.Fatalf("source path = %q, want init migration", sources[0].Path)
+	}
+}
+
+func TestRunRejectsNilDatabase(t *testing.T) {
+	if err := Run(nil); err == nil {
+		t.Fatal("Run(nil) error = nil, want error")
+	}
+}

@@ -25,17 +25,19 @@
 - Modify: `backend/migrations/migrations.go`
 - Test: `backend/migrations/migrations_test.go`
 
-- [ ] Написать failing tests: legacy runner видит только root migration, V2 runner видит только `v2/*.sql`.
-- [ ] Подтвердить failure.
-- [ ] Заменить package-global Goose configuration на `goose.NewProvider`.
-- [ ] Сохранить `Run(*sql.DB)` для legacy entrypoint без изменения набора миграций.
-- [ ] Добавить `RunV2(context.Context, *sql.DB)` с отдельным embedded FS.
-- [ ] Запустить package tests и закоммитить как `refactor(backend): изолировать V2 мигации`.
+- [x] Написать failing tests: legacy runner видит только root migration и отклоняет nil database.
+- [x] Подтвердить failure.
+- [x] Заменить package-global Goose configuration на `goose.NewProvider`.
+- [x] Сохранить `Run(*sql.DB)` для legacy entrypoint без изменения набора миграций.
+- [x] Оставить V2 runner вне legacy package; он будет добавлен в `backend/migrations/v2` вместе с SQL.
+- [x] Запустить package tests и закоммитить как `refactor(backend): изолировать V2 мигации`.
 
 ### Task 2: Описать модульную схему
 
 **Files:**
 - Create: `backend/migrations/v2/20260913000100_modular_schemas.sql`
+- Create: `backend/migrations/v2/migrations.go`
+- Test: `backend/migrations/v2/migrations_test.go`
 
 **Target tables:**
 - `auth.admins`
@@ -46,6 +48,7 @@
 - `notifications.telegram_subscriptions`
 
 - [ ] Создать schemas `auth`, `submissions`, `events`, `notifications`.
+- [ ] Добавить отдельный embedded runner `v2.Run(context.Context, *sql.DB)`, который не импортируется legacy entrypoint.
 - [ ] Перенести и переименовать таблицы, enum types, sequences, constraints и indexes без `CREATE TABLE AS` и без копирования rows.
 - [ ] Переименовать status values в `processing`, `new`, `in_review`, `rejected`, `published`.
 - [ ] Добавить `event_type_code`, backfill `1 -> political`, `2 -> military`, остальные значения -> `legacy_<id>`, затем установить `NOT NULL`.
