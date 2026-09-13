@@ -338,7 +338,7 @@ git commit -m "feat(backend): добавить structured logging"
 - Produces: `app.NewAPI(config.Config, *slog.Logger, ...health.Checker) http.Handler`.
 - Consumes: config, middleware, health handler и server lifecycle из предыдущих tasks.
 
-- [ ] **Step 1: Написать failing composition tests**
+- [x] **Step 1: Написать failing composition tests**
 
 ```go
 func TestNewAPIExposesHealthEndpoints(t *testing.T)
@@ -346,17 +346,17 @@ func TestNewAPIAppliesRequestIDAndSecurityHeaders(t *testing.T)
 func TestNewAPIReturnsJSONForUnknownRoute(t *testing.T)
 ```
 
-- [ ] **Step 2: Подтвердить failure**
+- [x] **Step 2: Подтвердить failure**
 
 Run: `go test ./internal/app`
 
 Expected: FAIL, `NewAPI` еще не существует.
 
-- [ ] **Step 3: Реализовать composition root**
+- [x] **Step 3: Реализовать composition root**
 
 `NewAPI` регистрирует health routes в `http.ServeMux`, добавляет JSON 404 handler и оборачивает mux middleware в порядке из спецификации. `cmd/api/main.go` загружает config, создает logger, подписывается на `SIGINT` и `SIGTERM`, запускает server и выходит с кодом 1 только из `main`.
 
-- [ ] **Step 4: Проверить новый entrypoint**
+- [x] **Step 4: Проверить новый entrypoint**
 
 Run:
 
@@ -367,7 +367,7 @@ go build ./cmd/api
 
 Expected: PASS.
 
-- [ ] **Step 5: Закоммитить**
+- [x] **Step 5: Закоммитить**
 
 ```bash
 git add backend/cmd/api backend/internal/app/api.go backend/internal/app/api_test.go
