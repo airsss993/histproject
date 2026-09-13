@@ -60,13 +60,13 @@
 **Files:**
 - Create: `backend/migrations/v2/migrations_integration_test.go`
 
-- [ ] Поднять временный PostgreSQL 18 без host volume.
-- [ ] Применить legacy migration к пустой БД и вставить связанные rows во все таблицы.
-- [ ] Зафиксировать counts, ID, sequence values, hashes, object keys, URL, statuses и event type IDs до V2 migration.
-- [ ] Применить V2 migration и проверить те же values в target schemas.
-- [ ] Проверить отсутствие public domain tables и cross-module foreign keys.
-- [ ] Проверить idempotency runner и отказ Down.
-- [ ] Запустить integration test и закоммитить как `test(backend): проверить сохранность миграции`.
+- [x] Поднять временный PostgreSQL 18 без host volume.
+- [x] Применить legacy migration к пустой БД и вставить связанные rows во все таблицы.
+- [x] Зафиксировать counts, ID, sequence values, hashes, object keys, URL, statuses и event type IDs до V2 migration.
+- [x] Применить V2 migration и проверить те же values в target schemas.
+- [x] Проверить отсутствие public domain tables и cross-module foreign keys.
+- [x] Проверить idempotency runner и отказ Down.
+- [x] Запустить integration test и закоммитить как `test(backend): проверить сохранность миграции`.
 
 ### Task 4: Добавить явную migration CLI
 
