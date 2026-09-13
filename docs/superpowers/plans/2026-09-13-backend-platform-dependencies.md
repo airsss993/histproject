@@ -95,7 +95,7 @@
 - Modify: `backend/.env.example`
 - Modify: `backend/README.md`
 
-- [ ] Заменить устаревшие env names на `SERVER_ADDRESS`, `DATABASE_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_USE_SSL` и `SHUTDOWN_TIMEOUT`.
-- [ ] Описать, что MinIO bucket должен существовать до startup.
-- [ ] Запустить `gofmt`, `go test -race ./...`, `go vet ./...`, обе сборки и `git diff --check`.
-- [ ] Закоммитить как `docs(backend): описать env нового API`.
+- [x] Добавить env names `SERVER_ADDRESS`, `DATABASE_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_USE_SSL` и `SHUTDOWN_TIMEOUT`; legacy names сохранить до переключения Docker.
+- [x] Описать, что MinIO bucket должен существовать до startup.
+- [x] Запустить `gofmt`, `go test -race ./...`, `go vet ./...`, обе сборки и `git diff --check`.
+- [x] Закоммитить как `docs(backend): описать env нового API`.
