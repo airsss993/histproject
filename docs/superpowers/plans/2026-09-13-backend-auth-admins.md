@@ -30,10 +30,10 @@
 - Modify: `backend/internal/platform/config/config_test.go`
 - Modify: `backend/.env.example`
 
-- [ ] Написать failing tests на strict JSON decode, body limit, unknown fields, unified error body и `SESSION_TTL`.
-- [ ] Подтвердить failure.
-- [ ] Реализовать helpers и config без новой dependency.
-- [ ] Запустить race tests и закоммитить как `feat(backend): добавить JSON contract и auth config`.
+- [x] Написать failing tests на strict JSON decode, body limit, unknown fields, unified error body и `SESSION_TTL`.
+- [x] Подтвердить failure.
+- [x] Реализовать helpers и config без новой dependency.
+- [x] Запустить race tests и закоммитить как `feat(backend): добавить JSON contract и auth config`.
 
 ### Task 2: Admin repository и auth core
 

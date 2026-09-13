@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -47,7 +46,7 @@ func Recover(logger *slog.Logger) Middleware {
 						"panic", fmt.Sprint(recovered),
 						"stack", string(debug.Stack()),
 					)
-					writeError(w, http.StatusInternalServerError, "internal_error", "Внутренняя ошибка")
+					_ = WriteError(w, http.StatusInternalServerError, "internal_error", "Внутренняя ошибка", nil)
 				}
 			}()
 			next.ServeHTTP(w, r)
@@ -146,15 +145,4 @@ func newRequestID() string {
 		return fmt.Sprintf("fallback-%d", time.Now().UnixNano())
 	}
 	return hex.EncodeToString(value[:])
-}
-
-func writeError(w http.ResponseWriter, status int, code, message string) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"error": map[string]string{
-			"code":    code,
-			"message": message,
-		},
-	})
 }
