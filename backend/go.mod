@@ -1,4 +1,4 @@
-module github.com/airsss993/histproject-backend
+module github.com/airsss993/histproject/backend
 
 go 1.26
 

@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/airsss993/histproject-backend/internal/admin"
-	"github.com/airsss993/histproject-backend/internal/config"
-	"github.com/airsss993/histproject-backend/internal/objects"
-	"github.com/airsss993/histproject-backend/internal/requests"
+	"github.com/airsss993/histproject/backend/internal/admin"
+	"github.com/airsss993/histproject/backend/internal/config"
+	"github.com/airsss993/histproject/backend/internal/objects"
+	"github.com/airsss993/histproject/backend/internal/requests"
 	"github.com/gin-gonic/gin"
 )
 
