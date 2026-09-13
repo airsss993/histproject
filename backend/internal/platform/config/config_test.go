@@ -36,11 +36,17 @@ func TestLoadFromUsesDevelopmentDefaults(t *testing.T) {
 	if cfg.MinIOEndpoint != "localhost:9000" {
 		t.Errorf("MinIOEndpoint = %q, want localhost:9000", cfg.MinIOEndpoint)
 	}
-	if cfg.MinIOBucket != "histproject" {
-		t.Errorf("MinIOBucket = %q, want histproject", cfg.MinIOBucket)
+	if cfg.MinIOArchiveBucket != "requests" {
+		t.Errorf("MinIOArchiveBucket = %q, want requests", cfg.MinIOArchiveBucket)
+	}
+	if cfg.MinIOSiteBucket != "sites" {
+		t.Errorf("MinIOSiteBucket = %q, want sites", cfg.MinIOSiteBucket)
 	}
 	if cfg.MinIOUseSSL {
 		t.Error("MinIOUseSSL = true, want false")
+	}
+	if cfg.MaxUploadBytes != 52_428_800 {
+		t.Errorf("MaxUploadBytes = %d, want 52428800", cfg.MaxUploadBytes)
 	}
 	if len(cfg.CORSOrigins) != 1 || cfg.CORSOrigins[0] != "http://localhost:3000" {
 		t.Errorf("CORSOrigins = %#v, want localhost origin", cfg.CORSOrigins)
@@ -55,7 +61,9 @@ func TestLoadFromRequiresProductionSecrets(t *testing.T) {
 		"MINIO_ENDPOINT",
 		"MINIO_ACCESS_KEY",
 		"MINIO_SECRET_KEY",
-		"MINIO_BUCKET",
+		"MINIO_ARCHIVE_BUCKET",
+		"MINIO_SITE_BUCKET",
+		"MAX_UPLOAD_BYTES",
 		"COOKIE_DOMAIN",
 		"CORS_ALLOWED_ORIGINS",
 	}
@@ -70,7 +78,9 @@ func TestLoadFromRequiresProductionSecrets(t *testing.T) {
 				"MINIO_ENDPOINT":       "minio:9000",
 				"MINIO_ACCESS_KEY":     "access-key",
 				"MINIO_SECRET_KEY":     "secret-key",
-				"MINIO_BUCKET":         "histproject",
+				"MINIO_ARCHIVE_BUCKET": "requests",
+				"MINIO_SITE_BUCKET":    "sites",
+				"MAX_UPLOAD_BYTES":     "52428800",
 				"COOKIE_DOMAIN":        "example.com",
 				"CORS_ALLOWED_ORIGINS": "https://example.com",
 				"SHUTDOWN_TIMEOUT":     "10s",
@@ -114,6 +124,11 @@ func TestLoadFromRejectsInvalidValues(t *testing.T) {
 			name:   "redis database",
 			values: map[string]string{"REDIS_DB": "cache"},
 			field:  "REDIS_DB",
+		},
+		{
+			name:   "upload limit",
+			values: map[string]string{"MAX_UPLOAD_BYTES": "0"},
+			field:  "MAX_UPLOAD_BYTES",
 		},
 	}
 

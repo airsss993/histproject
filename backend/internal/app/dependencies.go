@@ -54,11 +54,12 @@ func OpenDependencies(ctx context.Context, cfg config.Config) (*Dependencies, er
 		},
 		func(ctx context.Context) (dependencyResource, error) {
 			storageClient, err := storage.Open(ctx, storage.Config{
-				Endpoint:  cfg.MinIOEndpoint,
-				AccessKey: cfg.MinIOAccessKey,
-				SecretKey: cfg.MinIOSecretKey,
-				Bucket:    cfg.MinIOBucket,
-				Secure:    cfg.MinIOUseSSL,
+				Endpoint:      cfg.MinIOEndpoint,
+				AccessKey:     cfg.MinIOAccessKey,
+				SecretKey:     cfg.MinIOSecretKey,
+				ArchiveBucket: cfg.MinIOArchiveBucket,
+				SiteBucket:    cfg.MinIOSiteBucket,
+				Secure:        cfg.MinIOUseSSL,
 			})
 			if err != nil {
 				return dependencyResource{}, fmt.Errorf("open MinIO: %w", err)

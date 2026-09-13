@@ -1,6 +1,9 @@
 package submissions
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 type Status string
 
@@ -73,6 +76,18 @@ type CreateRecord struct {
 	TelegramUsername string
 	ArchiveID        string
 	Slug             string
+}
+
+type CreateInput struct {
+	Title            string
+	Description      string
+	EventDate        time.Time
+	EventType        string
+	Email            string
+	TelegramUsername string
+	ArchiveName      string
+	ArchiveSize      int64
+	Archive          io.Reader
 }
 
 type ListFilter struct {

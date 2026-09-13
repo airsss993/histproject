@@ -3,13 +3,15 @@ package submissions
 import (
 	"context"
 	"errors"
+	"io"
+	"strings"
 	"testing"
 	"time"
 )
 
 func TestReviewTransitionsNewSubmissionWithAudit(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 7, Status: StatusReview}}
-	service := NewService(store, nil)
+	service := NewService(store, nil, nil, nil, nil, 0)
 
 	result, err := service.Review(t.Context(), 7, Actor{Login: "editor", Role: "admin"})
 	if err != nil {
@@ -28,7 +30,7 @@ func TestReviewTransitionsNewSubmissionWithAudit(t *testing.T) {
 
 func TestRejectRequiresComment(t *testing.T) {
 	store := &submissionStoreStub{}
-	service := NewService(store, nil)
+	service := NewService(store, nil, nil, nil, nil, 0)
 
 	_, err := service.Reject(t.Context(), 1, Actor{Login: "editor", Role: "admin"}, "  ")
 	var validationError *ValidationError
@@ -42,7 +44,7 @@ func TestRejectRequiresComment(t *testing.T) {
 
 func TestRejectTransitionsReviewSubmission(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 8, Status: StatusRejected}}
-	service := NewService(store, nil)
+	service := NewService(store, nil, nil, nil, nil, 0)
 
 	_, err := service.Reject(t.Context(), 8, Actor{Login: "editor", Role: "admin"}, " duplicate ")
 	if err != nil {
@@ -55,7 +57,7 @@ func TestRejectTransitionsReviewSubmission(t *testing.T) {
 
 func TestMarkReadyTransitionsProcessingSubmission(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 4, Status: StatusNew}}
-	service := NewService(store, nil)
+	service := NewService(store, nil, nil, nil, nil, 0)
 
 	_, err := service.MarkReady(t.Context(), 4, "https://example.test/preview/event", "https://example.test/screenshot.png")
 	if err != nil {
@@ -68,7 +70,7 @@ func TestMarkReadyTransitionsProcessingSubmission(t *testing.T) {
 
 func TestRejectProcessingStoresReasonWithoutAdminAudit(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 5, Status: StatusRejected}}
-	service := NewService(store, nil)
+	service := NewService(store, nil, nil, nil, nil, 0)
 
 	_, err := service.RejectProcessing(t.Context(), 5, " archive rejected ")
 	if err != nil {
@@ -84,7 +86,7 @@ func TestRejectProcessingStoresReasonWithoutAdminAudit(t *testing.T) {
 
 func TestPublishValidatesCoordinatesBeforeTransition(t *testing.T) {
 	store := &submissionStoreStub{}
-	service := NewService(store, &eventPublisherStub{})
+	service := NewService(store, &eventPublisherStub{}, nil, nil, nil, 0)
 
 	_, err := service.Publish(t.Context(), 1, Actor{Login: "editor", Role: "admin"}, 91, 60)
 	var validationError *ValidationError
@@ -111,7 +113,7 @@ func TestPublishSendsSnapshotAfterTransition(t *testing.T) {
 		},
 	}
 	publisher := &eventPublisherStub{}
-	service := NewService(store, publisher)
+	service := NewService(store, publisher, nil, nil, nil, 0)
 
 	result, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55.5, 60.5)
 	if err != nil {
@@ -132,7 +134,7 @@ func TestPublishRetriesEventForAlreadyPublishedSubmission(t *testing.T) {
 		getSubmission:   Submission{ID: 10, Title: "Event", EventDate: date, EventType: "military", SiteURL: "https://example.test/sites/event", Status: StatusPublished},
 	}
 	publisher := &eventPublisherStub{}
-	service := NewService(store, publisher)
+	service := NewService(store, publisher, nil, nil, nil, 0)
 
 	_, err := service.Publish(t.Context(), 10, Actor{Login: "editor", Role: "admin"}, 55, 60)
 	if err != nil {
@@ -143,14 +145,47 @@ func TestPublishRetriesEventForAlreadyPublishedSubmission(t *testing.T) {
 	}
 }
 
+func TestCreateDeletesUploadedArchiveWhenDatabaseInsertFails(t *testing.T) {
+	want := errors.New("database unavailable")
+	store := &submissionStoreStub{createError: want}
+	archives := &archiveStoreStub{archiveID: "archive-id"}
+	jobs := &jobQueueStub{}
+	service := NewService(store, nil, archives, jobs, nil, 52_428_800)
+	ctx := t.Context()
+
+	_, err := service.Create(ctx, CreateInput{
+		Title: "Event", Description: "Description", EventDate: mustSubmissionDate(t, "2020-01-02"),
+		EventType: "military", Email: "author@example.test", TelegramUsername: "author",
+		ArchiveName: "site.zip", ArchiveSize: 3, Archive: strings.NewReader("zip"),
+	})
+
+	if !errors.Is(err, want) {
+		t.Fatalf("Create() error = %v, want database error", err)
+	}
+	if archives.deleteContext != ctx || archives.deletedID != "archive-id" {
+		t.Fatalf("deleted archive = context:%v id:%q", archives.deleteContext == ctx, archives.deletedID)
+	}
+	if jobs.called {
+		t.Fatal("queue called after database failure")
+	}
+}
+
 type submissionStoreStub struct {
-	transition       Transition
-	transitionCalled bool
-	submission       Submission
-	transitionError  error
-	getID            int64
-	getSubmission    Submission
-	getError         error
+	createRecord      CreateRecord
+	createdSubmission Submission
+	createError       error
+	transition        Transition
+	transitionCalled  bool
+	submission        Submission
+	transitionError   error
+	getID             int64
+	getSubmission     Submission
+	getError          error
+}
+
+func (stub *submissionStoreStub) Create(_ context.Context, record CreateRecord) (Submission, error) {
+	stub.createRecord = record
+	return stub.createdSubmission, stub.createError
 }
 
 func (stub *submissionStoreStub) Transition(_ context.Context, transition Transition) (Submission, error) {
@@ -172,6 +207,31 @@ type eventPublisherStub struct {
 func (stub *eventPublisherStub) Publish(_ context.Context, snapshot EventSnapshot) error {
 	stub.snapshot = snapshot
 	return stub.err
+}
+
+type archiveStoreStub struct {
+	archiveID     string
+	deleteContext context.Context
+	deletedID     string
+}
+
+func (stub *archiveStoreStub) PutArchive(context.Context, io.Reader, int64) (string, error) {
+	return stub.archiveID, nil
+}
+
+func (stub *archiveStoreStub) DeleteArchive(ctx context.Context, archiveID string) error {
+	stub.deleteContext = ctx
+	stub.deletedID = archiveID
+	return nil
+}
+
+type jobQueueStub struct {
+	called bool
+}
+
+func (stub *jobQueueStub) EnqueueArchive(context.Context, int64, string) error {
+	stub.called = true
+	return nil
 }
 
 func mustSubmissionDate(t *testing.T, value string) time.Time {

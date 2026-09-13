@@ -15,21 +15,23 @@ const (
 )
 
 type Config struct {
-	Environment     string
-	ServerAddress   string
-	ShutdownTimeout time.Duration
-	SessionTTL      time.Duration
-	DatabaseURL     string
-	RedisAddress    string
-	RedisPassword   string
-	RedisDB         int
-	MinIOEndpoint   string
-	MinIOAccessKey  string
-	MinIOSecretKey  string
-	MinIOBucket     string
-	MinIOUseSSL     bool
-	CookieDomain    string
-	CORSOrigins     []string
+	Environment        string
+	ServerAddress      string
+	ShutdownTimeout    time.Duration
+	SessionTTL         time.Duration
+	DatabaseURL        string
+	RedisAddress       string
+	RedisPassword      string
+	RedisDB            int
+	MinIOEndpoint      string
+	MinIOAccessKey     string
+	MinIOSecretKey     string
+	MinIOArchiveBucket string
+	MinIOSiteBucket    string
+	MinIOUseSSL        bool
+	MaxUploadBytes     int64
+	CookieDomain       string
+	CORSOrigins        []string
 }
 
 func Load() (Config, error) {
@@ -39,17 +41,18 @@ func Load() (Config, error) {
 func LoadFrom(getenv func(string) string) (Config, error) {
 	environment := valueOrDefault(getenv, "APP_ENV", development)
 	cfg := Config{
-		Environment:    environment,
-		ServerAddress:  valueOrDefault(getenv, "SERVER_ADDRESS", ":7666"),
-		DatabaseURL:    strings.TrimSpace(getenv("DATABASE_URL")),
-		RedisAddress:   strings.TrimSpace(getenv("REDIS_ADDRESS")),
-		RedisPassword:  strings.TrimSpace(getenv("REDIS_PASSWORD")),
-		MinIOEndpoint:  strings.TrimSpace(getenv("MINIO_ENDPOINT")),
-		MinIOAccessKey: strings.TrimSpace(getenv("MINIO_ACCESS_KEY")),
-		MinIOSecretKey: strings.TrimSpace(getenv("MINIO_SECRET_KEY")),
-		MinIOBucket:    strings.TrimSpace(getenv("MINIO_BUCKET")),
-		CookieDomain:   strings.TrimSpace(getenv("COOKIE_DOMAIN")),
-		CORSOrigins:    splitList(getenv("CORS_ALLOWED_ORIGINS")),
+		Environment:        environment,
+		ServerAddress:      valueOrDefault(getenv, "SERVER_ADDRESS", ":7666"),
+		DatabaseURL:        strings.TrimSpace(getenv("DATABASE_URL")),
+		RedisAddress:       strings.TrimSpace(getenv("REDIS_ADDRESS")),
+		RedisPassword:      strings.TrimSpace(getenv("REDIS_PASSWORD")),
+		MinIOEndpoint:      strings.TrimSpace(getenv("MINIO_ENDPOINT")),
+		MinIOAccessKey:     strings.TrimSpace(getenv("MINIO_ACCESS_KEY")),
+		MinIOSecretKey:     strings.TrimSpace(getenv("MINIO_SECRET_KEY")),
+		MinIOArchiveBucket: strings.TrimSpace(getenv("MINIO_ARCHIVE_BUCKET")),
+		MinIOSiteBucket:    strings.TrimSpace(getenv("MINIO_SITE_BUCKET")),
+		CookieDomain:       strings.TrimSpace(getenv("COOKIE_DOMAIN")),
+		CORSOrigins:        splitList(getenv("CORS_ALLOWED_ORIGINS")),
 	}
 	if environment != production {
 		applyDevelopmentDefaults(&cfg)
@@ -72,6 +75,18 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	cfg.RedisDB = redisDB
+
+	maxUploadBytesValue := strings.TrimSpace(getenv("MAX_UPLOAD_BYTES"))
+	if environment != production && maxUploadBytesValue == "" {
+		maxUploadBytesValue = "52428800"
+	}
+	if maxUploadBytesValue != "" {
+		maxUploadBytes, err := parsePositiveInt64(maxUploadBytesValue, "MAX_UPLOAD_BYTES")
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.MaxUploadBytes = maxUploadBytes
+	}
 
 	minIOUseSSL, err := parseBool(valueOrDefault(getenv, "MINIO_USE_SSL", "false"), "MINIO_USE_SSL")
 	if err != nil {
@@ -98,8 +113,11 @@ func applyDevelopmentDefaults(cfg *Config) {
 	if cfg.MinIOEndpoint == "" {
 		cfg.MinIOEndpoint = "localhost:9000"
 	}
-	if cfg.MinIOBucket == "" {
-		cfg.MinIOBucket = "histproject"
+	if cfg.MinIOArchiveBucket == "" {
+		cfg.MinIOArchiveBucket = "requests"
+	}
+	if cfg.MinIOSiteBucket == "" {
+		cfg.MinIOSiteBucket = "sites"
 	}
 	if len(cfg.CORSOrigins) == 0 {
 		cfg.CORSOrigins = []string{"http://localhost:3000"}
@@ -137,6 +155,14 @@ func parseNonNegativeInt(value, key string) (int, error) {
 	return parsed, nil
 }
 
+func parsePositiveInt64(value, key string) (int64, error) {
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed <= 0 {
+		return 0, fmt.Errorf("%s: ожидается положительное целое число", key)
+	}
+	return parsed, nil
+}
+
 func splitList(value string) []string {
 	parts := strings.Split(value, ",")
 	result := make([]string, 0, len(parts))
@@ -159,7 +185,8 @@ func validateProduction(cfg Config) error {
 		{"MINIO_ENDPOINT", cfg.MinIOEndpoint},
 		{"MINIO_ACCESS_KEY", cfg.MinIOAccessKey},
 		{"MINIO_SECRET_KEY", cfg.MinIOSecretKey},
-		{"MINIO_BUCKET", cfg.MinIOBucket},
+		{"MINIO_ARCHIVE_BUCKET", cfg.MinIOArchiveBucket},
+		{"MINIO_SITE_BUCKET", cfg.MinIOSiteBucket},
 		{"COOKIE_DOMAIN", cfg.CookieDomain},
 	}
 
@@ -171,6 +198,9 @@ func validateProduction(cfg Config) error {
 	}
 	if len(cfg.CORSOrigins) == 0 {
 		validationErrors = append(validationErrors, errors.New("CORS_ALLOWED_ORIGINS: обязательная переменная"))
+	}
+	if cfg.MaxUploadBytes <= 0 {
+		validationErrors = append(validationErrors, errors.New("MAX_UPLOAD_BYTES: обязательная переменная"))
 	}
 
 	return errors.Join(validationErrors...)
