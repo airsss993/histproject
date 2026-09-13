@@ -79,7 +79,7 @@ func applyMigrations(ctx context.Context, databaseURL string) error {
 	if err != nil {
 		return fmt.Errorf("open migration database")
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	db.SetMaxOpenConns(1)
 
 	if err := db.PingContext(ctx); err != nil {

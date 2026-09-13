@@ -212,8 +212,6 @@ func assertDomainRows(t *testing.T, ctx context.Context, db *sql.DB) {
 	if err != nil {
 		t.Fatalf("read migrated submissions: %v", err)
 	}
-	defer rows.Close()
-
 	wantStatuses := []string{"processing", "new", "in_review", "rejected", "published"}
 	wantCodes := []string{"political", "military", "legacy_9", "political", "military"}
 	for index := range wantStatuses {
@@ -237,6 +235,9 @@ func assertDomainRows(t *testing.T, ctx context.Context, db *sql.DB) {
 	if err := rows.Err(); err != nil {
 		t.Fatalf("iterate submissions: %v", err)
 	}
+	if err := rows.Close(); err != nil {
+		t.Fatalf("close submissions: %v", err)
+	}
 
 	eventRows, err := db.QueryContext(ctx, `
 		SELECT id, submission_id, event_type_id, event_type_code, site_url, preview_image_url
@@ -246,7 +247,6 @@ func assertDomainRows(t *testing.T, ctx context.Context, db *sql.DB) {
 	if err != nil {
 		t.Fatalf("read migrated events: %v", err)
 	}
-	defer eventRows.Close()
 	for index, wantCode := range []string{"political", "military", "legacy_9"} {
 		if !eventRows.Next() {
 			t.Fatalf("event row %d is missing", index+1)
@@ -265,6 +265,9 @@ func assertDomainRows(t *testing.T, ctx context.Context, db *sql.DB) {
 	}
 	if err := eventRows.Err(); err != nil {
 		t.Fatalf("iterate events: %v", err)
+	}
+	if err := eventRows.Close(); err != nil {
+		t.Fatalf("close events: %v", err)
 	}
 
 	var auditSubmissionID int
