@@ -47,6 +47,23 @@ func TestHealthzReportsLiveProcess(t *testing.T) {
 	}
 }
 
+func TestReadyzReportsNotReadyWithoutChecks(t *testing.T) {
+	handler := NewHandler(time.Second)
+	mux := http.NewServeMux()
+	handler.Register(mux)
+	response := httptest.NewRecorder()
+
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", response.Code)
+	}
+	body := decodeReadiness(t, response)
+	if body.Status != "not_ready" {
+		t.Fatalf("status body = %q, want not_ready", body.Status)
+	}
+}
+
 func TestReadyzReportsReadyWhenAllChecksPass(t *testing.T) {
 	handler := NewHandler(time.Second,
 		passingChecker("postgres"),

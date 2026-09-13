@@ -38,6 +38,9 @@ func (h *Handler) readyz(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	status := http.StatusOK
+	if len(h.checkers) == 0 {
+		status = http.StatusServiceUnavailable
+	}
 	checks := make(map[string]string, len(h.checkers))
 	for _, checker := range h.checkers {
 		if err := checker.Ping(ctx); err != nil {
