@@ -5,20 +5,31 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/airsss993/histproject/backend/internal/modules/admins"
+	"github.com/airsss993/histproject/backend/internal/modules/events"
+	"github.com/airsss993/histproject/backend/internal/modules/submissions"
 	"github.com/airsss993/histproject/backend/internal/platform/config"
 	"github.com/airsss993/histproject/backend/internal/platform/database"
+	platformqueue "github.com/airsss993/histproject/backend/internal/platform/queue"
 	"github.com/airsss993/histproject/backend/internal/platform/redisstore"
+	"github.com/airsss993/histproject/backend/internal/platform/storage"
 	legacymigrations "github.com/airsss993/histproject/backend/migrations"
 	v2migrations "github.com/airsss993/histproject/backend/migrations/v2"
+	"github.com/hibiken/asynq"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func TestAPIHTTPFlow(t *testing.T) {
@@ -70,7 +81,15 @@ func TestAPIHTTPFlow(t *testing.T) {
 
 	cfg := config.Config{SessionTTL: time.Hour, CORSOrigins: []string{"http://localhost:3000"}}
 	logger := testLogger()
-	handler := NewAPI(cfg, logger, NewModules(cfg, logger, databaseClient, redisClient), databaseClient, redisClient)
+	handler := NewAPI(cfg, logger, NewModules(cfg, logger, databaseClient, redisClient, nil), databaseClient, redisClient)
+	invalidSubmission := performJSONRequest(t, handler, http.MethodPost, "/api/v1/submissions", `{}`, nil)
+	if invalidSubmission.Code != http.StatusBadRequest {
+		t.Fatalf("invalid submission status = %d, want 400, body = %s", invalidSubmission.Code, invalidSubmission.Body.String())
+	}
+	unauthorizedSubmissions := performJSONRequest(t, handler, http.MethodGet, "/api/v1/admin/submissions", "", nil)
+	if unauthorizedSubmissions.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthorized submissions status = %d, want 401", unauthorizedSubmissions.Code)
+	}
 	publicEvents := performJSONRequest(t, handler, http.MethodGet, "/api/v1/events?eventType=military&page=1&pageSize=10", "", nil)
 	if publicEvents.Code != http.StatusOK || !strings.Contains(publicEvents.Body.String(), `"eventDate":"2020-01-02"`) {
 		t.Fatalf("public events status = %d, body = %s", publicEvents.Code, publicEvents.Body.String())
@@ -178,6 +197,253 @@ func TestAPIHTTPFlow(t *testing.T) {
 		if strings.Contains(key, "root") || strings.Contains(key, "editor") || strings.Contains(key, "missing") {
 			t.Fatalf("rate limit key exposes login: %q", key)
 		}
+	}
+}
+
+func TestAPISubmissionFlow(t *testing.T) {
+	databaseURL := os.Getenv("TEST_APP_DATABASE_URL")
+	redisAddress := os.Getenv("TEST_APP_REDIS_ADDRESS")
+	minioEndpoint := os.Getenv("TEST_APP_MINIO_ENDPOINT")
+	minioAccessKey := os.Getenv("TEST_APP_MINIO_ACCESS_KEY")
+	minioSecretKey := os.Getenv("TEST_APP_MINIO_SECRET_KEY")
+	if databaseURL == "" || redisAddress == "" || minioEndpoint == "" || minioAccessKey == "" || minioSecretKey == "" {
+		t.Skip("app PostgreSQL, Redis and MinIO test variables are not set")
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 45*time.Second)
+	defer cancel()
+	prepareAppTestDatabase(t, ctx, databaseURL)
+	databaseClient, err := database.Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	t.Cleanup(databaseClient.Close)
+	redisClient, err := redisstore.Open(ctx, redisAddress, "", 0)
+	if err != nil {
+		t.Fatalf("open Redis: %v", err)
+	}
+	t.Cleanup(func() { _ = redisClient.Close() })
+	if err := redisClient.Client().FlushDB(ctx).Err(); err != nil {
+		t.Fatalf("flush Redis: %v", err)
+	}
+	storageClient := prepareAppTestStorage(t, ctx, minioEndpoint, minioAccessKey, minioSecretKey)
+
+	adminService := admins.NewService(admins.NewRepository(databaseClient.Pool()))
+	if _, err := adminService.Bootstrap(ctx, admins.CreateInput{Login: "root", Password: "correct-password"}); err != nil {
+		t.Fatalf("bootstrap admin: %v", err)
+	}
+	if _, err := adminService.Create(ctx, admins.CreateInput{Login: "editor", Password: "editor-password", Role: admins.RoleAdmin}); err != nil {
+		t.Fatalf("create editor: %v", err)
+	}
+
+	cfg := config.Config{SessionTTL: time.Hour, CORSOrigins: []string{"http://localhost:3000"}, MaxUploadBytes: 52_428_800}
+	logger := testLogger()
+	handler := NewAPI(cfg, logger, NewModules(cfg, logger, databaseClient, redisClient, storageClient), databaseClient, redisClient, storageClient)
+	editorCookie := appLogin(t, handler, "editor", "editor-password")
+	rootCookie := appLogin(t, handler, "root", "correct-password")
+
+	rejectedID := createSubmissionRequest(t, handler, "Rejected event", "rejected-author@example.test", "rejected_author")
+	rejectedArchiveID := submissionArchiveID(t, ctx, databaseClient, rejectedID)
+	assertRawArchiveKey(t, rejectedArchiveID)
+	assertArchiveExists(t, ctx, storageClient, rejectedArchiveID)
+	queueClient := platformqueue.NewClient(redisClient.Client())
+	if err := queueClient.EnqueueArchive(ctx, rejectedID, rejectedArchiveID); !errors.Is(err, asynq.ErrTaskIDConflict) {
+		t.Fatalf("duplicate EnqueueArchive() error = %v, want task ID conflict", err)
+	}
+
+	workflow := submissions.NewService(
+		submissions.NewRepository(databaseClient.Pool()),
+		submissionEventPublisher{service: events.NewService(events.NewRepository(databaseClient.Pool()))},
+		storageClient,
+		queueClient,
+		nil,
+		cfg.MaxUploadBytes,
+	)
+	if _, err := workflow.MarkReady(ctx, rejectedID, "https://storage.test/preview/rejected/index.html", "https://storage.test/sites/rejected/screenshot.png"); err != nil {
+		t.Fatalf("mark rejected submission ready: %v", err)
+	}
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, fmt.Sprintf("/api/v1/admin/submissions/%d/review", rejectedID), "", editorCookie), http.StatusOK)
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, fmt.Sprintf("/api/v1/admin/submissions/%d/reject", rejectedID), `{"comment":"duplicate"}`, editorCookie), http.StatusOK)
+	assertSubmissionState(t, ctx, databaseClient, rejectedID, statusExpectation{Status: "rejected", AuditCount: 2})
+	assertArchiveExists(t, ctx, storageClient, rejectedArchiveID)
+
+	publishedID := createSubmissionRequest(t, handler, "Published event", "published-author@example.test", "published_author")
+	publishedArchiveID := submissionArchiveID(t, ctx, databaseClient, publishedID)
+	assertRawArchiveKey(t, publishedArchiveID)
+	assertArchiveExists(t, ctx, storageClient, publishedArchiveID)
+	if _, err := workflow.MarkReady(ctx, publishedID, "https://storage.test/preview/published/index.html", "https://storage.test/sites/published/screenshot.png"); err != nil {
+		t.Fatalf("mark published submission ready: %v", err)
+	}
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, fmt.Sprintf("/api/v1/admin/submissions/%d/review", publishedID), "", editorCookie), http.StatusOK)
+	publishPath := fmt.Sprintf("/api/v1/admin/submissions/%d/publish", publishedID)
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, publishPath, `{"latitude":55.5,"longitude":60.5}`, editorCookie), http.StatusOK)
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, publishPath, `{"latitude":56.5,"longitude":61.5}`, editorCookie), http.StatusOK)
+	assertSubmissionState(t, ctx, databaseClient, publishedID, statusExpectation{Status: "published", AuditCount: 2})
+
+	var eventCount int
+	var latitude float64
+	var siteURL string
+	if err := databaseClient.Pool().QueryRow(ctx, `
+		SELECT COUNT(*), MAX(latitude), MAX(site_url)
+		FROM events.events WHERE submission_id = $1
+	`, publishedID).Scan(&eventCount, &latitude, &siteURL); err != nil {
+		t.Fatalf("read published event: %v", err)
+	}
+	if eventCount != 1 || latitude != 56.5 || siteURL != "https://storage.test/sites/published/index.html" {
+		t.Fatalf("published event = count:%d latitude:%f site:%q", eventCount, latitude, siteURL)
+	}
+	assertArchiveExists(t, ctx, storageClient, publishedArchiveID)
+
+	forbiddenAudit := performJSONRequest(t, handler, http.MethodGet, "/api/v1/admin/submissions/audit", "", editorCookie)
+	assertHTTPStatus(t, forbiddenAudit, http.StatusForbidden)
+	audit := performJSONRequest(t, handler, http.MethodGet, "/api/v1/admin/submissions/audit?page=1&pageSize=20", "", rootCookie)
+	if audit.Code != http.StatusOK || !strings.Contains(audit.Body.String(), `"action":"published"`) || !strings.Contains(audit.Body.String(), `"action":"rejected"`) {
+		t.Fatalf("audit status = %d, body = %s", audit.Code, audit.Body.String())
+	}
+
+	keys, err := redisClient.Client().Keys(ctx, "submissions:create:*").Result()
+	if err != nil {
+		t.Fatalf("list submission rate keys: %v", err)
+	}
+	if len(keys) != 1 || strings.Contains(keys[0], "rejected-author") || strings.Contains(keys[0], "published-author") {
+		t.Fatalf("submission rate keys = %#v", keys)
+	}
+
+	for _, archiveID := range []string{rejectedArchiveID, publishedArchiveID} {
+		if err := storageClient.Client().RemoveObject(ctx, "requests", archiveID, minio.RemoveObjectOptions{}); err != nil {
+			t.Fatalf("remove test archive %q: %v", archiveID, err)
+		}
+	}
+}
+
+type statusExpectation struct {
+	Status     string
+	AuditCount int
+}
+
+func appLogin(t *testing.T, handler http.Handler, login, password string) *http.Cookie {
+	t.Helper()
+	response := performJSONRequest(t, handler, http.MethodPost, "/api/v1/auth/login", fmt.Sprintf(`{"login":%q,"password":%q}`, login, password), nil)
+	if response.Code != http.StatusOK {
+		t.Fatalf("login %q status = %d, body = %s", login, response.Code, response.Body.String())
+	}
+	cookies := response.Result().Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("login %q cookies = %#v", login, cookies)
+	}
+	return cookies[0]
+}
+
+func createSubmissionRequest(t *testing.T, handler http.Handler, title, email, telegram string) int64 {
+	t.Helper()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	fields := map[string]string{
+		"title": title, "description": "Description", "eventDate": "2020-01-02",
+		"eventType": "military", "email": email, "telegramUsername": telegram,
+	}
+	for key, value := range fields {
+		if err := writer.WriteField(key, value); err != nil {
+			t.Fatalf("write multipart field: %v", err)
+		}
+	}
+	archive, err := writer.CreateFormFile("archive", "site.zip")
+	if err != nil {
+		t.Fatalf("create archive field: %v", err)
+	}
+	if _, err := archive.Write([]byte("test zip bytes")); err != nil {
+		t.Fatalf("write archive field: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close multipart: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/submissions", body)
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("create submission status = %d, body = %s", response.Code, response.Body.String())
+	}
+	var payload struct {
+		Submission struct {
+			ID int64 `json:"id"`
+		} `json:"submission"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode created submission: %v", err)
+	}
+	return payload.Submission.ID
+}
+
+func prepareAppTestStorage(t *testing.T, ctx context.Context, endpoint, accessKey, secretKey string) *storage.MinIO {
+	t.Helper()
+	client, err := minio.New(endpoint, &minio.Options{Creds: credentials.NewStaticV4(accessKey, secretKey, "")})
+	if err != nil {
+		t.Fatalf("create MinIO setup client: %v", err)
+	}
+	for _, bucket := range []string{"requests", "sites"} {
+		exists, err := client.BucketExists(ctx, bucket)
+		if err != nil {
+			t.Fatalf("check MinIO bucket %q: %v", bucket, err)
+		}
+		if !exists {
+			if err := client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{}); err != nil {
+				t.Fatalf("create MinIO bucket %q: %v", bucket, err)
+			}
+		}
+	}
+	storageClient, err := storage.Open(ctx, storage.Config{
+		Endpoint: endpoint, AccessKey: accessKey, SecretKey: secretKey,
+		ArchiveBucket: "requests", SiteBucket: "sites",
+	})
+	if err != nil {
+		t.Fatalf("open test storage: %v", err)
+	}
+	return storageClient
+}
+
+func submissionArchiveID(t *testing.T, ctx context.Context, databaseClient *database.Database, submissionID int64) string {
+	t.Helper()
+	var archiveID string
+	if err := databaseClient.Pool().QueryRow(ctx, `SELECT archive_id FROM submissions.submissions WHERE id = $1`, submissionID).Scan(&archiveID); err != nil {
+		t.Fatalf("read submission archive ID: %v", err)
+	}
+	return archiveID
+}
+
+func assertRawArchiveKey(t *testing.T, archiveID string) {
+	t.Helper()
+	if !regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).MatchString(archiveID) {
+		t.Fatalf("archive ID = %q, want raw UUID", archiveID)
+	}
+}
+
+func assertArchiveExists(t *testing.T, ctx context.Context, storageClient *storage.MinIO, archiveID string) {
+	t.Helper()
+	if _, err := storageClient.Client().StatObject(ctx, "requests", archiveID, minio.StatObjectOptions{}); err != nil {
+		t.Fatalf("stat archive %q: %v", archiveID, err)
+	}
+}
+
+func assertSubmissionState(t *testing.T, ctx context.Context, databaseClient *database.Database, submissionID int64, want statusExpectation) {
+	t.Helper()
+	var status string
+	var auditCount int
+	if err := databaseClient.Pool().QueryRow(ctx, `SELECT status::TEXT FROM submissions.submissions WHERE id = $1`, submissionID).Scan(&status); err != nil {
+		t.Fatalf("read submission status: %v", err)
+	}
+	if err := databaseClient.Pool().QueryRow(ctx, `SELECT COUNT(*) FROM submissions.audit_log WHERE submission_id = $1`, submissionID).Scan(&auditCount); err != nil {
+		t.Fatalf("count submission audit: %v", err)
+	}
+	if status != want.Status || auditCount != want.AuditCount {
+		t.Fatalf("submission state = status:%q audit:%d, want status:%q audit:%d", status, auditCount, want.Status, want.AuditCount)
+	}
+}
+
+func assertHTTPStatus(t *testing.T, response *httptest.ResponseRecorder, want int) {
+	t.Helper()
+	if response.Code != want {
+		t.Fatalf("HTTP status = %d, want %d, body = %s", response.Code, want, response.Body.String())
 	}
 }
 

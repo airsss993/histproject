@@ -40,7 +40,7 @@ go run ./cmd/bootstrap-admin --apply
 - `COOKIE_DOMAIN`: domain для auth cookie.
 - `CORS_ALLOWED_ORIGINS`: список allowed origins через запятую.
 
-В `production` все адреса, credentials, `COOKIE_DOMAIN` и `CORS_ALLOWED_ORIGINS` обязательны. Значения из `.env.example` не подходят для production.
+В `production` все адреса, credentials, MinIO bucket names, `MAX_UPLOAD_BYTES`, `COOKIE_DOMAIN` и `CORS_ALLOWED_ORIGINS` обязательны. Значения из `.env.example` не подходят для production.
 
 ## API
 
@@ -51,16 +51,27 @@ go run ./cmd/bootstrap-admin --apply
 - `GET /api/v1/auth/session`
 - `GET /api/v1/events`
 - `GET /api/v1/events/{id}`
+- `POST /api/v1/submissions`
 - `GET /api/v1/admin/admins`
 - `POST /api/v1/admin/admins`
 - `PATCH /api/v1/admin/admins/{id}/role`
 - `DELETE /api/v1/admin/admins/{id}`
 - `PATCH /api/v1/admin/events/{id}/coordinates`
 - `DELETE /api/v1/admin/events/{id}`
+- `GET /api/v1/admin/submissions`
+- `GET /api/v1/admin/submissions/{id}`
+- `PATCH /api/v1/admin/submissions/{id}/review`
+- `PATCH /api/v1/admin/submissions/{id}/reject`
+- `PATCH /api/v1/admin/submissions/{id}/publish`
+- `GET /api/v1/admin/submissions/audit`
 
-Admins routes требуют session с ролью `super_admin`. Events admin routes доступны ролям `admin` и `super_admin`. Login ограничен пятью попытками в минуту для пары login и client IP. Redis key содержит только SHA-256 digest.
+Admins routes требуют session с ролью `super_admin`. Events и submissions moderation routes доступны ролям `admin` и `super_admin`. Submissions audit доступен только `super_admin`.
+
+Login ограничен пятью попытками в минуту для пары login и client IP. Public submission form ограничен пятью попытками в час для client IP. Redis keys содержат только SHA-256 digests, без login, email и Telegram username.
 
 `GET /api/v1/events` принимает repeated `eventType`, `dateFrom`, `dateTo`, `page` и `pageSize`. Default page size равен `50`, maximum - `100`. Сортировка стабильная: `eventDate ASC`, затем `id ASC`.
+
+`POST /api/v1/submissions` принимает `multipart/form-data`: `title`, `description`, `eventDate`, `eventType`, `email`, `telegramUsername` и ZIP `archive`. Архив хранится в bucket `requests` под raw UUID key. Queue task идемпотентна по submission ID.
 
 Документация legacy API находится в `docs/api.html`. OpenAPI нового API будет добавлен после переноса всех модулей.
 

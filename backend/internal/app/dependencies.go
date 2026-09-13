@@ -84,7 +84,7 @@ func (d *Dependencies) Checkers() []health.Checker {
 }
 
 func (d *Dependencies) Modules(cfg config.Config, logger *slog.Logger) Modules {
-	return NewModules(cfg, logger, d.Database, d.Redis)
+	return NewModules(cfg, logger, d.Database, d.Redis, d.Storage)
 }
 
 func (d *Dependencies) Close() error {
