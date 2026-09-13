@@ -25,7 +25,7 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-// Worker — обработка фоновых задач (архивы заявок).
+// Worker - обработка фоновых задач (архивы заявок).
 type Worker struct {
 	requestRepo requests.RequestRepository
 	storage     *storage.MinioClient
@@ -103,7 +103,7 @@ func (w *Worker) ProcessArchiveTask(ctx context.Context, t *asynq.Task) error {
 	siteUrl := fmt.Sprintf("http://%s/preview/%s/index.html", w.cfg.Storage.SitePublicUrl, siteSlug)
 	log.Printf("[worker] requestId=%d: готово, siteUrl=%s screenshotUrl=%s", payload.RequestId, siteUrl, screenshotUrl)
 
-	// Используем свежий контекст — asynq-контекст к этому моменту может быть отменён
+	// Используем свежий контекст - asynq-контекст к этому моменту может быть отменен
 	saveCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := w.requestRepo.UpdateStatus(saveCtx, payload.RequestId, "Новая", "", siteUrl, screenshotUrl); err != nil {

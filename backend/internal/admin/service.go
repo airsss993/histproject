@@ -20,7 +20,7 @@ const (
 	refreshTokenTTL = 7 * 24 * time.Hour
 )
 
-// Service — бизнес-логика аутентификации администраторов.
+// Service - бизнес-логика аутентификации администраторов.
 type Service struct {
 	repo         Repository
 	requestsRepo requests.RequestRepository

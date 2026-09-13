@@ -15,12 +15,12 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-// StorageWriter — загрузка архива в хранилище.
+// StorageWriter - загрузка архива в хранилище.
 type StorageWriter interface {
 	UploadArchive(file *multipart.FileHeader) (string, error)
 }
 
-// QueueEnqueuer — постановка задачи в очередь.
+// QueueEnqueuer - постановка задачи в очередь.
 type QueueEnqueuer interface {
 	Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error)
 }
@@ -28,7 +28,7 @@ type QueueEnqueuer interface {
 // TaskBuilder создаёт задачу обработки архива.
 type TaskBuilder func(requestID int, archiveID string) (*asynq.Task, error)
 
-// Service — бизнес-логика заявок.
+// Service - бизнес-логика заявок.
 type Service struct {
 	repo           RequestRepository
 	storage        StorageWriter
@@ -52,7 +52,7 @@ func NewService(repo RequestRepository, storage StorageWriter, queue QueueEnqueu
 	}
 }
 
-// CreateRequestInput — входные данные для создания заявки.
+// CreateRequestInput - входные данные для создания заявки.
 type CreateRequestInput struct {
 	Title            string
 	Description      string
@@ -65,7 +65,7 @@ type CreateRequestInput struct {
 
 // CreateRequest создаёт заявку: проверяет архив, загружает, сохраняет в БД, ставит задачу в очередь.
 func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (err error) {
-	// Проверяем, что файл — zip и не больше 50 МБ
+	// Проверяем, что файл - zip и не больше 50 МБ
 	if !strings.HasSuffix(input.Archive.Filename, ".zip") {
 		return ErrArchiveMustBeZip
 	}
