@@ -40,6 +40,9 @@ func TestArchiveTaskHandlerRejectsInvalidPayload(t *testing.T) {
 			if !errors.Is(err, ErrInvalidTaskPayload) {
 				t.Fatalf("ProcessTask() error = %v, want ErrInvalidTaskPayload", err)
 			}
+			if !errors.Is(err, asynq.SkipRetry) {
+				t.Fatalf("ProcessTask() error = %v, want asynq.SkipRetry", err)
+			}
 			if processor.called {
 				t.Fatal("processor called for invalid payload")
 			}
