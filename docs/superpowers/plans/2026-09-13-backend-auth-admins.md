@@ -59,11 +59,11 @@
 - Create: `backend/internal/modules/auth/http.go`
 - Test: `backend/internal/modules/auth/http_test.go`
 
-- [ ] Написать failing HTTP tests для login, logout, session, cookie flags, unauthorized и malformed JSON.
-- [ ] Подтвердить failure.
-- [ ] Реализовать `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/session`.
-- [ ] Добавить middleware, который кладет immutable identity в request context.
-- [ ] Запустить race tests и закоммитить как `feat(backend): добавить session auth API`.
+- [x] Написать failing HTTP tests для login, logout, session, cookie flags, unauthorized и malformed JSON.
+- [x] Подтвердить failure.
+- [x] Реализовать `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/session`.
+- [x] Добавить middleware, который кладет immutable identity в request context.
+- [x] Запустить race tests и закоммитить как `feat(backend): добавить session auth API`.
 
 ### Task 4: Admin management
 
