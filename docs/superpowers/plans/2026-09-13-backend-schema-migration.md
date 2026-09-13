@@ -74,11 +74,11 @@
 - Create: `backend/cmd/migrate/main.go`
 - Test: `backend/cmd/migrate/main_test.go`
 
-- [ ] Написать failing tests на отсутствие `DATABASE_URL`, отказ без `--apply` и санитизацию errors.
-- [ ] Подтвердить failure.
-- [ ] Реализовать одноразовый `go run ./cmd/migrate --apply` с startup timeout.
-- [ ] Не подключать CLI к `cmd/api` и `cmd/main.go`.
-- [ ] Запустить tests и закоммитить как `feat(backend): добавить migration CLI`.
+- [x] Написать failing tests на отсутствие `DATABASE_URL`, отказ без `--apply` и санитизацию errors.
+- [x] Подтвердить failure.
+- [x] Реализовать одноразовый `go run ./cmd/migrate --apply` с startup timeout.
+- [x] Не подключать CLI к `cmd/api` и `cmd/main.go`.
+- [x] Запустить tests и закоммитить как `feat(backend): добавить migration CLI`.
 
 ### Task 5: Runbook и quality gate
 

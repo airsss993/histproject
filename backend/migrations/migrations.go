@@ -15,7 +15,11 @@ import (
 var embedMigrations embed.FS
 
 func Run(db *sql.DB) error {
-	return up(context.Background(), db, embedMigrations)
+	return Up(context.Background(), db)
+}
+
+func Up(ctx context.Context, db *sql.DB) error {
+	return up(ctx, db, embedMigrations)
 }
 
 func up(ctx context.Context, db *sql.DB, migrations fs.FS) error {
