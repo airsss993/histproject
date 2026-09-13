@@ -44,11 +44,11 @@
 - Create: `backend/internal/modules/submissions/service.go`
 - Test: `backend/internal/modules/submissions/service_test.go`
 
-- [ ] Написать failing tests на input validation, transition matrix, required reject comment, coordinates и event snapshot.
-- [ ] Подтвердить expected failure.
-- [ ] Объявить consumer interfaces `ArchiveStore`, `JobQueue`, `EventPublisher`, `Notifier` и typed errors.
-- [ ] Реализовать state machine без hidden side effects и cross-module imports.
-- [ ] Запустить race tests и закоммитить как `feat(backend): добавить submissions core`.
+- [x] Написать failing tests на moderation input validation, transition matrix, required reject comment, coordinates и event snapshot.
+- [x] Подтвердить expected failure.
+- [x] Объявить consumer interfaces `ArchiveStore`, `JobQueue`, `EventPublisher`, `Notifier` и typed errors.
+- [x] Реализовать state machine без hidden side effects и cross-module imports.
+- [x] Запустить race tests и закоммитить как `feat(backend): добавить submissions core`.
 
 ### Task 3: PostgreSQL submissions repository
 
