@@ -73,11 +73,11 @@
 - Modify: `backend/internal/platform/config/config_test.go`
 - Modify: `backend/.env.example`
 
-- [ ] Добавить failing tests на context-aware archive upload, preserved object key, compensation delete и unique Asynq task ID.
-- [ ] Добавить `MAX_UPLOAD_BYTES` с production validation и safe default `52428800`.
-- [ ] Реализовать adapters без global clients и `context.Background()`.
-- [ ] Не менять existing archive bucket и object key semantics.
-- [ ] Запустить race tests и закоммитить как `feat(backend): добавить archive intake adapters`.
+- [x] Добавить failing tests на context-aware archive upload, preserved object key, compensation delete и unique Asynq task ID.
+- [x] Добавить `MAX_UPLOAD_BYTES` с production validation и safe default `52428800`.
+- [x] Реализовать adapters без global clients и `context.Background()`.
+- [x] Не менять existing archive bucket и object key semantics.
+- [x] Запустить race tests и закоммитить как `feat(backend): добавить archive intake adapters`.
 
 ### Task 5: Submissions HTTP API
 

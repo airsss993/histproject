@@ -92,9 +92,10 @@ SQL
 
 ```bash
 mc alias set histproject-backup http://10.3.13.202:9000 --api S3v4
-read -r MINIO_BUCKET
-mc stat "histproject-backup/$MINIO_BUCKET"
-mc find "histproject-backup/$MINIO_BUCKET" --print '{}\t{size}\t{time}' | LC_ALL=C sort > "$BACKUP_DIR/minio-objects.tsv"
+for bucket in requests sites; do
+  mc stat "histproject-backup/$bucket"
+  mc find "histproject-backup/$bucket" --print '{}\t{size}\t{time}'
+done | LC_ALL=C sort > "$BACKUP_DIR/minio-objects.tsv"
 wc -l "$BACKUP_DIR/minio-objects.tsv" > "$BACKUP_DIR/minio-object-count.txt"
 shasum -a 256 "$BACKUP_DIR/minio-objects.tsv" > "$BACKUP_DIR/minio-objects.tsv.sha256"
 mc alias rm histproject-backup

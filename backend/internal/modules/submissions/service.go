@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"path/filepath"
 	"strings"
+
+	"github.com/gosimple/slug"
 )
 
 var (
@@ -23,6 +26,7 @@ func (validationError *ValidationError) Error() string {
 }
 
 type Store interface {
+	Create(context.Context, CreateRecord) (Submission, error)
 	Get(context.Context, int64) (Submission, error)
 	Transition(context.Context, Transition) (Submission, error)
 }
@@ -45,12 +49,68 @@ type Notifier interface {
 }
 
 type Service struct {
-	store     Store
-	publisher EventPublisher
+	store          Store
+	publisher      EventPublisher
+	archives       ArchiveStore
+	jobs           JobQueue
+	notifier       Notifier
+	maxUploadBytes int64
 }
 
-func NewService(store Store, publisher EventPublisher) *Service {
-	return &Service{store: store, publisher: publisher}
+func NewService(store Store, publisher EventPublisher, archives ArchiveStore, jobs JobQueue, notifier Notifier, maxUploadBytes int64) *Service {
+	return &Service{
+		store: store, publisher: publisher, archives: archives, jobs: jobs,
+		notifier: notifier, maxUploadBytes: maxUploadBytes,
+	}
+}
+
+func (service *Service) Create(ctx context.Context, input CreateInput) (Submission, error) {
+	fields := make(map[string]string)
+	if input.Archive == nil {
+		fields["archive"] = "Обязательное поле"
+	}
+	if strings.ToLower(filepath.Ext(strings.TrimSpace(input.ArchiveName))) != ".zip" {
+		fields["archive"] = "Ожидается ZIP-архив"
+	}
+	if input.ArchiveSize <= 0 || service.maxUploadBytes <= 0 || input.ArchiveSize > service.maxUploadBytes {
+		fields["archive"] = fmt.Sprintf("Максимальный размер: %d байт", service.maxUploadBytes)
+	}
+	if len(fields) > 0 {
+		return Submission{}, &ValidationError{Fields: fields}
+	}
+	if service.archives == nil {
+		return Submission{}, errors.New("archive store is nil")
+	}
+	if service.jobs == nil {
+		return Submission{}, errors.New("job queue is nil")
+	}
+
+	archiveID, err := service.archives.PutArchive(ctx, input.Archive, input.ArchiveSize)
+	if err != nil {
+		return Submission{}, fmt.Errorf("store submission archive: %w", err)
+	}
+	title := strings.TrimSpace(input.Title)
+	slugValue := slug.Make(title)
+	if slugValue == "" {
+		slugValue = "object"
+	}
+	submission, err := service.store.Create(ctx, CreateRecord{
+		Title: title, Description: strings.TrimSpace(input.Description), EventDate: input.EventDate,
+		EventType: strings.TrimSpace(input.EventType), Email: strings.TrimSpace(input.Email),
+		TelegramUsername: strings.TrimPrefix(strings.TrimSpace(input.TelegramUsername), "@"),
+		ArchiveID:        archiveID, Slug: slugValue + "-" + archiveID,
+	})
+	if err != nil {
+		deleteErr := service.archives.DeleteArchive(ctx, archiveID)
+		if deleteErr != nil {
+			return Submission{}, errors.Join(err, fmt.Errorf("compensate archive upload: %w", deleteErr))
+		}
+		return Submission{}, err
+	}
+	if err := service.jobs.EnqueueArchive(ctx, submission.ID, archiveID); err != nil {
+		return submission, fmt.Errorf("enqueue submission archive: %w", err)
+	}
+	return submission, nil
 }
 
 func (service *Service) Review(ctx context.Context, id int64, actor Actor) (Submission, error) {

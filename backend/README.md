@@ -10,7 +10,7 @@
 go run ./cmd/api
 ```
 
-Новый entrypoint подключает PostgreSQL, Redis и MinIO до запуска HTTP-сервера. MinIO bucket из `MINIO_BUCKET` должен существовать заранее. Приложение не создает bucket автоматически.
+Новый entrypoint подключает PostgreSQL, Redis и MinIO до запуска HTTP-сервера. Legacy buckets `requests` и `sites`, заданные через `MINIO_ARCHIVE_BUCKET` и `MINIO_SITE_BUCKET`, должны существовать заранее. Приложение не создает buckets автоматически.
 
 V2 migration запускается только явной командой `go run ./cmd/migrate --apply`. Перед запуском выполнить `docs/migration-v2.md`. `cmd/api` не запускает migrations автоматически.
 
@@ -35,7 +35,8 @@ go run ./cmd/bootstrap-admin --apply
 - `SESSION_TTL`: TTL Redis session и auth cookie, по умолчанию `12h`.
 - `DATABASE_URL`: PostgreSQL DSN.
 - `REDIS_ADDRESS`, `REDIS_PASSWORD`, `REDIS_DB`: параметры Redis.
-- `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_USE_SSL`: параметры MinIO.
+- `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_ARCHIVE_BUCKET`, `MINIO_SITE_BUCKET`, `MINIO_USE_SSL`: параметры MinIO.
+- `MAX_UPLOAD_BYTES`: предел размера ZIP-архива в байтах, по умолчанию `52428800` в development.
 - `COOKIE_DOMAIN`: domain для auth cookie.
 - `CORS_ALLOWED_ORIGINS`: список allowed origins через запятую.
 
