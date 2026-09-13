@@ -22,6 +22,7 @@ func (validationError *ValidationError) Error() string {
 }
 
 type Store interface {
+	Publish(context.Context, Snapshot) (Event, error)
 	List(context.Context, Filter) (Page, error)
 	Get(context.Context, int64) (Event, error)
 	UpdateCoordinates(context.Context, int64, float64, float64) error
@@ -34,6 +35,35 @@ type Service struct {
 
 func NewService(store Store) *Service {
 	return &Service{store: store}
+}
+
+func (service *Service) Publish(ctx context.Context, snapshot Snapshot) (Event, error) {
+	fields := make(map[string]string)
+	if snapshot.SubmissionID <= 0 {
+		fields["submissionId"] = "Ожидается положительный ID"
+	}
+	if strings.TrimSpace(snapshot.Title) == "" {
+		fields["title"] = "Обязательное поле"
+	}
+	if snapshot.EventDate.IsZero() {
+		fields["eventDate"] = "Обязательное поле"
+	}
+	if !eventTypePattern.MatchString(snapshot.EventType) {
+		fields["eventType"] = "Латинские буквы, цифры и underscore"
+	}
+	if math.IsNaN(snapshot.Latitude) || math.IsInf(snapshot.Latitude, 0) || snapshot.Latitude < -90 || snapshot.Latitude > 90 {
+		fields["latitude"] = "От -90 до 90"
+	}
+	if math.IsNaN(snapshot.Longitude) || math.IsInf(snapshot.Longitude, 0) || snapshot.Longitude < -180 || snapshot.Longitude > 180 {
+		fields["longitude"] = "От -180 до 180"
+	}
+	if strings.TrimSpace(snapshot.SiteURL) == "" {
+		fields["siteUrl"] = "Обязательное поле"
+	}
+	if len(fields) > 0 {
+		return Event{}, &ValidationError{Fields: fields}
+	}
+	return service.store.Publish(ctx, snapshot)
 }
 
 func (service *Service) List(ctx context.Context, input ListInput) (Page, error) {

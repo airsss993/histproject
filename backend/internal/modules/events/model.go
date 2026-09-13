@@ -17,6 +17,18 @@ type Event struct {
 	UpdatedAt       time.Time
 }
 
+type Snapshot struct {
+	SubmissionID    int64
+	Title           string
+	Description     string
+	Latitude        float64
+	Longitude       float64
+	EventDate       time.Time
+	EventType       string
+	SiteURL         string
+	PreviewImageURL string
+}
+
 type Filter struct {
 	EventTypes []string
 	DateFrom   *time.Time

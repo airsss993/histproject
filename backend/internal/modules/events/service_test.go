@@ -121,6 +121,25 @@ func TestDeleteDelegatesPositiveID(t *testing.T) {
 	}
 }
 
+func TestPublishDelegatesSnapshot(t *testing.T) {
+	store := &eventStoreStub{event: Event{ID: 12, SubmissionID: 7}}
+	service := NewService(store)
+	snapshot := Snapshot{
+		SubmissionID: 7, Title: "Event", Description: "Description",
+		Latitude: 55.5, Longitude: 60.5, EventDate: mustServiceDate(t, "2020-01-02"),
+		EventType: "military", SiteURL: "https://example.test/sites/event",
+		PreviewImageURL: "https://example.test/sites/event/screenshot.png",
+	}
+
+	event, err := service.Publish(t.Context(), snapshot)
+	if err != nil {
+		t.Fatalf("Publish() error = %v", err)
+	}
+	if event.ID != 12 || store.snapshot != snapshot {
+		t.Fatalf("event = %#v, snapshot = %#v", event, store.snapshot)
+	}
+}
+
 type eventStoreStub struct {
 	filter       Filter
 	page         Page
@@ -133,6 +152,13 @@ type eventStoreStub struct {
 	updateError  error
 	deletedID    int64
 	deleteError  error
+	snapshot     Snapshot
+	publishError error
+}
+
+func (stub *eventStoreStub) Publish(_ context.Context, snapshot Snapshot) (Event, error) {
+	stub.snapshot = snapshot
+	return stub.event, stub.publishError
 }
 
 func (stub *eventStoreStub) List(_ context.Context, filter Filter) (Page, error) {
@@ -154,4 +180,13 @@ func (stub *eventStoreStub) UpdateCoordinates(context.Context, int64, float64, f
 func (stub *eventStoreStub) Delete(_ context.Context, id int64) error {
 	stub.deletedID = id
 	return stub.deleteError
+}
+
+func mustServiceDate(t *testing.T, value string) time.Time {
+	t.Helper()
+	date, err := time.Parse(time.DateOnly, value)
+	if err != nil {
+		t.Fatalf("parse date: %v", err)
+	}
+	return date
 }
