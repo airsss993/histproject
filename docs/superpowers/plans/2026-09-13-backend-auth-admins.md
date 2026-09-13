@@ -46,12 +46,12 @@
 - Test: `backend/internal/modules/auth/session_test.go`
 - Test: `backend/internal/modules/auth/service_test.go`
 
-- [ ] Написать failing auth unit tests на generic invalid credentials, bcrypt, random token, digest key, TTL, get и delete.
-- [ ] Подтвердить failure.
-- [ ] Реализовать admin credential query без cross-module import.
-- [ ] Реализовать Redis session store и auth service.
-- [ ] Проверить repository на PostgreSQL 18 и session store на Redis 8.
-- [ ] Запустить race tests и закоммитить как `feat(backend): добавить Redis sessions`.
+- [x] Написать failing auth unit tests на generic invalid credentials, bcrypt, random token, digest key, TTL, get и delete.
+- [x] Подтвердить failure.
+- [x] Реализовать admin credential query без cross-module import.
+- [x] Реализовать Redis session store и auth service.
+- [x] Проверить repository на PostgreSQL 18 и session store на Redis 8.
+- [x] Запустить race tests и закоммитить как `feat(backend): добавить Redis sessions`.
 
 ### Task 3: Auth HTTP endpoints и middleware
 
