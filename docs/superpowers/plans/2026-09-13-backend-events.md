@@ -83,9 +83,9 @@
 - Consumes: `events.NewRepository`, `events.NewService`, `events.NewHandler`, auth session middleware and role checks.
 - Produces: public events routes and authenticated admin events routes in `cmd/api`.
 
-- [ ] Подключить events through explicit constructors and registrar.
-- [ ] Добавить PostgreSQL 18 E2E для filters, pagination, detail, admin coordinate update и delete.
-- [ ] Проверить session access для roles `admin` и `super_admin`.
-- [ ] Обновить README без копирования legacy contract.
-- [ ] Запустить `gofmt`, `go test -race ./...`, PostgreSQL 18 integration tests, `go vet ./...`, scoped `golangci-lint`, `go build ./cmd/...`, `git diff --check` и forbidden character scan.
-- [ ] Закоммитить как `feat(backend): подключить events module`.
+- [x] Подключить events through explicit constructors and registrar.
+- [x] Добавить PostgreSQL 18 E2E для filters, pagination, detail, admin coordinate update и delete.
+- [x] Проверить session access для roles `admin` и `super_admin`.
+- [x] Обновить README без копирования legacy contract.
+- [x] Запустить `gofmt`, `go test -race ./...`, PostgreSQL 18 integration tests, `go vet ./...`, scoped `golangci-lint`, `go build ./cmd/...`, `git diff --check` и forbidden character scan.
+- [x] Закоммитить как `feat(backend): подключить events module`.

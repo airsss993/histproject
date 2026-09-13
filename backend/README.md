@@ -48,12 +48,18 @@ go run ./cmd/bootstrap-admin --apply
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/session`
+- `GET /api/v1/events`
+- `GET /api/v1/events/{id}`
 - `GET /api/v1/admin/admins`
 - `POST /api/v1/admin/admins`
 - `PATCH /api/v1/admin/admins/{id}/role`
 - `DELETE /api/v1/admin/admins/{id}`
+- `PATCH /api/v1/admin/events/{id}/coordinates`
+- `DELETE /api/v1/admin/events/{id}`
 
-Admin routes требуют session с ролью `super_admin`. Login ограничен пятью попытками в минуту для пары login и client IP. Redis key содержит только SHA-256 digest.
+Admins routes требуют session с ролью `super_admin`. Events admin routes доступны ролям `admin` и `super_admin`. Login ограничен пятью попытками в минуту для пары login и client IP. Redis key содержит только SHA-256 digest.
+
+`GET /api/v1/events` принимает repeated `eventType`, `dateFrom`, `dateTo`, `page` и `pageSize`. Default page size равен `50`, maximum - `100`. Сортировка стабильная: `eventDate ASC`, затем `id ASC`.
 
 Документация legacy API находится в `docs/api.html`. OpenAPI нового API будет добавлен после переноса всех модулей.
 

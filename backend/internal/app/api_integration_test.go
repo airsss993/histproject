@@ -21,7 +21,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func TestAuthAndAdminsHTTPFlow(t *testing.T) {
+func TestAPIHTTPFlow(t *testing.T) {
 	databaseURL := os.Getenv("TEST_APP_DATABASE_URL")
 	redisAddress := os.Getenv("TEST_APP_REDIS_ADDRESS")
 	if databaseURL == "" || redisAddress == "" {
@@ -50,10 +50,39 @@ func TestAuthAndAdminsHTTPFlow(t *testing.T) {
 	if _, err := adminService.Bootstrap(ctx, admins.CreateInput{Login: "root", Password: "correct-password"}); err != nil {
 		t.Fatalf("bootstrap admin: %v", err)
 	}
+	if _, err := adminService.Create(ctx, admins.CreateInput{Login: "editor", Password: "editor-password", Role: admins.RoleAdmin}); err != nil {
+		t.Fatalf("create editor: %v", err)
+	}
+	if _, err := databaseClient.Pool().Exec(ctx, `
+		INSERT INTO submissions.submissions (
+			id, title, description, event_date, event_type_id, event_type_code,
+			email, telegram_username, archive_id, status
+		) VALUES (1, 'Submission', 'description', DATE '2020-01-02', 2, 'military',
+			'author@example.test', 'author', 'archives/1.zip', 'published');
+		INSERT INTO events.events (
+			id, submission_id, title, description, latitude, longitude,
+			event_date, event_type_id, event_type_code, site_url, preview_image_url
+		) VALUES (1, 1, 'Event', 'description', 55.5, 60.5,
+			DATE '2020-01-02', 2, 'military', 'https://storage.test/sites/1', 'https://storage.test/previews/1.png');
+	`); err != nil {
+		t.Fatalf("seed event: %v", err)
+	}
 
 	cfg := config.Config{SessionTTL: time.Hour, CORSOrigins: []string{"http://localhost:3000"}}
 	logger := testLogger()
 	handler := NewAPI(cfg, logger, NewModules(cfg, logger, databaseClient, redisClient), databaseClient, redisClient)
+	publicEvents := performJSONRequest(t, handler, http.MethodGet, "/api/v1/events?eventType=military&page=1&pageSize=10", "", nil)
+	if publicEvents.Code != http.StatusOK || !strings.Contains(publicEvents.Body.String(), `"eventDate":"2020-01-02"`) {
+		t.Fatalf("public events status = %d, body = %s", publicEvents.Code, publicEvents.Body.String())
+	}
+	publicEvent := performJSONRequest(t, handler, http.MethodGet, "/api/v1/events/1", "", nil)
+	if publicEvent.Code != http.StatusOK || !strings.Contains(publicEvent.Body.String(), `"eventType":"military"`) {
+		t.Fatalf("public event status = %d, body = %s", publicEvent.Code, publicEvent.Body.String())
+	}
+	unauthorizedUpdate := performJSONRequest(t, handler, http.MethodPatch, "/api/v1/admin/events/1/coordinates", `{"latitude":56,"longitude":61}`, nil)
+	if unauthorizedUpdate.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthorized update status = %d, want 401", unauthorizedUpdate.Code)
+	}
 
 	login := performJSONRequest(t, handler, http.MethodPost, "/api/v1/auth/login", `{"login":"root","password":"correct-password"}`, nil)
 	if login.Code != http.StatusOK {
@@ -82,7 +111,7 @@ func TestAuthAndAdminsHTTPFlow(t *testing.T) {
 	if err := json.NewDecoder(list.Body).Decode(&adminsBody); err != nil {
 		t.Fatalf("decode admins: %v", err)
 	}
-	if len(adminsBody.Items) != 1 || adminsBody.Items[0].Login != "root" {
+	if len(adminsBody.Items) != 2 || adminsBody.Items[0].Login != "root" || adminsBody.Items[1].Login != "editor" {
 		t.Fatalf("admins = %#v", adminsBody.Items)
 	}
 
@@ -93,6 +122,39 @@ func TestAuthAndAdminsHTTPFlow(t *testing.T) {
 	afterLogout := performJSONRequest(t, handler, http.MethodGet, "/api/v1/auth/session", "", sessionCookie)
 	if afterLogout.Code != http.StatusUnauthorized {
 		t.Fatalf("session after logout status = %d, want 401", afterLogout.Code)
+	}
+
+	editorLogin := performJSONRequest(t, handler, http.MethodPost, "/api/v1/auth/login", `{"login":"editor","password":"editor-password"}`, nil)
+	if editorLogin.Code != http.StatusOK {
+		t.Fatalf("editor login status = %d, body = %s", editorLogin.Code, editorLogin.Body.String())
+	}
+	editorResult := editorLogin.Result()
+	t.Cleanup(func() { _ = editorResult.Body.Close() })
+	editorCookies := editorResult.Cookies()
+	if len(editorCookies) != 1 {
+		t.Fatalf("editor cookies = %#v", editorCookies)
+	}
+	update := performJSONRequest(t, handler, http.MethodPatch, "/api/v1/admin/events/1/coordinates", `{"latitude":56,"longitude":61}`, editorCookies[0])
+	if update.Code != http.StatusNoContent {
+		t.Fatalf("update status = %d, body = %s", update.Code, update.Body.String())
+	}
+	var latitude, longitude float64
+	if err := databaseClient.Pool().QueryRow(ctx, `SELECT latitude, longitude FROM events.events WHERE id = 1`).Scan(&latitude, &longitude); err != nil {
+		t.Fatalf("read coordinates: %v", err)
+	}
+	if latitude != 56 || longitude != 61 {
+		t.Fatalf("coordinates = (%f, %f)", latitude, longitude)
+	}
+	deleteEvent := performJSONRequest(t, handler, http.MethodDelete, "/api/v1/admin/events/1", "", editorCookies[0])
+	if deleteEvent.Code != http.StatusNoContent {
+		t.Fatalf("delete status = %d, body = %s", deleteEvent.Code, deleteEvent.Body.String())
+	}
+	var submissionCount int
+	if err := databaseClient.Pool().QueryRow(ctx, `SELECT COUNT(*) FROM submissions.submissions WHERE id = 1`).Scan(&submissionCount); err != nil {
+		t.Fatalf("count submission: %v", err)
+	}
+	if submissionCount != 1 {
+		t.Fatalf("submission count = %d, want 1", submissionCount)
 	}
 
 	for attempt := 1; attempt <= 6; attempt++ {
@@ -109,11 +171,11 @@ func TestAuthAndAdminsHTTPFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list rate limit keys: %v", err)
 	}
-	if len(keys) != 2 {
-		t.Fatalf("rate limit keys = %#v, want root and missing digests", keys)
+	if len(keys) != 3 {
+		t.Fatalf("rate limit keys = %#v, want root, editor and missing digests", keys)
 	}
 	for _, key := range keys {
-		if strings.Contains(key, "root") || strings.Contains(key, "missing") {
+		if strings.Contains(key, "root") || strings.Contains(key, "editor") || strings.Contains(key, "missing") {
 			t.Fatalf("rate limit key exposes login: %q", key)
 		}
 	}
