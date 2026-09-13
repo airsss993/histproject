@@ -24,6 +24,7 @@ func TestProviderContainsOnlyModularMigrations(t *testing.T) {
 	want := []string{
 		"20260913000100_modular_schemas.sql",
 		"20260913000200_submission_contract.sql",
+		"20260913000300_notification_deliveries.sql",
 	}
 	if len(sources) != len(want) {
 		t.Fatalf("source count = %d, want %d", len(sources), len(want))

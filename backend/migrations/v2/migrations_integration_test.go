@@ -65,6 +65,7 @@ func TestMigrationPreservesLegacyData(t *testing.T) {
 	assertDomainRows(t, ctx, db)
 	assertSchemaBoundaries(t, ctx, db)
 	assertSubmissionContract(t, ctx, db)
+	assertNotificationDeliveries(t, ctx, db)
 
 	if err := Run(ctx, db); err != nil {
 		t.Fatalf("run V2 migrations twice: %v", err)
@@ -74,7 +75,7 @@ func TestMigrationPreservesLegacyData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new provider for down check: %v", err)
 	}
-	if _, err := provider.ApplyVersion(ctx, 20260913000200, false); err == nil || !strings.Contains(err.Error(), "forward-only") {
+	if _, err := provider.ApplyVersion(ctx, 20260913000300, false); err == nil || !strings.Contains(err.Error(), "forward-only") {
 		t.Fatalf("down error = %v, want forward-only refusal", err)
 	}
 }
@@ -381,6 +382,17 @@ func targetTables() []string {
 		"events.events",
 		"submissions.audit_log",
 		"notifications.telegram_subscriptions",
+	}
+}
+
+func assertNotificationDeliveries(t *testing.T, ctx context.Context, db *sql.DB) {
+	t.Helper()
+	var exists bool
+	if err := db.QueryRowContext(ctx, `SELECT to_regclass('notifications.deliveries') IS NOT NULL`).Scan(&exists); err != nil {
+		t.Fatalf("check notification deliveries: %v", err)
+	}
+	if !exists {
+		t.Fatal("notifications.deliveries does not exist")
 	}
 }
 
