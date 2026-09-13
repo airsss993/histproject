@@ -85,9 +85,9 @@
 - [x] Написать failing tests на rollback уже открытых ресурсов, порядок Close и передачу трех checkers.
 - [x] Подтвердить failure.
 - [x] Реализовать lifecycle dependencies.
-- [ ] Внедрить opener в тестируемый `run`.
-- [ ] Запустить race-тесты и сборку `./cmd/api`.
-- [ ] Закоммитить как `feat(backend): подключить platform dependencies`.
+- [x] Внедрить opener в тестируемый `run`.
+- [x] Запустить race-тесты и сборку `./cmd/api`.
+- [x] Закоммитить как `feat(backend): подключить platform dependencies`.
 
 ### Task 5: Env contract и общая проверка
 
