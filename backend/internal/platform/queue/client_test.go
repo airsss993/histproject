@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
@@ -13,13 +14,32 @@ type enqueuerStub struct {
 	ctx     context.Context
 	task    *asynq.Task
 	options []asynq.Option
+	err     error
 }
 
 func (stub *enqueuerStub) EnqueueContext(ctx context.Context, task *asynq.Task, options ...asynq.Option) (*asynq.TaskInfo, error) {
 	stub.ctx = ctx
 	stub.task = task
 	stub.options = options
-	return &asynq.TaskInfo{}, nil
+	return &asynq.TaskInfo{}, stub.err
+}
+
+func TestEnqueueSubmissionNotificationTreatsTaskIDConflictAsSuccess(t *testing.T) {
+	client := &Client{enqueuer: &enqueuerStub{err: asynq.ErrTaskIDConflict}}
+
+	if err := client.EnqueueSubmissionNotification(t.Context(), 42, "published"); err != nil {
+		t.Fatalf("EnqueueSubmissionNotification() error = %v", err)
+	}
+}
+
+func TestEnqueueSubmissionNotificationReturnsRedisError(t *testing.T) {
+	want := errors.New("Redis unavailable")
+	client := &Client{enqueuer: &enqueuerStub{err: want}}
+
+	err := client.EnqueueSubmissionNotification(t.Context(), 42, "published")
+	if !errors.Is(err, want) {
+		t.Fatalf("EnqueueSubmissionNotification() error = %v, want Redis error", err)
+	}
 }
 
 func TestEnqueueArchiveUsesContextCompatiblePayloadAndUniqueTaskID(t *testing.T) {

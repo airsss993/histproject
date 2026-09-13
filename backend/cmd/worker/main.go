@@ -12,10 +12,13 @@ import (
 	"time"
 
 	"github.com/airsss993/histproject/backend/internal/app"
+	"github.com/airsss993/histproject/backend/internal/modules/admins"
+	"github.com/airsss993/histproject/backend/internal/modules/notifications"
 	"github.com/airsss993/histproject/backend/internal/modules/sites"
 	"github.com/airsss993/histproject/backend/internal/modules/submissions"
 	"github.com/airsss993/histproject/backend/internal/platform/config"
 	"github.com/airsss993/histproject/backend/internal/platform/logging"
+	platformqueue "github.com/airsss993/histproject/backend/internal/platform/queue"
 	"github.com/hibiken/asynq"
 )
 
@@ -63,9 +66,16 @@ func runWorker(ctx context.Context, cfg config.Config, logger *slog.Logger, depe
 	if err != nil {
 		return err
 	}
+	queueClient := platformqueue.NewClient(dependencies.Redis.Client())
+	adminService := admins.NewService(admins.NewRepository(dependencies.Database.Pool()))
 	submissionService := submissions.NewService(
-		submissions.NewRepository(dependencies.Database.Pool()), nil, nil, nil, nil, cfg.MaxUploadBytes,
+		submissions.NewRepository(dependencies.Database.Pool()), nil, nil, nil,
+		app.NewSubmissionNotifier(queueClient), cfg.MaxUploadBytes,
 	)
+	notificationService, err := app.NewNotificationService(cfg, dependencies.Database, submissionService, adminService)
+	if err != nil {
+		return err
+	}
 	processor := sites.NewProcessor(
 		submissionService,
 		func(ctx context.Context, archiveID string) (io.ReaderAt, io.Closer, int64, error) {
@@ -101,7 +111,9 @@ func runWorker(ctx context.Context, cfg config.Config, logger *slog.Logger, depe
 			logger.Error("archive task failed", "type", task.Type(), "retry", retry, "maxRetry", maxRetry, "error", taskErr)
 		}),
 	})
-	if err := server.Start(sites.NewTaskMux(processor)); err != nil {
+	mux := sites.NewTaskMux(processor)
+	notifications.RegisterTasks(mux, notificationService)
+	if err := server.Start(mux); err != nil {
 		return fmt.Errorf("start worker: %w", err)
 	}
 	logger.Info("worker started", "concurrency", 1)

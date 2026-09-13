@@ -108,6 +108,9 @@ func (service *Service) Create(ctx context.Context, input CreateInput) (Submissi
 	if err := service.jobs.EnqueueArchive(ctx, submission.ID, archiveID); err != nil {
 		return submission, fmt.Errorf("enqueue submission archive: %w", err)
 	}
+	if err := service.notify(ctx, submission, "created"); err != nil {
+		return submission, err
+	}
 	return submission, nil
 }
 
@@ -145,10 +148,14 @@ func (service *Service) Review(ctx context.Context, id int64, actor Actor) (Subm
 	if id <= 0 {
 		return Submission{}, invalidSubmissionID()
 	}
-	return service.store.Transition(ctx, Transition{
+	submission, err := service.store.Transition(ctx, Transition{
 		ID: id, From: StatusNew, To: StatusReview,
 		Audit: Audit{AdminLogin: actor.Login, AdminRole: actor.Role, Action: "reviewed"},
 	})
+	if err != nil {
+		return Submission{}, err
+	}
+	return submission, service.notify(ctx, submission, "reviewed")
 }
 
 func (service *Service) Reject(ctx context.Context, id int64, actor Actor, comment string) (Submission, error) {
@@ -163,10 +170,14 @@ func (service *Service) Reject(ctx context.Context, id int64, actor Actor, comme
 	if len(fields) > 0 {
 		return Submission{}, &ValidationError{Fields: fields}
 	}
-	return service.store.Transition(ctx, Transition{
+	submission, err := service.store.Transition(ctx, Transition{
 		ID: id, From: StatusReview, To: StatusRejected, Comment: comment,
 		Audit: Audit{AdminLogin: actor.Login, AdminRole: actor.Role, Action: "rejected", Comment: comment},
 	})
+	if err != nil {
+		return Submission{}, err
+	}
+	return submission, service.notify(ctx, submission, "rejected")
 }
 
 func (service *Service) MarkReady(ctx context.Context, id int64, siteURL, screenshotURL string) (Submission, error) {
@@ -183,10 +194,14 @@ func (service *Service) MarkReady(ctx context.Context, id int64, siteURL, screen
 	if len(fields) > 0 {
 		return Submission{}, &ValidationError{Fields: fields}
 	}
-	return service.store.Transition(ctx, Transition{
+	submission, err := service.store.Transition(ctx, Transition{
 		ID: id, From: StatusProcessing, To: StatusNew,
 		SiteURL: strings.TrimSpace(siteURL), ScreenshotURL: strings.TrimSpace(screenshotURL),
 	})
+	if err != nil {
+		return Submission{}, err
+	}
+	return submission, service.notify(ctx, submission, "ready")
 }
 
 func (service *Service) RejectProcessing(ctx context.Context, id int64, reason string) (Submission, error) {
@@ -201,9 +216,13 @@ func (service *Service) RejectProcessing(ctx context.Context, id int64, reason s
 	if len(fields) > 0 {
 		return Submission{}, &ValidationError{Fields: fields}
 	}
-	return service.store.Transition(ctx, Transition{
+	submission, err := service.store.Transition(ctx, Transition{
 		ID: id, From: StatusProcessing, To: StatusRejected, Comment: reason,
 	})
+	if err != nil {
+		return Submission{}, err
+	}
+	return submission, service.notify(ctx, submission, "rejected")
 }
 
 func (service *Service) Publish(ctx context.Context, id int64, actor Actor, latitude, longitude float64) (Submission, error) {
@@ -244,12 +263,20 @@ func (service *Service) Publish(ctx context.Context, id int64, actor Actor, lati
 	}); err != nil {
 		return submission, fmt.Errorf("publish submission event: %w", err)
 	}
-	if service.notifier != nil {
-		if err := service.notifier.SubmissionChanged(ctx, submission, "published"); err != nil {
-			return submission, fmt.Errorf("notify published submission: %w", err)
-		}
+	if err := service.notify(ctx, submission, "published"); err != nil {
+		return submission, err
 	}
 	return submission, nil
+}
+
+func (service *Service) notify(ctx context.Context, submission Submission, action string) error {
+	if service.notifier == nil {
+		return nil
+	}
+	if err := service.notifier.SubmissionChanged(ctx, submission, action); err != nil {
+		return fmt.Errorf("enqueue %s submission notification: %w", action, err)
+	}
+	return nil
 }
 
 func validatePublication(id int64, latitude, longitude float64) map[string]string {

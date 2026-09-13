@@ -11,7 +11,8 @@ import (
 
 func TestReviewTransitionsNewSubmissionWithAudit(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 7, Status: StatusReview}}
-	service := NewService(store, nil, nil, nil, nil, 0)
+	notifier := &notifierStub{}
+	service := NewService(store, nil, nil, nil, notifier, 0)
 
 	result, err := service.Review(t.Context(), 7, Actor{Login: "editor", Role: "admin"})
 	if err != nil {
@@ -25,6 +26,9 @@ func TestReviewTransitionsNewSubmissionWithAudit(t *testing.T) {
 	}
 	if store.transition.Audit.Action != "reviewed" || store.transition.Audit.AdminLogin != "editor" || store.transition.Audit.AdminRole != "admin" {
 		t.Fatalf("audit = %#v", store.transition.Audit)
+	}
+	if notifier.calls != 1 || notifier.action != "reviewed" {
+		t.Fatalf("notifier = calls:%d action:%q", notifier.calls, notifier.action)
 	}
 }
 
@@ -44,7 +48,8 @@ func TestRejectRequiresComment(t *testing.T) {
 
 func TestRejectTransitionsReviewSubmission(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 8, Status: StatusRejected}}
-	service := NewService(store, nil, nil, nil, nil, 0)
+	notifier := &notifierStub{}
+	service := NewService(store, nil, nil, nil, notifier, 0)
 
 	_, err := service.Reject(t.Context(), 8, Actor{Login: "editor", Role: "admin"}, " duplicate ")
 	if err != nil {
@@ -52,6 +57,9 @@ func TestRejectTransitionsReviewSubmission(t *testing.T) {
 	}
 	if store.transition.From != StatusReview || store.transition.To != StatusRejected || store.transition.Comment != "duplicate" || store.transition.Audit.Comment != "duplicate" {
 		t.Fatalf("transition = %#v", store.transition)
+	}
+	if notifier.calls != 1 || notifier.action != "rejected" {
+		t.Fatalf("notifier = calls:%d action:%q", notifier.calls, notifier.action)
 	}
 }
 
@@ -70,7 +78,8 @@ func TestMarkReadyTransitionsProcessingSubmission(t *testing.T) {
 
 func TestRejectProcessingStoresReasonWithoutAdminAudit(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 5, Status: StatusRejected}}
-	service := NewService(store, nil, nil, nil, nil, 0)
+	notifier := &notifierStub{}
+	service := NewService(store, nil, nil, nil, notifier, 0)
 
 	_, err := service.RejectProcessing(t.Context(), 5, " archive rejected ")
 	if err != nil {
@@ -81,6 +90,32 @@ func TestRejectProcessingStoresReasonWithoutAdminAudit(t *testing.T) {
 	}
 	if store.transition.Audit.Action != "" {
 		t.Fatalf("worker transition audit = %#v", store.transition.Audit)
+	}
+	if notifier.calls != 1 || notifier.action != "rejected" {
+		t.Fatalf("notifier = calls:%d action:%q", notifier.calls, notifier.action)
+	}
+}
+
+func TestCreateEnqueuesNotificationAfterArchiveTask(t *testing.T) {
+	store := &submissionStoreStub{createdSubmission: Submission{ID: 11, Status: StatusProcessing}}
+	archives := &archiveStoreStub{archiveID: "archive-id"}
+	jobs := &jobQueueStub{}
+	notifier := &notifierStub{}
+	service := NewService(store, nil, archives, jobs, notifier, 100)
+
+	result, err := service.Create(t.Context(), CreateInput{
+		Title: "Event", Description: "Description", EventDate: mustSubmissionDate(t, "2020-01-02"),
+		EventType: "military", Email: "author@example.test", TelegramUsername: "author",
+		ArchiveName: "site.zip", ArchiveSize: 3, Archive: strings.NewReader("zip"),
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if result.ID != 11 || !jobs.called {
+		t.Fatalf("result = %#v, archive task called = %v", result, jobs.called)
+	}
+	if notifier.calls != 1 || notifier.action != "created" || notifier.submission.ID != 11 {
+		t.Fatalf("notifier = calls:%d action:%q submission:%#v", notifier.calls, notifier.action, notifier.submission)
 	}
 }
 
@@ -243,14 +278,17 @@ type eventPublisherStub struct {
 }
 
 type notifierStub struct {
-	calls  int
-	action string
+	calls      int
+	action     string
+	submission Submission
+	err        error
 }
 
-func (stub *notifierStub) SubmissionChanged(_ context.Context, _ Submission, action string) error {
+func (stub *notifierStub) SubmissionChanged(_ context.Context, submission Submission, action string) error {
 	stub.calls++
 	stub.action = action
-	return nil
+	stub.submission = submission
+	return stub.err
 }
 
 func (stub *eventPublisherStub) Publish(_ context.Context, snapshot EventSnapshot) error {

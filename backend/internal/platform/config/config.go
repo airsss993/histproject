@@ -38,6 +38,12 @@ type Config struct {
 	SiteRenderBaseURL   string
 	SitePreviewBaseURL  string
 	SitePublicBaseURL   string
+	ResendAPIKey        string
+	EmailFrom           string
+	TelegramBotToken    string
+	TelegramAdminChatID string
+	AdminPanelURL       string
+	NotificationTimeout time.Duration
 	CookieDomain        string
 	CORSOrigins         []string
 }
@@ -49,22 +55,27 @@ func Load() (Config, error) {
 func LoadFrom(getenv func(string) string) (Config, error) {
 	environment := valueOrDefault(getenv, "APP_ENV", development)
 	cfg := Config{
-		Environment:        environment,
-		ServerAddress:      valueOrDefault(getenv, "SERVER_ADDRESS", ":7666"),
-		DatabaseURL:        strings.TrimSpace(getenv("DATABASE_URL")),
-		RedisAddress:       strings.TrimSpace(getenv("REDIS_ADDRESS")),
-		RedisPassword:      strings.TrimSpace(getenv("REDIS_PASSWORD")),
-		MinIOEndpoint:      strings.TrimSpace(getenv("MINIO_ENDPOINT")),
-		MinIOAccessKey:     strings.TrimSpace(getenv("MINIO_ACCESS_KEY")),
-		MinIOSecretKey:     strings.TrimSpace(getenv("MINIO_SECRET_KEY")),
-		MinIOArchiveBucket: strings.TrimSpace(getenv("MINIO_ARCHIVE_BUCKET")),
-		MinIOSiteBucket:    strings.TrimSpace(getenv("MINIO_SITE_BUCKET")),
-		ChromeURL:          strings.TrimSpace(getenv("CHROME_URL")),
-		SiteRenderBaseURL:  strings.TrimRight(strings.TrimSpace(getenv("SITE_RENDER_BASE_URL")), "/"),
-		SitePreviewBaseURL: strings.TrimRight(strings.TrimSpace(getenv("SITE_PREVIEW_BASE_URL")), "/"),
-		SitePublicBaseURL:  strings.TrimRight(strings.TrimSpace(getenv("SITE_PUBLIC_BASE_URL")), "/"),
-		CookieDomain:       strings.TrimSpace(getenv("COOKIE_DOMAIN")),
-		CORSOrigins:        splitList(getenv("CORS_ALLOWED_ORIGINS")),
+		Environment:         environment,
+		ServerAddress:       valueOrDefault(getenv, "SERVER_ADDRESS", ":7666"),
+		DatabaseURL:         strings.TrimSpace(getenv("DATABASE_URL")),
+		RedisAddress:        strings.TrimSpace(getenv("REDIS_ADDRESS")),
+		RedisPassword:       strings.TrimSpace(getenv("REDIS_PASSWORD")),
+		MinIOEndpoint:       strings.TrimSpace(getenv("MINIO_ENDPOINT")),
+		MinIOAccessKey:      strings.TrimSpace(getenv("MINIO_ACCESS_KEY")),
+		MinIOSecretKey:      strings.TrimSpace(getenv("MINIO_SECRET_KEY")),
+		MinIOArchiveBucket:  strings.TrimSpace(getenv("MINIO_ARCHIVE_BUCKET")),
+		MinIOSiteBucket:     strings.TrimSpace(getenv("MINIO_SITE_BUCKET")),
+		ChromeURL:           strings.TrimSpace(getenv("CHROME_URL")),
+		SiteRenderBaseURL:   strings.TrimRight(strings.TrimSpace(getenv("SITE_RENDER_BASE_URL")), "/"),
+		SitePreviewBaseURL:  strings.TrimRight(strings.TrimSpace(getenv("SITE_PREVIEW_BASE_URL")), "/"),
+		SitePublicBaseURL:   strings.TrimRight(strings.TrimSpace(getenv("SITE_PUBLIC_BASE_URL")), "/"),
+		ResendAPIKey:        strings.TrimSpace(getenv("RESEND_API_KEY")),
+		EmailFrom:           strings.TrimSpace(getenv("EMAIL_FROM")),
+		TelegramBotToken:    strings.TrimSpace(getenv("TG_BOT_TOKEN")),
+		TelegramAdminChatID: strings.TrimSpace(getenv("TG_ADMIN_CHAT_ID")),
+		AdminPanelURL:       strings.TrimRight(strings.TrimSpace(getenv("ADMIN_PANEL_URL")), "/"),
+		CookieDomain:        strings.TrimSpace(getenv("COOKIE_DOMAIN")),
+		CORSOrigins:         splitList(getenv("CORS_ALLOWED_ORIGINS")),
 	}
 	if environment != production {
 		applyDevelopmentDefaults(&cfg)
@@ -136,6 +147,15 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		cfg.ScreenshotTimeout = screenshotTimeout
 	}
 
+	notificationTimeoutValue := developmentValue(getenv, environment, "NOTIFICATION_TIMEOUT", "10s")
+	if notificationTimeoutValue != "" {
+		notificationTimeout, err := parseDuration(notificationTimeoutValue, "NOTIFICATION_TIMEOUT")
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.NotificationTimeout = notificationTimeout
+	}
+
 	minIOUseSSL, err := parseBool(valueOrDefault(getenv, "MINIO_USE_SSL", "false"), "MINIO_USE_SSL")
 	if err != nil {
 		return Config{}, err
@@ -146,6 +166,12 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		if err := validateProduction(cfg); err != nil {
 			return Config{}, err
 		}
+	}
+	if (cfg.ResendAPIKey == "") != (cfg.EmailFrom == "") {
+		return Config{}, errors.New("RESEND_API_KEY и EMAIL_FROM должны быть указаны вместе")
+	}
+	if (cfg.TelegramBotToken == "") != (cfg.TelegramAdminChatID == "") {
+		return Config{}, errors.New("TG_BOT_TOKEN и TG_ADMIN_CHAT_ID должны быть указаны вместе")
 	}
 
 	return cfg, nil
@@ -178,6 +204,9 @@ func applyDevelopmentDefaults(cfg *Config) {
 	}
 	if cfg.SitePublicBaseURL == "" {
 		cfg.SitePublicBaseURL = "http://localhost/sites"
+	}
+	if cfg.AdminPanelURL == "" {
+		cfg.AdminPanelURL = "http://localhost:3000/admin"
 	}
 	if len(cfg.CORSOrigins) == 0 {
 		cfg.CORSOrigins = []string{"http://localhost:3000"}
@@ -267,6 +296,11 @@ func validateProduction(cfg Config) error {
 		{"SITE_RENDER_BASE_URL", cfg.SiteRenderBaseURL},
 		{"SITE_PREVIEW_BASE_URL", cfg.SitePreviewBaseURL},
 		{"SITE_PUBLIC_BASE_URL", cfg.SitePublicBaseURL},
+		{"RESEND_API_KEY", cfg.ResendAPIKey},
+		{"EMAIL_FROM", cfg.EmailFrom},
+		{"TG_BOT_TOKEN", cfg.TelegramBotToken},
+		{"TG_ADMIN_CHAT_ID", cfg.TelegramAdminChatID},
+		{"ADMIN_PANEL_URL", cfg.AdminPanelURL},
 		{"COOKIE_DOMAIN", cfg.CookieDomain},
 	}
 
@@ -293,6 +327,9 @@ func validateProduction(cfg Config) error {
 	}
 	if cfg.ScreenshotTimeout <= 0 {
 		validationErrors = append(validationErrors, errors.New("SCREENSHOT_TIMEOUT: обязательная переменная"))
+	}
+	if cfg.NotificationTimeout <= 0 {
+		validationErrors = append(validationErrors, errors.New("NOTIFICATION_TIMEOUT: обязательная переменная"))
 	}
 
 	return errors.Join(validationErrors...)

@@ -47,6 +47,9 @@ go run ./cmd/bootstrap-admin --apply
 - `CHROME_URL`, `SCREENSHOT_TIMEOUT`: адрес headless Chrome и таймаут скриншота.
 - `SITE_RENDER_BASE_URL`: внутренний URL bucket `sites`, доступный Chrome.
 - `SITE_PREVIEW_BASE_URL`, `SITE_PUBLIC_BASE_URL`: внешние базовые URL preview и опубликованных сайтов.
+- `RESEND_API_KEY`, `EMAIL_FROM`: отправка email через Resend.
+- `TG_BOT_TOKEN`, `TG_ADMIN_CHAT_ID`: уведомления администраторов через Telegram.
+- `ADMIN_PANEL_URL`, `NOTIFICATION_TIMEOUT`: ссылка на панель и timeout внешнего канала.
 - `COOKIE_DOMAIN`: domain для auth cookie.
 - `CORS_ALLOWED_ORIGINS`: список allowed origins через запятую.
 
