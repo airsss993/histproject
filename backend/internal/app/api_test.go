@@ -23,7 +23,7 @@ func (passingChecker) Ping(context.Context) error {
 }
 
 func TestNewAPIExposesHealthEndpoints(t *testing.T) {
-	handler := NewAPI(testConfig(), testLogger(), passingChecker{})
+	handler := NewAPI(testConfig(), testLogger(), Modules{}, passingChecker{})
 
 	for _, path := range []string{"/healthz", "/readyz"} {
 		t.Run(path, func(t *testing.T) {
@@ -38,7 +38,7 @@ func TestNewAPIExposesHealthEndpoints(t *testing.T) {
 }
 
 func TestNewAPIAppliesRequestIDAndSecurityHeaders(t *testing.T) {
-	handler := NewAPI(testConfig(), testLogger(), passingChecker{})
+	handler := NewAPI(testConfig(), testLogger(), Modules{}, passingChecker{})
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/healthz", nil))
@@ -52,7 +52,7 @@ func TestNewAPIAppliesRequestIDAndSecurityHeaders(t *testing.T) {
 }
 
 func TestNewAPIReturnsJSONForUnknownRoute(t *testing.T) {
-	handler := NewAPI(testConfig(), testLogger(), passingChecker{})
+	handler := NewAPI(testConfig(), testLogger(), Modules{}, passingChecker{})
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/missing", nil))

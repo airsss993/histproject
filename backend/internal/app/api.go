@@ -11,9 +11,10 @@ import (
 	"github.com/airsss993/histproject/backend/internal/platform/httpserver"
 )
 
-func NewAPI(cfg config.Config, logger *slog.Logger, checkers ...health.Checker) http.Handler {
+func NewAPI(cfg config.Config, logger *slog.Logger, modules Modules, checkers ...health.Checker) http.Handler {
 	mux := http.NewServeMux()
 	health.NewHandler(2*time.Second, checkers...).Register(mux)
+	modules.Register(mux)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusNotFound)

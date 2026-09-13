@@ -19,8 +19,13 @@ type HTTPService interface {
 	Logout(context.Context, string) error
 }
 
+type LoginLimiter interface {
+	Allow(context.Context, string, string) (bool, error)
+}
+
 type Handler struct {
 	service      HTTPService
+	loginLimiter LoginLimiter
 	logger       *slog.Logger
 	cookieDomain string
 	sessionTTL   time.Duration
@@ -28,9 +33,10 @@ type Handler struct {
 
 type identityContextKey struct{}
 
-func NewHandler(service HTTPService, logger *slog.Logger, cookieDomain string, sessionTTL time.Duration) *Handler {
+func NewHandler(service HTTPService, loginLimiter LoginLimiter, logger *slog.Logger, cookieDomain string, sessionTTL time.Duration) *Handler {
 	return &Handler{
 		service:      service,
+		loginLimiter: loginLimiter,
 		logger:       logger,
 		cookieDomain: cookieDomain,
 		sessionTTL:   sessionTTL,
@@ -110,6 +116,22 @@ func (handler *Handler) login(w http.ResponseWriter, r *http.Request) {
 	if len(fields) > 0 {
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", fields)
 		return
+	}
+	if handler.loginLimiter != nil {
+		allowed, err := handler.loginLimiter.Allow(r.Context(), request.Login, r.RemoteAddr)
+		if err != nil {
+			handler.logger.ErrorContext(r.Context(), "auth rate limit failed",
+				"request_id", httpserver.RequestIDFromContext(r.Context()),
+				"error", err,
+			)
+			_ = httpserver.WriteError(w, http.StatusInternalServerError, "internal_error", "Внутренняя ошибка", nil)
+			return
+		}
+		if !allowed {
+			w.Header().Set("Retry-After", "60")
+			_ = httpserver.WriteError(w, http.StatusTooManyRequests, "rate_limited", "Слишком много попыток", nil)
+			return
+		}
 	}
 
 	token, identity, err := handler.service.Login(r.Context(), request.Login, request.Password)
