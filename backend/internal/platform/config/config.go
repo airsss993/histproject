@@ -15,23 +15,31 @@ const (
 )
 
 type Config struct {
-	Environment        string
-	ServerAddress      string
-	ShutdownTimeout    time.Duration
-	SessionTTL         time.Duration
-	DatabaseURL        string
-	RedisAddress       string
-	RedisPassword      string
-	RedisDB            int
-	MinIOEndpoint      string
-	MinIOAccessKey     string
-	MinIOSecretKey     string
-	MinIOArchiveBucket string
-	MinIOSiteBucket    string
-	MinIOUseSSL        bool
-	MaxUploadBytes     int64
-	CookieDomain       string
-	CORSOrigins        []string
+	Environment         string
+	ServerAddress       string
+	ShutdownTimeout     time.Duration
+	SessionTTL          time.Duration
+	DatabaseURL         string
+	RedisAddress        string
+	RedisPassword       string
+	RedisDB             int
+	MinIOEndpoint       string
+	MinIOAccessKey      string
+	MinIOSecretKey      string
+	MinIOArchiveBucket  string
+	MinIOSiteBucket     string
+	MinIOUseSSL         bool
+	MaxUploadBytes      int64
+	MaxExtractedBytes   int64
+	MaxArchiveFiles     int
+	MaxArchiveFileBytes int64
+	ChromeURL           string
+	ScreenshotTimeout   time.Duration
+	SiteRenderBaseURL   string
+	SitePreviewBaseURL  string
+	SitePublicBaseURL   string
+	CookieDomain        string
+	CORSOrigins         []string
 }
 
 func Load() (Config, error) {
@@ -51,6 +59,10 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		MinIOSecretKey:     strings.TrimSpace(getenv("MINIO_SECRET_KEY")),
 		MinIOArchiveBucket: strings.TrimSpace(getenv("MINIO_ARCHIVE_BUCKET")),
 		MinIOSiteBucket:    strings.TrimSpace(getenv("MINIO_SITE_BUCKET")),
+		ChromeURL:          strings.TrimSpace(getenv("CHROME_URL")),
+		SiteRenderBaseURL:  strings.TrimRight(strings.TrimSpace(getenv("SITE_RENDER_BASE_URL")), "/"),
+		SitePreviewBaseURL: strings.TrimRight(strings.TrimSpace(getenv("SITE_PREVIEW_BASE_URL")), "/"),
+		SitePublicBaseURL:  strings.TrimRight(strings.TrimSpace(getenv("SITE_PUBLIC_BASE_URL")), "/"),
 		CookieDomain:       strings.TrimSpace(getenv("COOKIE_DOMAIN")),
 		CORSOrigins:        splitList(getenv("CORS_ALLOWED_ORIGINS")),
 	}
@@ -88,6 +100,42 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		cfg.MaxUploadBytes = maxUploadBytes
 	}
 
+	maxExtractedBytesValue := developmentValue(getenv, environment, "MAX_EXTRACTED_BYTES", "209715200")
+	if maxExtractedBytesValue != "" {
+		maxExtractedBytes, err := parsePositiveInt64(maxExtractedBytesValue, "MAX_EXTRACTED_BYTES")
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.MaxExtractedBytes = maxExtractedBytes
+	}
+
+	maxArchiveFilesValue := developmentValue(getenv, environment, "MAX_ARCHIVE_FILES", "2000")
+	if maxArchiveFilesValue != "" {
+		maxArchiveFiles, err := parsePositiveInt(maxArchiveFilesValue, "MAX_ARCHIVE_FILES")
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.MaxArchiveFiles = maxArchiveFiles
+	}
+
+	maxArchiveFileBytesValue := developmentValue(getenv, environment, "MAX_ARCHIVE_FILE_BYTES", "52428800")
+	if maxArchiveFileBytesValue != "" {
+		maxArchiveFileBytes, err := parsePositiveInt64(maxArchiveFileBytesValue, "MAX_ARCHIVE_FILE_BYTES")
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.MaxArchiveFileBytes = maxArchiveFileBytes
+	}
+
+	screenshotTimeoutValue := developmentValue(getenv, environment, "SCREENSHOT_TIMEOUT", "60s")
+	if screenshotTimeoutValue != "" {
+		screenshotTimeout, err := parseDuration(screenshotTimeoutValue, "SCREENSHOT_TIMEOUT")
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.ScreenshotTimeout = screenshotTimeout
+	}
+
 	minIOUseSSL, err := parseBool(valueOrDefault(getenv, "MINIO_USE_SSL", "false"), "MINIO_USE_SSL")
 	if err != nil {
 		return Config{}, err
@@ -119,6 +167,18 @@ func applyDevelopmentDefaults(cfg *Config) {
 	if cfg.MinIOSiteBucket == "" {
 		cfg.MinIOSiteBucket = "sites"
 	}
+	if cfg.ChromeURL == "" {
+		cfg.ChromeURL = "http://localhost:9222"
+	}
+	if cfg.SiteRenderBaseURL == "" {
+		cfg.SiteRenderBaseURL = "http://localhost:9000/sites"
+	}
+	if cfg.SitePreviewBaseURL == "" {
+		cfg.SitePreviewBaseURL = "http://localhost/preview"
+	}
+	if cfg.SitePublicBaseURL == "" {
+		cfg.SitePublicBaseURL = "http://localhost/sites"
+	}
 	if len(cfg.CORSOrigins) == 0 {
 		cfg.CORSOrigins = []string{"http://localhost:3000"}
 	}
@@ -129,6 +189,14 @@ func valueOrDefault(getenv func(string) string, key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func developmentValue(getenv func(string) string, environment, key, fallback string) string {
+	value := strings.TrimSpace(getenv(key))
+	if value == "" && environment != production {
+		return fallback
+	}
+	return value
 }
 
 func parseDuration(value, key string) (time.Duration, error) {
@@ -151,6 +219,14 @@ func parseNonNegativeInt(value, key string) (int, error) {
 	parsed, err := strconv.Atoi(value)
 	if err != nil || parsed < 0 {
 		return 0, fmt.Errorf("%s: ожидается неотрицательное целое число", key)
+	}
+	return parsed, nil
+}
+
+func parsePositiveInt(value, key string) (int, error) {
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed <= 0 {
+		return 0, fmt.Errorf("%s: ожидается положительное целое число", key)
 	}
 	return parsed, nil
 }
@@ -187,6 +263,10 @@ func validateProduction(cfg Config) error {
 		{"MINIO_SECRET_KEY", cfg.MinIOSecretKey},
 		{"MINIO_ARCHIVE_BUCKET", cfg.MinIOArchiveBucket},
 		{"MINIO_SITE_BUCKET", cfg.MinIOSiteBucket},
+		{"CHROME_URL", cfg.ChromeURL},
+		{"SITE_RENDER_BASE_URL", cfg.SiteRenderBaseURL},
+		{"SITE_PREVIEW_BASE_URL", cfg.SitePreviewBaseURL},
+		{"SITE_PUBLIC_BASE_URL", cfg.SitePublicBaseURL},
 		{"COOKIE_DOMAIN", cfg.CookieDomain},
 	}
 
@@ -201,6 +281,18 @@ func validateProduction(cfg Config) error {
 	}
 	if cfg.MaxUploadBytes <= 0 {
 		validationErrors = append(validationErrors, errors.New("MAX_UPLOAD_BYTES: обязательная переменная"))
+	}
+	if cfg.MaxExtractedBytes <= 0 {
+		validationErrors = append(validationErrors, errors.New("MAX_EXTRACTED_BYTES: обязательная переменная"))
+	}
+	if cfg.MaxArchiveFiles <= 0 {
+		validationErrors = append(validationErrors, errors.New("MAX_ARCHIVE_FILES: обязательная переменная"))
+	}
+	if cfg.MaxArchiveFileBytes <= 0 {
+		validationErrors = append(validationErrors, errors.New("MAX_ARCHIVE_FILE_BYTES: обязательная переменная"))
+	}
+	if cfg.ScreenshotTimeout <= 0 {
+		validationErrors = append(validationErrors, errors.New("SCREENSHOT_TIMEOUT: обязательная переменная"))
 	}
 
 	return errors.Join(validationErrors...)

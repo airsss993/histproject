@@ -37,10 +37,14 @@ go run ./cmd/bootstrap-admin --apply
 - `REDIS_ADDRESS`, `REDIS_PASSWORD`, `REDIS_DB`: параметры Redis.
 - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_ARCHIVE_BUCKET`, `MINIO_SITE_BUCKET`, `MINIO_USE_SSL`: параметры MinIO.
 - `MAX_UPLOAD_BYTES`: предел размера ZIP-архива в байтах, по умолчанию `52428800` в development.
+- `MAX_EXTRACTED_BYTES`, `MAX_ARCHIVE_FILES`, `MAX_ARCHIVE_FILE_BYTES`: пределы распакованного ZIP, количества записей и одного файла.
+- `CHROME_URL`, `SCREENSHOT_TIMEOUT`: адрес headless Chrome и таймаут скриншота.
+- `SITE_RENDER_BASE_URL`: внутренний URL bucket `sites`, доступный Chrome.
+- `SITE_PREVIEW_BASE_URL`, `SITE_PUBLIC_BASE_URL`: внешние базовые URL preview и опубликованных сайтов.
 - `COOKIE_DOMAIN`: domain для auth cookie.
 - `CORS_ALLOWED_ORIGINS`: список allowed origins через запятую.
 
-В `production` все адреса, credentials, MinIO bucket names, `MAX_UPLOAD_BYTES`, `COOKIE_DOMAIN` и `CORS_ALLOWED_ORIGINS` обязательны. Значения из `.env.example` не подходят для production.
+В `production` все адреса, credentials, MinIO bucket names, лимиты архивов, worker URLs, `COOKIE_DOMAIN` и `CORS_ALLOWED_ORIGINS` обязательны. Значения из `.env.example` не подходят для production.
 
 ## API
 
