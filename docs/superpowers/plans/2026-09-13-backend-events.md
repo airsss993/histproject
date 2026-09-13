@@ -35,10 +35,10 @@
 - Produces: `Event`, `Filter`, `Page`, `Store`, `Service.List`, `Service.Get`, `Service.UpdateCoordinates`, `Service.Delete`.
 - Consumes: standard `context.Context` and repository errors.
 
-- [ ] Написать failing tests на date range, repeated event type codes, pagination bounds, coordinate ranges и positive IDs.
-- [ ] Подтвердить expected failure.
-- [ ] Реализовать models, typed errors и validation без external validator.
-- [ ] Запустить race tests и закоммитить как `feat(backend): добавить events core`.
+- [x] Написать failing tests на date range, repeated event type codes, pagination bounds, coordinate ranges и positive IDs.
+- [x] Подтвердить expected failure.
+- [x] Реализовать models, typed errors и validation без external validator.
+- [x] Запустить race tests и закоммитить как `feat(backend): добавить events core`.
 
 ### Task 2: PostgreSQL event repository
 
