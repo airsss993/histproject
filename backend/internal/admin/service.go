@@ -8,8 +8,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/airsss993/histproject-backend/internal/notifications"
-	"github.com/airsss993/histproject-backend/internal/requests"
+	"github.com/airsss993/histproject/backend/internal/notifications"
+	"github.com/airsss993/histproject/backend/internal/requests"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"

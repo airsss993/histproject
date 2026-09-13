@@ -16,9 +16,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/airsss993/histproject-backend/internal/config"
-	"github.com/airsss993/histproject-backend/internal/requests"
-	"github.com/airsss993/histproject-backend/pkg/storage"
+	"github.com/airsss993/histproject/backend/internal/config"
+	"github.com/airsss993/histproject/backend/internal/requests"
+	"github.com/airsss993/histproject/backend/pkg/storage"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/dutchcoders/go-clamd"

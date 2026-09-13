@@ -10,8 +10,8 @@ import (
 	"github.com/gosimple/slug"
 
 
-	"github.com/airsss993/histproject-backend/internal/notifications"
-	"github.com/airsss993/histproject-backend/internal/objects"
+	"github.com/airsss993/histproject/backend/internal/notifications"
+	"github.com/airsss993/histproject/backend/internal/objects"
 	"github.com/hibiken/asynq"
 )
 

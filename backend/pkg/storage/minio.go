@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/airsss993/histproject-backend/internal/config"
+	"github.com/airsss993/histproject/backend/internal/config"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )

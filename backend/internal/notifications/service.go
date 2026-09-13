@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/airsss993/histproject-backend/pkg/mailer"
-	"github.com/airsss993/histproject-backend/pkg/telegram"
+	"github.com/airsss993/histproject/backend/pkg/mailer"
+	"github.com/airsss993/histproject/backend/pkg/telegram"
 )
 
 // Service — оркестрирует отправку уведомлений о событиях с заявками.

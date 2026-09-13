@@ -1,7 +1,7 @@
 package queue
 
 import (
-	"github.com/airsss993/histproject-backend/internal/config"
+	"github.com/airsss993/histproject/backend/internal/config"
 	"github.com/hibiken/asynq"
 )
 
