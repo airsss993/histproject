@@ -63,3 +63,52 @@ type EventSnapshot struct {
 	SiteURL         string
 	PreviewImageURL string
 }
+
+type CreateRecord struct {
+	Title            string
+	Description      string
+	EventDate        time.Time
+	EventType        string
+	Email            string
+	TelegramUsername string
+	ArchiveID        string
+	Slug             string
+}
+
+type ListFilter struct {
+	Status   Status
+	Search   string
+	Page     int
+	PageSize int
+}
+
+type SubmissionPage struct {
+	Items    []Submission
+	Page     int
+	PageSize int
+	Total    int64
+}
+
+type AuditEntry struct {
+	ID              int64
+	SubmissionID    int64
+	SubmissionTitle string
+	AdminLogin      string
+	AdminRole       string
+	Action          string
+	Comment         string
+	CreatedAt       time.Time
+}
+
+type AuditFilter struct {
+	Search   string
+	Page     int
+	PageSize int
+}
+
+type AuditPage struct {
+	Items    []AuditEntry
+	Page     int
+	PageSize int
+	Total    int64
+}
