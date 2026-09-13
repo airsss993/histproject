@@ -142,7 +142,7 @@ git commit -m "feat(backend): добавить строгую конфигура
 - Produces: `httpserver.RequestID`, `httpserver.Recover`, `httpserver.SecurityHeaders`, `httpserver.CORS`, `httpserver.AccessLog`.
 - Produces: `httpserver.RequestIDFromContext(context.Context) string`.
 
-- [ ] **Step 1: Написать failing middleware tests**
+- [x] **Step 1: Написать failing middleware tests**
 
 ```go
 func TestRequestIDAddsHeaderAndContext(t *testing.T)
@@ -155,13 +155,13 @@ func TestAccessLogRecordsStatusAndDuration(t *testing.T)
 
 Ключевая проверка CORS: origin `https://evil-example.com` не матчит `https://example.com`.
 
-- [ ] **Step 2: Подтвердить failure**
+- [x] **Step 2: Подтвердить failure**
 
 Run: `go test ./internal/platform/httpserver`
 
 Expected: FAIL.
 
-- [ ] **Step 3: Реализовать middleware**
+- [x] **Step 3: Реализовать middleware**
 
 Request ID создается из 16 random bytes через `crypto/rand` и `hex.EncodeToString`. CORS преобразует origins в `map[string]struct{}`. Recovery возвращает:
 
@@ -171,13 +171,13 @@ Request ID создается из 16 random bytes через `crypto/rand` и `
 
 Access log пишет `request_id`, `method`, `path`, `status`, `duration_ms` и `response_bytes`.
 
-- [ ] **Step 4: Запустить tests**
+- [x] **Step 4: Запустить tests**
 
 Run: `go test -race ./internal/platform/httpserver`
 
 Expected: PASS.
 
-- [ ] **Step 5: Закоммитить**
+- [x] **Step 5: Закоммитить**
 
 ```bash
 git add backend/internal/platform/httpserver
