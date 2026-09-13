@@ -13,10 +13,19 @@ import (
 
 type objectClientStub struct {
 	buckets      []string
+	getContext   context.Context
+	getBucket    string
+	getObject    string
+	getResult    *minio.Object
+	statContext  context.Context
+	statBucket   string
+	statObject   string
+	statResult   minio.ObjectInfo
 	putContext   context.Context
 	putBucket    string
 	putObject    string
 	putSize      int64
+	putOptions   minio.PutObjectOptions
 	removeCtx    context.Context
 	removeBucket string
 	removeObject string
@@ -29,11 +38,26 @@ func (stub *objectClientStub) BucketExists(_ context.Context, bucket string) (bo
 	return stub.exists, stub.err
 }
 
-func (stub *objectClientStub) PutObject(ctx context.Context, bucket, object string, _ io.Reader, size int64, _ minio.PutObjectOptions) (minio.UploadInfo, error) {
+func (stub *objectClientStub) GetObject(ctx context.Context, bucket, object string, _ minio.GetObjectOptions) (*minio.Object, error) {
+	stub.getContext = ctx
+	stub.getBucket = bucket
+	stub.getObject = object
+	return stub.getResult, stub.err
+}
+
+func (stub *objectClientStub) StatObject(ctx context.Context, bucket, object string, _ minio.StatObjectOptions) (minio.ObjectInfo, error) {
+	stub.statContext = ctx
+	stub.statBucket = bucket
+	stub.statObject = object
+	return stub.statResult, stub.err
+}
+
+func (stub *objectClientStub) PutObject(ctx context.Context, bucket, object string, _ io.Reader, size int64, options minio.PutObjectOptions) (minio.UploadInfo, error) {
 	stub.putContext = ctx
 	stub.putBucket = bucket
 	stub.putObject = object
 	stub.putSize = size
+	stub.putOptions = options
 	return minio.UploadInfo{}, stub.err
 }
 
@@ -124,6 +148,57 @@ func TestMinIODeleteArchiveUsesLegacyBucket(t *testing.T) {
 		t.Fatalf("DeleteArchive() error = %v", err)
 	}
 	if client.removeCtx != ctx || client.removeBucket != "requests" || client.removeObject != "archive-id" {
+		t.Fatalf("remove = context:%v bucket:%q object:%q", client.removeCtx == ctx, client.removeBucket, client.removeObject)
+	}
+}
+
+func TestMinIOGetArchiveUsesRawKeyAndReturnsSize(t *testing.T) {
+	object := &minio.Object{}
+	client := &objectClientStub{exists: true, getResult: object, statResult: minio.ObjectInfo{Size: 123}}
+	storage := &MinIO{objects: client, archiveBucket: "requests", siteBucket: "sites"}
+	ctx := t.Context()
+
+	result, size, err := storage.GetArchive(ctx, "archive-id")
+	if err != nil {
+		t.Fatalf("GetArchive() error = %v", err)
+	}
+	if result != object || size != 123 {
+		t.Fatalf("GetArchive() = object:%v size:%d", result == object, size)
+	}
+	if client.statContext != ctx || client.statBucket != "requests" || client.statObject != "archive-id" {
+		t.Fatalf("stat = context:%v bucket:%q object:%q", client.statContext == ctx, client.statBucket, client.statObject)
+	}
+	if client.getContext != ctx || client.getBucket != "requests" || client.getObject != "archive-id" {
+		t.Fatalf("get = context:%v bucket:%q object:%q", client.getContext == ctx, client.getBucket, client.getObject)
+	}
+}
+
+func TestMinIOPutSiteFileUsesLegacyBucketAndContentType(t *testing.T) {
+	client := &objectClientStub{exists: true}
+	storage := &MinIO{objects: client, archiveBucket: "requests", siteBucket: "sites"}
+	ctx := t.Context()
+
+	err := storage.PutSiteFile(ctx, "event/index.html", strings.NewReader("site"), 4, "text/html")
+	if err != nil {
+		t.Fatalf("PutSiteFile() error = %v", err)
+	}
+	if client.putContext != ctx || client.putBucket != "sites" || client.putObject != "event/index.html" || client.putSize != 4 {
+		t.Fatalf("upload = context:%v bucket:%q object:%q size:%d", client.putContext == ctx, client.putBucket, client.putObject, client.putSize)
+	}
+	if client.putOptions.ContentType != "text/html" {
+		t.Fatalf("ContentType = %q, want text/html", client.putOptions.ContentType)
+	}
+}
+
+func TestMinIODeleteSiteFileUsesLegacyBucket(t *testing.T) {
+	client := &objectClientStub{exists: true}
+	storage := &MinIO{objects: client, archiveBucket: "requests", siteBucket: "sites"}
+	ctx := t.Context()
+
+	if err := storage.DeleteSiteFile(ctx, "event/index.html"); err != nil {
+		t.Fatalf("DeleteSiteFile() error = %v", err)
+	}
+	if client.removeCtx != ctx || client.removeBucket != "sites" || client.removeObject != "event/index.html" {
 		t.Fatalf("remove = context:%v bucket:%q object:%q", client.removeCtx == ctx, client.removeBucket, client.removeObject)
 	}
 }

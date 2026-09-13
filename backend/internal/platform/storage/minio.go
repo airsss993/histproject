@@ -24,6 +24,8 @@ type Config struct {
 
 type objectClient interface {
 	BucketExists(context.Context, string) (bool, error)
+	GetObject(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error)
+	StatObject(context.Context, string, string, minio.StatObjectOptions) (minio.ObjectInfo, error)
 	PutObject(context.Context, string, string, io.Reader, int64, minio.PutObjectOptions) (minio.UploadInfo, error)
 	RemoveObject(context.Context, string, string, minio.RemoveObjectOptions) error
 }
@@ -84,6 +86,33 @@ func (s *MinIO) PutArchive(ctx context.Context, reader io.Reader, size int64) (s
 func (s *MinIO) DeleteArchive(ctx context.Context, objectKey string) error {
 	if err := s.objects.RemoveObject(ctx, s.archiveBucket, objectKey, minio.RemoveObjectOptions{}); err != nil {
 		return fmt.Errorf("delete archive: %w", err)
+	}
+	return nil
+}
+
+func (s *MinIO) GetArchive(ctx context.Context, objectKey string) (*minio.Object, int64, error) {
+	info, err := s.objects.StatObject(ctx, s.archiveBucket, objectKey, minio.StatObjectOptions{})
+	if err != nil {
+		return nil, 0, fmt.Errorf("stat archive: %w", err)
+	}
+	object, err := s.objects.GetObject(ctx, s.archiveBucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, 0, fmt.Errorf("get archive: %w", err)
+	}
+	return object, info.Size, nil
+}
+
+func (s *MinIO) PutSiteFile(ctx context.Context, objectKey string, reader io.Reader, size int64, contentType string) error {
+	_, err := s.objects.PutObject(ctx, s.siteBucket, objectKey, reader, size, minio.PutObjectOptions{ContentType: contentType})
+	if err != nil {
+		return fmt.Errorf("put site file: %w", err)
+	}
+	return nil
+}
+
+func (s *MinIO) DeleteSiteFile(ctx context.Context, objectKey string) error {
+	if err := s.objects.RemoveObject(ctx, s.siteBucket, objectKey, minio.RemoveObjectOptions{}); err != nil {
+		return fmt.Errorf("delete site file: %w", err)
 	}
 	return nil
 }
