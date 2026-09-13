@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/mail"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gosimple/slug"
 )
@@ -16,6 +19,8 @@ var (
 	ErrSubmissionNotFound = errors.New("submission not found")
 	ErrInvalidTransition  = errors.New("invalid submission transition")
 )
+
+var telegramUsernamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{5,32}$`)
 
 type ValidationError struct {
 	Fields map[string]string
@@ -28,7 +33,9 @@ func (validationError *ValidationError) Error() string {
 type Store interface {
 	Create(context.Context, CreateRecord) (Submission, error)
 	Get(context.Context, int64) (Submission, error)
+	List(context.Context, ListFilter) (SubmissionPage, error)
 	Transition(context.Context, Transition) (Submission, error)
+	AuditLog(context.Context, AuditFilter) (AuditPage, error)
 }
 
 type EventPublisher interface {
@@ -65,16 +72,7 @@ func NewService(store Store, publisher EventPublisher, archives ArchiveStore, jo
 }
 
 func (service *Service) Create(ctx context.Context, input CreateInput) (Submission, error) {
-	fields := make(map[string]string)
-	if input.Archive == nil {
-		fields["archive"] = "Обязательное поле"
-	}
-	if strings.ToLower(filepath.Ext(strings.TrimSpace(input.ArchiveName))) != ".zip" {
-		fields["archive"] = "Ожидается ZIP-архив"
-	}
-	if input.ArchiveSize <= 0 || service.maxUploadBytes <= 0 || input.ArchiveSize > service.maxUploadBytes {
-		fields["archive"] = fmt.Sprintf("Максимальный размер: %d байт", service.maxUploadBytes)
-	}
+	fields := validateCreateInput(input, service.maxUploadBytes)
 	if len(fields) > 0 {
 		return Submission{}, &ValidationError{Fields: fields}
 	}
@@ -111,6 +109,36 @@ func (service *Service) Create(ctx context.Context, input CreateInput) (Submissi
 		return submission, fmt.Errorf("enqueue submission archive: %w", err)
 	}
 	return submission, nil
+}
+
+func (service *Service) List(ctx context.Context, filter ListFilter) (SubmissionPage, error) {
+	fields := make(map[string]string)
+	if filter.Status != "" && !validStatus(filter.Status) {
+		fields["status"] = "Неизвестный статус"
+	}
+	filter.Page, filter.PageSize = normalizePagination(filter.Page, filter.PageSize, fields)
+	if len(fields) > 0 {
+		return SubmissionPage{}, &ValidationError{Fields: fields}
+	}
+	filter.Search = strings.TrimSpace(filter.Search)
+	return service.store.List(ctx, filter)
+}
+
+func (service *Service) Get(ctx context.Context, id int64) (Submission, error) {
+	if id <= 0 {
+		return Submission{}, invalidSubmissionID()
+	}
+	return service.store.Get(ctx, id)
+}
+
+func (service *Service) AuditLog(ctx context.Context, filter AuditFilter) (AuditPage, error) {
+	fields := make(map[string]string)
+	filter.Page, filter.PageSize = normalizePagination(filter.Page, filter.PageSize, fields)
+	if len(fields) > 0 {
+		return AuditPage{}, &ValidationError{Fields: fields}
+	}
+	filter.Search = strings.TrimSpace(filter.Search)
+	return service.store.AuditLog(ctx, filter)
 }
 
 func (service *Service) Review(ctx context.Context, id int64, actor Actor) (Submission, error) {
@@ -235,4 +263,66 @@ func validatePublication(id int64, latitude, longitude float64) map[string]strin
 
 func invalidSubmissionID() *ValidationError {
 	return &ValidationError{Fields: map[string]string{"id": "Ожидается положительный ID"}}
+}
+
+func validateCreateInput(input CreateInput, maxUploadBytes int64) map[string]string {
+	fields := make(map[string]string)
+	title := strings.TrimSpace(input.Title)
+	description := strings.TrimSpace(input.Description)
+	email := strings.TrimSpace(input.Email)
+	telegramUsername := strings.TrimPrefix(strings.TrimSpace(input.TelegramUsername), "@")
+	if title == "" {
+		fields["title"] = "Обязательное поле"
+	} else if utf8.RuneCountInString(title) > 100 {
+		fields["title"] = "Не более 100 символов"
+	}
+	if description == "" {
+		fields["description"] = "Обязательное поле"
+	} else if utf8.RuneCountInString(description) > 450 {
+		fields["description"] = "Не более 450 символов"
+	}
+	if input.EventDate.IsZero() {
+		fields["eventDate"] = "Ожидается дата YYYY-MM-DD"
+	}
+	if input.EventType != "political" && input.EventType != "military" {
+		fields["eventType"] = "Ожидается political или military"
+	}
+	parsedEmail, err := mail.ParseAddress(email)
+	if err != nil || parsedEmail.Address != email || utf8.RuneCountInString(email) > 70 {
+		fields["email"] = "Некорректный email"
+	}
+	if !telegramUsernamePattern.MatchString(telegramUsername) {
+		fields["telegramUsername"] = "От 5 до 32 латинских букв, цифр или _"
+	}
+	if input.Archive == nil {
+		fields["archive"] = "Обязательное поле"
+	} else if strings.ToLower(filepath.Ext(strings.TrimSpace(input.ArchiveName))) != ".zip" {
+		fields["archive"] = "Ожидается ZIP-архив"
+	} else if input.ArchiveSize <= 0 || maxUploadBytes <= 0 || input.ArchiveSize > maxUploadBytes {
+		fields["archive"] = fmt.Sprintf("Максимальный размер: %d байт", maxUploadBytes)
+	}
+	return fields
+}
+
+func normalizePagination(page, pageSize int, fields map[string]string) (int, int) {
+	if page == 0 {
+		page = 1
+	} else if page < 1 {
+		fields["page"] = "Ожидается положительное число"
+	}
+	if pageSize == 0 {
+		pageSize = 20
+	} else if pageSize < 1 || pageSize > 100 {
+		fields["pageSize"] = "От 1 до 100"
+	}
+	return page, pageSize
+}
+
+func validStatus(status Status) bool {
+	switch status {
+	case StatusProcessing, StatusNew, StatusReview, StatusRejected, StatusPublished:
+		return true
+	default:
+		return false
+	}
 }

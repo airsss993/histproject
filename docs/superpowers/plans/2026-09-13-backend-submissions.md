@@ -85,11 +85,11 @@
 - Create: `backend/internal/modules/submissions/http.go`
 - Test: `backend/internal/modules/submissions/http_test.go`
 
-- [ ] Написать failing HTTP tests на public multipart create, body limit, list, detail, review, reject, publish и audit log.
-- [ ] Проверить generic errors, required fields, ZIP extension, dates, email, Telegram username и coordinates.
-- [ ] Подключить Redis rate limit для public form без email и Telegram username в key.
-- [ ] Защитить admin routes session middleware для `admin` и `super_admin`; audit log - только `super_admin`.
-- [ ] Запустить race tests и закоммитить как `feat(backend): добавить submissions API`.
+- [x] Написать failing HTTP tests на public multipart create, body limit, list, detail, review, reject, publish и audit log.
+- [x] Проверить generic errors, required fields, ZIP extension, dates, email, Telegram username и coordinates.
+- [x] Подключить Redis rate limit для public form без email и Telegram username в key.
+- [x] Защитить admin routes session middleware для `admin` и `super_admin`; audit log - только `super_admin`.
+- [x] Запустить race tests и закоммитить как `feat(backend): добавить submissions API`.
 
 ### Task 6: Event publisher и idempotent publish
 

@@ -199,6 +199,14 @@ func (stub *submissionStoreStub) Get(_ context.Context, id int64) (Submission, e
 	return stub.getSubmission, stub.getError
 }
 
+func (stub *submissionStoreStub) List(context.Context, ListFilter) (SubmissionPage, error) {
+	return SubmissionPage{}, nil
+}
+
+func (stub *submissionStoreStub) AuditLog(context.Context, AuditFilter) (AuditPage, error) {
+	return AuditPage{}, nil
+}
+
 type eventPublisherStub struct {
 	snapshot EventSnapshot
 	err      error
