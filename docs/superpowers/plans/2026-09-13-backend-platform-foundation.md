@@ -195,7 +195,7 @@ git commit -m "feat(backend): добавить HTTP middleware"
 - Produces: `health.NewHandler(time.Duration, ...health.Checker) *health.Handler`.
 - Produces: `(*health.Handler).Register(*http.ServeMux)`.
 
-- [ ] **Step 1: Написать failing tests**
+- [x] **Step 1: Написать failing tests**
 
 ```go
 type Checker interface {
@@ -215,23 +215,23 @@ Expected readiness response:
 {"status":"ready","checks":{"postgres":"ok","redis":"ok","minio":"ok"}}
 ```
 
-- [ ] **Step 2: Подтвердить failure**
+- [x] **Step 2: Подтвердить failure**
 
 Run: `go test ./internal/platform/health`
 
 Expected: FAIL.
 
-- [ ] **Step 3: Реализовать handlers**
+- [x] **Step 3: Реализовать handlers**
 
 `/healthz` всегда возвращает 200 и `{"status":"ok"}`. `/readyz` запускает checks последовательно с общим context timeout, возвращает 503 при любой ошибке и не печатает внутреннюю причину в JSON.
 
-- [ ] **Step 4: Запустить tests**
+- [x] **Step 4: Запустить tests**
 
 Run: `go test -race ./internal/platform/health`
 
 Expected: PASS.
 
-- [ ] **Step 5: Закоммитить**
+- [x] **Step 5: Закоммитить**
 
 ```bash
 git add backend/internal/platform/health
