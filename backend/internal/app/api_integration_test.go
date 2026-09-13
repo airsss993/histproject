@@ -262,8 +262,8 @@ func TestAPISubmissionFlow(t *testing.T) {
 	if _, err := workflow.MarkReady(ctx, rejectedID, "https://storage.test/preview/rejected/index.html", "https://storage.test/sites/rejected/screenshot.png"); err != nil {
 		t.Fatalf("mark rejected submission ready: %v", err)
 	}
-	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, fmt.Sprintf("/api/v1/admin/submissions/%d/review", rejectedID), "", editorCookie), http.StatusOK)
-	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, fmt.Sprintf("/api/v1/admin/submissions/%d/reject", rejectedID), `{"comment":"duplicate"}`, editorCookie), http.StatusOK)
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPost, fmt.Sprintf("/api/v1/admin/submissions/%d/review", rejectedID), "", editorCookie), http.StatusOK)
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPost, fmt.Sprintf("/api/v1/admin/submissions/%d/reject", rejectedID), `{"comment":"duplicate"}`, editorCookie), http.StatusOK)
 	assertSubmissionState(t, ctx, databaseClient, rejectedID, statusExpectation{Status: "rejected", AuditCount: 2})
 	assertArchiveExists(t, ctx, storageClient, rejectedArchiveID)
 
@@ -274,10 +274,10 @@ func TestAPISubmissionFlow(t *testing.T) {
 	if _, err := workflow.MarkReady(ctx, publishedID, "https://storage.test/preview/published/index.html", "https://storage.test/sites/published/screenshot.png"); err != nil {
 		t.Fatalf("mark published submission ready: %v", err)
 	}
-	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, fmt.Sprintf("/api/v1/admin/submissions/%d/review", publishedID), "", editorCookie), http.StatusOK)
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPost, fmt.Sprintf("/api/v1/admin/submissions/%d/review", publishedID), "", editorCookie), http.StatusOK)
 	publishPath := fmt.Sprintf("/api/v1/admin/submissions/%d/publish", publishedID)
-	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, publishPath, `{"latitude":55.5,"longitude":60.5}`, editorCookie), http.StatusOK)
-	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPatch, publishPath, `{"latitude":56.5,"longitude":61.5}`, editorCookie), http.StatusOK)
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPost, publishPath, `{"latitude":55.5,"longitude":60.5}`, editorCookie), http.StatusOK)
+	assertHTTPStatus(t, performJSONRequest(t, handler, http.MethodPost, publishPath, `{"latitude":56.5,"longitude":61.5}`, editorCookie), http.StatusOK)
 	assertSubmissionState(t, ctx, databaseClient, publishedID, statusExpectation{Status: "published", AuditCount: 2})
 
 	var eventCount int
@@ -294,9 +294,9 @@ func TestAPISubmissionFlow(t *testing.T) {
 	}
 	assertArchiveExists(t, ctx, storageClient, publishedArchiveID)
 
-	forbiddenAudit := performJSONRequest(t, handler, http.MethodGet, "/api/v1/admin/submissions/audit", "", editorCookie)
+	forbiddenAudit := performJSONRequest(t, handler, http.MethodGet, "/api/v1/admin/audit-log", "", editorCookie)
 	assertHTTPStatus(t, forbiddenAudit, http.StatusForbidden)
-	audit := performJSONRequest(t, handler, http.MethodGet, "/api/v1/admin/submissions/audit?page=1&pageSize=20", "", rootCookie)
+	audit := performJSONRequest(t, handler, http.MethodGet, "/api/v1/admin/audit-log?page=1&pageSize=20", "", rootCookie)
 	if audit.Code != http.StatusOK || !strings.Contains(audit.Body.String(), `"action":"published"`) || !strings.Contains(audit.Body.String(), `"action":"rejected"`) {
 		t.Fatalf("audit status = %d, body = %s", audit.Code, audit.Body.String())
 	}
