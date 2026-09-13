@@ -85,11 +85,11 @@
 - Create: `backend/cmd/bootstrap-admin/main.go`
 - Test: `backend/cmd/bootstrap-admin/main_test.go`
 
-- [ ] Написать failing tests на explicit `--apply`, env validation, existing super admin и secret-safe stderr.
-- [ ] Подтвердить failure.
-- [ ] Реализовать CLI без вывода password и hash.
-- [ ] Проверить CLI на PostgreSQL 18.
-- [ ] Запустить race tests и закоммитить как `feat(backend): добавить bootstrap super admin`.
+- [x] Написать failing tests на explicit `--apply`, env validation, existing super admin и secret-safe stderr.
+- [x] Подтвердить failure.
+- [x] Реализовать CLI без вывода password и hash.
+- [x] Проверить CLI на PostgreSQL 18.
+- [x] Запустить race tests и закоммитить как `feat(backend): добавить bootstrap super admin`.
 
 ### Task 6: Wiring и quality gate
 

@@ -85,6 +85,47 @@ func TestCreateHashesPasswordAndReturnsAdmin(t *testing.T) {
 	}
 }
 
+func TestBootstrapCreatesInitialSuperAdmin(t *testing.T) {
+	store := &adminStoreStub{
+		bootstrappedAdmin: Admin{ID: 1, Login: "root", Email: "root@example.test", Role: RoleSuperAdmin},
+	}
+	service := NewService(store)
+
+	admin, err := service.Bootstrap(t.Context(), CreateInput{
+		Login:    " root ",
+		Password: "long-enough-password",
+		Email:    " root@example.test ",
+	})
+	if err != nil {
+		t.Fatalf("Bootstrap() error = %v", err)
+	}
+	if admin != store.bootstrappedAdmin {
+		t.Fatalf("Bootstrap() = %#v", admin)
+	}
+	if store.bootstrapInput.Login != "root" || store.bootstrapInput.Email != "root@example.test" {
+		t.Fatalf("normalized input = %#v", store.bootstrapInput)
+	}
+	if store.bootstrapInput.Role != RoleSuperAdmin {
+		t.Fatalf("bootstrap role = %q, want super_admin", store.bootstrapInput.Role)
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(store.bootstrapInput.PasswordHash), []byte("long-enough-password")); err != nil {
+		t.Fatalf("bootstrap password hash does not match: %v", err)
+	}
+}
+
+func TestBootstrapPropagatesExistingSuperAdminConflict(t *testing.T) {
+	store := &adminStoreStub{bootstrapError: ErrSuperAdminExists}
+	service := NewService(store)
+
+	_, err := service.Bootstrap(t.Context(), CreateInput{
+		Login:    "root",
+		Password: "long-enough-password",
+	})
+	if !errors.Is(err, ErrSuperAdminExists) {
+		t.Fatalf("Bootstrap() error = %v, want ErrSuperAdminExists", err)
+	}
+}
+
 func TestChangeRoleRejectsSelfMutation(t *testing.T) {
 	store := &adminStoreStub{}
 	service := NewService(store)
@@ -135,23 +176,31 @@ func TestServicePropagatesLastSuperAdminConflict(t *testing.T) {
 }
 
 type adminStoreStub struct {
-	createCalled     bool
-	createInput      CreateRecord
-	createdAdmin     Admin
-	createError      error
-	changeRoleCalled bool
-	changedAdmin     Admin
-	changeRoleError  error
-	deleteCalled     bool
-	deleteError      error
-	admins           []Admin
-	listError        error
+	createCalled      bool
+	createInput       CreateRecord
+	createdAdmin      Admin
+	createError       error
+	bootstrapInput    CreateRecord
+	bootstrappedAdmin Admin
+	bootstrapError    error
+	changeRoleCalled  bool
+	changedAdmin      Admin
+	changeRoleError   error
+	deleteCalled      bool
+	deleteError       error
+	admins            []Admin
+	listError         error
 }
 
 func (stub *adminStoreStub) Create(_ context.Context, input CreateRecord) (Admin, error) {
 	stub.createCalled = true
 	stub.createInput = input
 	return stub.createdAdmin, stub.createError
+}
+
+func (stub *adminStoreStub) CreateInitialSuperAdmin(_ context.Context, input CreateRecord) (Admin, error) {
+	stub.bootstrapInput = input
+	return stub.bootstrappedAdmin, stub.bootstrapError
 }
 
 func (stub *adminStoreStub) List(context.Context) ([]Admin, error) {
