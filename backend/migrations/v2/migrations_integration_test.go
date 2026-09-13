@@ -64,6 +64,7 @@ func TestMigrationPreservesLegacyData(t *testing.T) {
 
 	assertDomainRows(t, ctx, db)
 	assertSchemaBoundaries(t, ctx, db)
+	assertSubmissionContract(t, ctx, db)
 
 	if err := Run(ctx, db); err != nil {
 		t.Fatalf("run V2 migrations twice: %v", err)
@@ -73,7 +74,7 @@ func TestMigrationPreservesLegacyData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new provider for down check: %v", err)
 	}
-	if _, err := provider.ApplyVersion(ctx, 20260913000100, false); err == nil || !strings.Contains(err.Error(), "forward-only") {
+	if _, err := provider.ApplyVersion(ctx, 20260913000200, false); err == nil || !strings.Contains(err.Error(), "forward-only") {
 		t.Fatalf("down error = %v, want forward-only refusal", err)
 	}
 }
@@ -212,7 +213,7 @@ func assertDomainRows(t *testing.T, ctx context.Context, db *sql.DB) {
 	if err != nil {
 		t.Fatalf("read migrated submissions: %v", err)
 	}
-	wantStatuses := []string{"processing", "new", "in_review", "rejected", "published"}
+	wantStatuses := []string{"processing", "new", "review", "rejected", "published"}
 	wantCodes := []string{"political", "military", "legacy_9", "political", "military"}
 	for index := range wantStatuses {
 		var id, eventType int
@@ -286,6 +287,22 @@ func assertDomainRows(t *testing.T, ctx context.Context, db *sql.DB) {
 	}
 	if username != "test-user" || chatID != 123456 {
 		t.Fatalf("migrated subscription = (%q, %d)", username, chatID)
+	}
+}
+
+func assertSubmissionContract(t *testing.T, ctx context.Context, db *sql.DB) {
+	t.Helper()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO events.events (
+			submission_id, title, description, latitude, longitude,
+			event_date, event_type_id, event_type_code, site_url
+		)
+		VALUES (1, 'Duplicate', 'description', 55, 60,
+			DATE '2020-01-02', 1, 'political', 'https://storage.test/sites/duplicate')
+	`)
+	if err == nil {
+		t.Fatal("duplicate event submission_id was accepted")
 	}
 }
 

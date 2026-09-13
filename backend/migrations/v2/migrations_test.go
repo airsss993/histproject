@@ -8,7 +8,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func TestProviderContainsOnlyModularSchemaMigration(t *testing.T) {
+func TestProviderContainsOnlyModularMigrations(t *testing.T) {
 	db, err := sql.Open("pgx", "postgres://unused")
 	if err != nil {
 		t.Fatalf("open test database: %v", err)
@@ -21,11 +21,17 @@ func TestProviderContainsOnlyModularSchemaMigration(t *testing.T) {
 	}
 
 	sources := provider.ListSources()
-	if len(sources) != 1 {
-		t.Fatalf("source count = %d, want 1", len(sources))
+	want := []string{
+		"20260913000100_modular_schemas.sql",
+		"20260913000200_submission_contract.sql",
 	}
-	if !strings.HasSuffix(sources[0].Path, "20260913000100_modular_schemas.sql") {
-		t.Fatalf("source path = %q, want modular schema migration", sources[0].Path)
+	if len(sources) != len(want) {
+		t.Fatalf("source count = %d, want %d", len(sources), len(want))
+	}
+	for index, suffix := range want {
+		if !strings.HasSuffix(sources[index].Path, suffix) {
+			t.Fatalf("source %d path = %q, want suffix %q", index, sources[index].Path, suffix)
+		}
 	}
 }
 

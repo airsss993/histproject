@@ -31,11 +31,11 @@
 - Create: `backend/migrations/v2/20260913000200_submission_contract.sql`
 - Modify: `backend/migrations/v2/migrations_integration_test.go`
 
-- [ ] Написать failing migration tests на `in_review -> review`, duplicate `submission_id` guard и preserved rows.
-- [ ] Подтвердить failure на PostgreSQL 18.
-- [ ] Добавить forward-only migration, которая переименует enum value и создает unique index `events_submission_id_key`.
-- [ ] Проверить row counts, IDs, sequences, URLs и повторный `Run`.
-- [ ] Закоммитить как `feat(backend): добавить submissions contract migration`.
+- [x] Написать failing migration tests на `in_review -> review`, duplicate `submission_id` guard и preserved rows.
+- [x] Подтвердить failure на PostgreSQL 18.
+- [x] Добавить forward-only migration, которая переименует enum value и создает unique index `events_submission_id_key`.
+- [x] Проверить row counts, IDs, sequences, URLs и повторный `Run`.
+- [x] Закоммитить как `feat(backend): добавить submissions contract migration`.
 
 ### Task 2: Submission model и state machine
 
