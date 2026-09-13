@@ -21,6 +21,9 @@ func TestLoadFromUsesDevelopmentDefaults(t *testing.T) {
 	if cfg.ShutdownTimeout != 10*time.Second {
 		t.Errorf("ShutdownTimeout = %s, want 10s", cfg.ShutdownTimeout)
 	}
+	if cfg.SessionTTL != 12*time.Hour {
+		t.Errorf("SessionTTL = %s, want 12h", cfg.SessionTTL)
+	}
 	if cfg.DatabaseURL != "postgres://postgres:postgres@localhost:5432/histproject?sslmode=disable" {
 		t.Errorf("DatabaseURL = %q", cfg.DatabaseURL)
 	}
@@ -96,6 +99,11 @@ func TestLoadFromRejectsInvalidValues(t *testing.T) {
 			name:   "duration",
 			values: map[string]string{"SHUTDOWN_TIMEOUT": "soon"},
 			field:  "SHUTDOWN_TIMEOUT",
+		},
+		{
+			name:   "session duration",
+			values: map[string]string{"SESSION_TTL": "forever"},
+			field:  "SESSION_TTL",
 		},
 		{
 			name:   "boolean",

@@ -18,6 +18,7 @@ type Config struct {
 	Environment     string
 	ServerAddress   string
 	ShutdownTimeout time.Duration
+	SessionTTL      time.Duration
 	DatabaseURL     string
 	RedisAddress    string
 	RedisPassword   string
@@ -59,6 +60,12 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	cfg.ShutdownTimeout = shutdownTimeout
+
+	sessionTTL, err := parseDuration(valueOrDefault(getenv, "SESSION_TTL", "12h"), "SESSION_TTL")
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.SessionTTL = sessionTTL
 
 	redisDB, err := parseNonNegativeInt(valueOrDefault(getenv, "REDIS_DB", "0"), "REDIS_DB")
 	if err != nil {
