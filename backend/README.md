@@ -67,7 +67,7 @@ go run ./cmd/bootstrap-admin --apply
 
 ## API
 
-Новый API сейчас предоставляет:
+API предоставляет:
 
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/logout`
@@ -96,14 +96,13 @@ Login ограничен пятью попытками в минуту для п
 
 `POST /api/v1/submissions` принимает `multipart/form-data`: `title`, `description`, `eventDate`, `eventType`, `email`, `telegramUsername` и ZIP `archive`. Архив хранится в bucket `requests` под raw UUID key. Queue task идемпотентна по submission ID.
 
-Контракт нового API находится в `docs/openapi.yaml`. Документация legacy API остается в `docs/api.html` до удаления старого entrypoint.
+Контракт API находится в `docs/openapi.yaml`.
 
 ## Требования к загружаемым сайтам
 
 - Формат архива: `.zip`.
 - Максимальный размер: 50 МБ.
 - В корне архива должен быть `index.html`.
-- При `CLAMAV_ENABLED=true` legacy API проверяет архив антивирусом.
 - Поддерживаются статические сайты без server-side rendering.
 - React Router должен использовать `HashRouter`.
 - Для Vite нужно указать `base: './'` до сборки.
