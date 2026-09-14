@@ -24,8 +24,8 @@ func TestRepositoryClaimsEachDeliveryUntilSent(t *testing.T) {
 		t.Fatalf("first Claim() = %v, %v", claimed, err)
 	}
 	claimed, err = repository.Claim(ctx, "submission:7:reviewed", ChannelEmail)
-	if err != nil || claimed {
-		t.Fatalf("concurrent Claim() = %v, %v", claimed, err)
+	if !errors.Is(err, ErrDeliveryInProgress) || claimed {
+		t.Fatalf("concurrent Claim() = %v, %v, want ErrDeliveryInProgress", claimed, err)
 	}
 	if err := repository.MarkFailed(ctx, "submission:7:reviewed", ChannelEmail, "temporary error"); err != nil {
 		t.Fatalf("MarkFailed() error = %v", err)

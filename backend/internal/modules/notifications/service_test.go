@@ -57,6 +57,27 @@ func TestServiceSkipsAlreadyDeliveredChannel(t *testing.T) {
 	}
 }
 
+func TestServiceRetriesDeliveryAlreadyInProgress(t *testing.T) {
+	store := &deliveryStoreStub{claimErr: ErrDeliveryInProgress}
+	emailSender := &emailSenderStub{}
+	service := NewService(
+		store,
+		&submissionSourceStub{submission: notificationSubmission()},
+		&adminSourceStub{},
+		emailSender,
+		nil,
+		"https://admin.example.test",
+	)
+
+	err := service.Deliver(t.Context(), 7, ActionReviewed)
+	if !errors.Is(err, ErrDeliveryInProgress) {
+		t.Fatalf("Deliver() error = %v, want ErrDeliveryInProgress", err)
+	}
+	if len(emailSender.messages) != 0 {
+		t.Fatalf("email calls = %d, want 0", len(emailSender.messages))
+	}
+}
+
 func TestServiceContinuesOtherChannelAfterFailure(t *testing.T) {
 	want := errors.New("email unavailable")
 	store := &deliveryStoreStub{claims: map[Channel]bool{ChannelEmail: true, ChannelTelegram: true}}
@@ -129,13 +150,14 @@ func notificationSubmission() Submission {
 }
 
 type deliveryStoreStub struct {
-	claims map[Channel]bool
-	sent   map[Channel]int
-	failed map[Channel]int
+	claims   map[Channel]bool
+	claimErr error
+	sent     map[Channel]int
+	failed   map[Channel]int
 }
 
 func (stub *deliveryStoreStub) Claim(_ context.Context, _ string, channel Channel) (bool, error) {
-	return stub.claims[channel], nil
+	return stub.claims[channel], stub.claimErr
 }
 
 func (stub *deliveryStoreStub) MarkSent(_ context.Context, _ string, channel Channel) error {

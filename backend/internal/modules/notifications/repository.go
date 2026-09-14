@@ -10,7 +10,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var ErrDeliveryNotClaimed = errors.New("notification delivery is not claimed")
+var (
+	ErrDeliveryInProgress = errors.New("notification delivery is already in progress")
+	ErrDeliveryNotClaimed = errors.New("notification delivery is not claimed")
+)
 
 type Repository struct {
 	pool *pgxpool.Pool
@@ -38,7 +41,18 @@ func (repository *Repository) Claim(ctx context.Context, eventKey string, channe
 		RETURNING event_key
 	`, eventKey, channel).Scan(&claimedKey)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return false, nil
+		var status string
+		if statusErr := repository.pool.QueryRow(ctx, `
+			SELECT status
+			FROM notifications.deliveries
+			WHERE event_key = $1 AND channel = $2
+		`, eventKey, channel).Scan(&status); statusErr != nil {
+			return false, fmt.Errorf("read notification delivery after claim conflict: %w", statusErr)
+		}
+		if status == "sent" {
+			return false, nil
+		}
+		return false, ErrDeliveryInProgress
 	}
 	if err != nil {
 		return false, fmt.Errorf("claim notification delivery: %w", err)
