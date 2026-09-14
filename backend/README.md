@@ -86,7 +86,7 @@ Login ограничен пятью попытками в минуту для п
 
 `POST /api/v1/submissions` принимает `multipart/form-data`: `title`, `description`, `eventDate`, `eventType`, `email`, `telegramUsername` и ZIP `archive`. Архив хранится в bucket `requests` под raw UUID key. Queue task идемпотентна по submission ID.
 
-Документация legacy API находится в `docs/api.html`. OpenAPI нового API будет добавлен после переноса всех модулей.
+Контракт нового API находится в `docs/openapi.yaml`. Документация legacy API остается в `docs/api.html` до удаления старого entrypoint.
 
 ## Требования к загружаемым сайтам
 
