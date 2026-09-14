@@ -60,7 +60,7 @@ func TestEnqueueArchiveUsesContextCompatiblePayloadAndUniqueTaskID(t *testing.T)
 	if err := json.Unmarshal(enqueuer.task.Payload(), &payload); err != nil {
 		t.Fatalf("decode payload: %v", err)
 	}
-	if payload.RequestID != 42 || payload.ArchiveID != "archive-id" {
+	if payload.SubmissionID != 42 || payload.ArchiveID != "archive-id" {
 		t.Fatalf("payload = %#v", payload)
 	}
 

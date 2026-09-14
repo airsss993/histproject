@@ -17,8 +17,8 @@ const (
 )
 
 type ArchiveProcessPayload struct {
-	RequestID int64  `json:"RequestId"`
-	ArchiveID string `json:"ArchiveId"`
+	SubmissionID int64  `json:"submissionId"`
+	ArchiveID    string `json:"archiveId"`
 }
 
 type SubmissionNotificationPayload struct {
@@ -39,7 +39,7 @@ func NewClient(redisClient redis.UniversalClient) *Client {
 }
 
 func (client *Client) EnqueueArchive(ctx context.Context, submissionID int64, archiveID string) error {
-	payload, err := json.Marshal(ArchiveProcessPayload{RequestID: submissionID, ArchiveID: archiveID})
+	payload, err := json.Marshal(ArchiveProcessPayload{SubmissionID: submissionID, ArchiveID: archiveID})
 	if err != nil {
 		return fmt.Errorf("encode archive task: %w", err)
 	}

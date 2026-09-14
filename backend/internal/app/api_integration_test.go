@@ -309,7 +309,7 @@ func TestAPISubmissionFlow(t *testing.T) {
 	}
 
 	for _, archiveID := range []string{rejectedArchiveID, publishedArchiveID} {
-		if err := storageClient.Client().RemoveObject(ctx, "requests", archiveID, minio.RemoveObjectOptions{}); err != nil {
+		if err := storageClient.Client().RemoveObject(ctx, "archives", archiveID, minio.RemoveObjectOptions{}); err != nil {
 			t.Fatalf("remove test archive %q: %v", archiveID, err)
 		}
 	}
@@ -380,7 +380,7 @@ func prepareAppTestStorage(t *testing.T, ctx context.Context, endpoint, accessKe
 	if err != nil {
 		t.Fatalf("create MinIO setup client: %v", err)
 	}
-	for _, bucket := range []string{"requests", "sites"} {
+	for _, bucket := range []string{"archives", "sites"} {
 		exists, err := client.BucketExists(ctx, bucket)
 		if err != nil {
 			t.Fatalf("check MinIO bucket %q: %v", bucket, err)
@@ -393,7 +393,7 @@ func prepareAppTestStorage(t *testing.T, ctx context.Context, endpoint, accessKe
 	}
 	storageClient, err := storage.Open(ctx, storage.Config{
 		Endpoint: endpoint, AccessKey: accessKey, SecretKey: secretKey,
-		ArchiveBucket: "requests", SiteBucket: "sites",
+		ArchiveBucket: "archives", SiteBucket: "sites",
 	})
 	if err != nil {
 		t.Fatalf("open test storage: %v", err)
@@ -419,7 +419,7 @@ func assertRawArchiveKey(t *testing.T, archiveID string) {
 
 func assertArchiveExists(t *testing.T, ctx context.Context, storageClient *storage.MinIO, archiveID string) {
 	t.Helper()
-	if _, err := storageClient.Client().StatObject(ctx, "requests", archiveID, minio.StatObjectOptions{}); err != nil {
+	if _, err := storageClient.Client().StatObject(ctx, "archives", archiveID, minio.StatObjectOptions{}); err != nil {
 		t.Fatalf("stat archive %q: %v", archiveID, err)
 	}
 }
