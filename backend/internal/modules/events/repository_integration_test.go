@@ -10,8 +10,7 @@ import (
 	"testing"
 	"time"
 
-	legacymigrations "github.com/airsss993/histproject/backend/migrations"
-	v2migrations "github.com/airsss993/histproject/backend/migrations/v2"
+	"github.com/airsss993/histproject/backend/migrations"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -166,40 +165,34 @@ func prepareEventsDatabase(t *testing.T, ctx context.Context, databaseURL string
 		resetEventsDatabase(t, cleanupCtx, db)
 		_ = db.Close()
 	})
-	if err := legacymigrations.Up(ctx, db); err != nil {
-		t.Fatalf("run legacy migrations: %v", err)
-	}
-	if err := v2migrations.Run(ctx, db); err != nil {
-		t.Fatalf("run V2 migrations: %v", err)
+	if err := migrations.Up(ctx, db); err != nil {
+		t.Fatalf("run migrations: %v", err)
 	}
 	return db
 }
 
 func seedEvents(t *testing.T, ctx context.Context, db *sql.DB) {
 	t.Helper()
-	types := []int{1, 2, 1, 9}
+	eventTypes := []string{"political", "military", "political", "military"}
 	dates := []string{"2020-01-01", "2020-01-01", "2021-06-15", "2022-01-01"}
-	for index := range types {
+	for index := range eventTypes {
 		id := index + 1
 		_, err := db.ExecContext(ctx, `
 			INSERT INTO submissions.submissions (
-				id, title, description, event_date, event_type_id, event_type_code,
-				email, telegram_username, archive_id, status
+				id, title, description, event_date, event_type_code,
+				email, telegram_username, archive_id, slug, status
 			) VALUES ($1, $2, 'description', $3, $4,
-				CASE $4::integer WHEN 1 THEN 'political' WHEN 2 THEN 'military' ELSE 'legacy_9' END,
-				'author@example.test', 'author', $5, 'published')
-		`, id, fmt.Sprintf("Submission %d", id), dates[index], types[index], fmt.Sprintf("archives/%d.zip", id))
+				'author@example.test', 'author', $5, $6, 'published')
+		`, id, fmt.Sprintf("Submission %d", id), dates[index], eventTypes[index], fmt.Sprintf("archives/%d.zip", id), fmt.Sprintf("submission-%d", id))
 		if err != nil {
 			t.Fatalf("insert submission %d: %v", id, err)
 		}
 		_, err = db.ExecContext(ctx, `
 			INSERT INTO events.events (
 				id, submission_id, title, description, latitude, longitude,
-				event_date, event_type_id, event_type_code, site_url, preview_image_url
-			) VALUES ($1, $1, $2, 'description', 55 + $1, 60 + $1, $3, $4,
-				CASE $4::integer WHEN 1 THEN 'political' WHEN 2 THEN 'military' ELSE 'legacy_9' END,
-				$5, $6)
-		`, id, fmt.Sprintf("Event %d", id), dates[index], types[index], fmt.Sprintf("https://storage.test/sites/%d", id), fmt.Sprintf("https://storage.test/previews/%d.png", id))
+				event_date, event_type_code, site_url, preview_image_url
+			) VALUES ($1::bigint, $1::bigint, $2, 'description', 55 + $1::bigint, 60 + $1::bigint, $3, $4, $5, $6)
+		`, id, fmt.Sprintf("Event %d", id), dates[index], eventTypes[index], fmt.Sprintf("https://storage.test/sites/%d", id), fmt.Sprintf("https://storage.test/previews/%d.png", id))
 		if err != nil {
 			t.Fatalf("insert event %d: %v", id, err)
 		}
@@ -213,14 +206,6 @@ func resetEventsDatabase(t *testing.T, ctx context.Context, db *sql.DB) {
 		DROP SCHEMA IF EXISTS submissions CASCADE;
 		DROP SCHEMA IF EXISTS events CASCADE;
 		DROP SCHEMA IF EXISTS notifications CASCADE;
-		DROP TABLE IF EXISTS public.request_audit_log CASCADE;
-		DROP TABLE IF EXISTS public.bot_subscriptions CASCADE;
-		DROP TABLE IF EXISTS public.objects CASCADE;
-		DROP TABLE IF EXISTS public.requests CASCADE;
-		DROP TABLE IF EXISTS public.admin_sessions CASCADE;
-		DROP TABLE IF EXISTS public.admins CASCADE;
-		DROP TYPE IF EXISTS public.request_status CASCADE;
-		DROP TYPE IF EXISTS public.admin_role CASCADE;
 		DROP TABLE IF EXISTS public.goose_db_version CASCADE;
 	`)
 	if err != nil {

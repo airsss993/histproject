@@ -23,14 +23,14 @@ go run ./cmd/api
 go run ./cmd/worker
 ```
 
-V2 migration запускается только явно. Перед запуском выполнить `docs/migration-v2.md`.
+Проект рассчитан на чистую PostgreSQL database. Migration запускается только явно и не импортирует схему старого backend.
 
 ```bash
 docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
 docker compose -f docker-compose.prod.yml --profile tools run --rm bootstrap-admin
 ```
 
-Первый `super_admin` создается только после V2 migration:
+Первый `super_admin` создается только после migration:
 
 ```bash
 DATABASE_URL='postgres://...' \

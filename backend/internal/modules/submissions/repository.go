@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -20,20 +19,16 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 }
 
 func (repository *Repository) Create(ctx context.Context, input CreateRecord) (Submission, error) {
-	eventTypeID, err := legacyEventTypeID(input.EventType)
-	if err != nil {
-		return Submission{}, err
-	}
 	submission, err := scanSubmission(repository.pool.QueryRow(ctx, `
 		INSERT INTO submissions.submissions (
-			title, description, event_date, event_type_id, event_type_code,
+			title, description, event_date, event_type_code,
 			email, telegram_username, archive_id, slug, status
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'processing')
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'processing')
 		RETURNING id, title, description, event_date, event_type_code, email,
 			telegram_username, archive_id, COALESCE(site_url, ''),
 			COALESCE(screenshot_url, ''), COALESCE(slug, ''), status::TEXT,
 			COALESCE(admin_comment, ''), created_at, updated_at
-	`, input.Title, input.Description, input.EventDate, eventTypeID, input.EventType,
+	`, input.Title, input.Description, input.EventDate, input.EventType,
 		input.Email, input.TelegramUsername, input.ArchiveID, input.Slug))
 	if err != nil {
 		return Submission{}, fmt.Errorf("create submission: %w", err)
@@ -216,18 +211,4 @@ func auditWhere(search string) (string, []any) {
 		return "", nil
 	}
 	return `WHERE submission.title ILIKE $1 OR audit.action ILIKE $1 OR audit.admin_login ILIKE $1 OR audit.submission_id::TEXT ILIKE $1`, []any{"%" + search + "%"}
-}
-
-func legacyEventTypeID(eventType string) (int, error) {
-	switch eventType {
-	case "political":
-		return 1, nil
-	case "military":
-		return 2, nil
-	}
-	value, err := strconv.Atoi(strings.TrimPrefix(eventType, "legacy_"))
-	if err != nil || value <= 0 || !strings.HasPrefix(eventType, "legacy_") {
-		return 0, fmt.Errorf("unsupported event type")
-	}
-	return value, nil
 }

@@ -9,8 +9,7 @@ import (
 	"testing"
 	"time"
 
-	legacymigrations "github.com/airsss993/histproject/backend/migrations"
-	v2migrations "github.com/airsss993/histproject/backend/migrations/v2"
+	"github.com/airsss993/histproject/backend/migrations"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -87,11 +86,8 @@ func notificationRepositoryTestDatabase(t *testing.T) (*Repository, *pgxpool.Poo
 		t.Fatalf("database %q is not an isolated test database", databaseName)
 	}
 	resetNotificationDatabase(t, ctx, adminDB)
-	if err := legacymigrations.Run(adminDB); err != nil {
-		t.Fatalf("run legacy migrations: %v", err)
-	}
-	if err := v2migrations.Run(ctx, adminDB); err != nil {
-		t.Fatalf("run V2 migrations: %v", err)
+	if err := migrations.Up(ctx, adminDB); err != nil {
+		t.Fatalf("run migrations: %v", err)
 	}
 	if err := adminDB.Close(); err != nil {
 		t.Fatalf("close migration database: %v", err)
@@ -127,15 +123,6 @@ func resetNotificationDatabase(t *testing.T, ctx context.Context, db *sql.DB) {
 		DROP SCHEMA IF EXISTS submissions CASCADE;
 		DROP SCHEMA IF EXISTS events CASCADE;
 		DROP SCHEMA IF EXISTS notifications CASCADE;
-		DROP TABLE IF EXISTS public.request_audit_log CASCADE;
-		DROP TABLE IF EXISTS public.bot_subscriptions CASCADE;
-		DROP TABLE IF EXISTS public.objects CASCADE;
-		DROP TABLE IF EXISTS public.requests CASCADE;
-		DROP TABLE IF EXISTS public.admin_sessions CASCADE;
-		DROP TABLE IF EXISTS public.admins CASCADE;
-		DROP TYPE IF EXISTS public.request_status CASCADE;
-		DROP TYPE IF EXISTS public.admin_role CASCADE;
-		DROP TABLE IF EXISTS public.event_types CASCADE;
 		DROP TABLE IF EXISTS public.goose_db_version CASCADE;
 	`)
 	if err != nil {

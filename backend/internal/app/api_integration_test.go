@@ -24,8 +24,7 @@ import (
 	platformqueue "github.com/airsss993/histproject/backend/internal/platform/queue"
 	"github.com/airsss993/histproject/backend/internal/platform/redisstore"
 	"github.com/airsss993/histproject/backend/internal/platform/storage"
-	legacymigrations "github.com/airsss993/histproject/backend/migrations"
-	v2migrations "github.com/airsss993/histproject/backend/migrations/v2"
+	"github.com/airsss993/histproject/backend/migrations"
 	"github.com/hibiken/asynq"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/minio/minio-go/v7"
@@ -66,15 +65,15 @@ func TestAPIHTTPFlow(t *testing.T) {
 	}
 	if _, err := databaseClient.Pool().Exec(ctx, `
 		INSERT INTO submissions.submissions (
-			id, title, description, event_date, event_type_id, event_type_code,
-			email, telegram_username, archive_id, status
-		) VALUES (1, 'Submission', 'description', DATE '2020-01-02', 2, 'military',
-			'author@example.test', 'author', 'archives/1.zip', 'published');
+			id, title, description, event_date, event_type_code,
+			email, telegram_username, archive_id, slug, status
+		) VALUES (1, 'Submission', 'description', DATE '2020-01-02', 'military',
+			'author@example.test', 'author', 'archives/1.zip', 'submission-1', 'published');
 		INSERT INTO events.events (
 			id, submission_id, title, description, latitude, longitude,
-			event_date, event_type_id, event_type_code, site_url, preview_image_url
+			event_date, event_type_code, site_url, preview_image_url
 		) VALUES (1, 1, 'Event', 'description', 55.5, 60.5,
-			DATE '2020-01-02', 2, 'military', 'https://storage.test/sites/1', 'https://storage.test/previews/1.png');
+			DATE '2020-01-02', 'military', 'https://storage.test/sites/1', 'https://storage.test/previews/1.png');
 	`); err != nil {
 		t.Fatalf("seed event: %v", err)
 	}
@@ -478,22 +477,11 @@ func prepareAppTestDatabase(t *testing.T, ctx context.Context, databaseURL strin
 		DROP SCHEMA IF EXISTS submissions CASCADE;
 		DROP SCHEMA IF EXISTS events CASCADE;
 		DROP SCHEMA IF EXISTS notifications CASCADE;
-		DROP TABLE IF EXISTS public.request_audit_log CASCADE;
-		DROP TABLE IF EXISTS public.bot_subscriptions CASCADE;
-		DROP TABLE IF EXISTS public.objects CASCADE;
-		DROP TABLE IF EXISTS public.requests CASCADE;
-		DROP TABLE IF EXISTS public.admin_sessions CASCADE;
-		DROP TABLE IF EXISTS public.admins CASCADE;
-		DROP TYPE IF EXISTS public.request_status CASCADE;
-		DROP TYPE IF EXISTS public.admin_role CASCADE;
 		DROP TABLE IF EXISTS public.goose_db_version CASCADE;
 	`); err != nil {
 		t.Fatalf("reset database: %v", err)
 	}
-	if err := legacymigrations.Up(ctx, db); err != nil {
-		t.Fatalf("run legacy migrations: %v", err)
-	}
-	if err := v2migrations.Run(ctx, db); err != nil {
-		t.Fatalf("run V2 migrations: %v", err)
+	if err := migrations.Up(ctx, db); err != nil {
+		t.Fatalf("run migrations: %v", err)
 	}
 }

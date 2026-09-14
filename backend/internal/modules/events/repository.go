@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -20,22 +19,17 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 }
 
 func (repository *Repository) Publish(ctx context.Context, snapshot Snapshot) (Event, error) {
-	eventTypeID, err := eventTypeID(snapshot.EventType)
-	if err != nil {
-		return Event{}, err
-	}
 	event, err := scanEvent(repository.pool.QueryRow(ctx, `
 		INSERT INTO events.events (
 			submission_id, title, description, latitude, longitude, event_date,
-			event_type_id, event_type_code, site_url, preview_image_url
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, ''))
+			event_type_code, site_url, preview_image_url
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULLIF($9, ''))
 		ON CONFLICT (submission_id) DO UPDATE SET
 			title = EXCLUDED.title,
 			description = EXCLUDED.description,
 			latitude = EXCLUDED.latitude,
 			longitude = EXCLUDED.longitude,
 			event_date = EXCLUDED.event_date,
-			event_type_id = EXCLUDED.event_type_id,
 			event_type_code = EXCLUDED.event_type_code,
 			site_url = EXCLUDED.site_url,
 			preview_image_url = EXCLUDED.preview_image_url,
@@ -43,7 +37,7 @@ func (repository *Repository) Publish(ctx context.Context, snapshot Snapshot) (E
 		RETURNING id, submission_id, title, description, latitude, longitude,
 			event_date, event_type_code, site_url, preview_image_url, created_at, updated_at
 	`, snapshot.SubmissionID, snapshot.Title, snapshot.Description, snapshot.Latitude,
-		snapshot.Longitude, snapshot.EventDate, eventTypeID, snapshot.EventType,
+		snapshot.Longitude, snapshot.EventDate, snapshot.EventType,
 		snapshot.SiteURL, snapshot.PreviewImageURL))
 	if err != nil {
 		return Event{}, fmt.Errorf("publish event: %w", err)
@@ -170,21 +164,4 @@ func eventWhere(filter Filter) (string, []any) {
 		return "", args
 	}
 	return " WHERE " + strings.Join(conditions, " AND "), args
-}
-
-func eventTypeID(eventType string) (int, error) {
-	switch eventType {
-	case "political":
-		return 1, nil
-	case "military":
-		return 2, nil
-	}
-	if !strings.HasPrefix(eventType, "legacy_") {
-		return 0, fmt.Errorf("unsupported event type")
-	}
-	eventTypeID, err := strconv.Atoi(strings.TrimPrefix(eventType, "legacy_"))
-	if err != nil || eventTypeID <= 0 {
-		return 0, fmt.Errorf("unsupported event type")
-	}
-	return eventTypeID, nil
 }
