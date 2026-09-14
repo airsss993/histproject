@@ -2,23 +2,33 @@
 
 Серверная часть интерактивной карты исторических объектов. Принимает заявки, обрабатывает загруженные архивы и предоставляет API для администраторов.
 
-## Статус переписывания
+## Запуск
 
-Новый API собирается из `cmd/api`. Legacy entrypoint `cmd/main.go` остается до переноса всех модулей и переключения Docker.
+Скопировать `.env.example` в `.env`, заменить тестовые credentials и запустить development stack:
+
+```bash
+docker compose -f docker-compose.dev.yml build
+docker compose -f docker-compose.dev.yml up -d db redis minio chrome
+docker compose -f docker-compose.dev.yml run --rm migrate
+docker compose -f docker-compose.dev.yml run --rm bootstrap-admin
+docker compose -f docker-compose.dev.yml up -d
+```
+
+Внешние адреса: API `http://localhost:7666`, Caddy `http://localhost:8080`, MinIO API `http://localhost:9010`, MinIO Console `http://localhost:9011`. PostgreSQL и Redis доступны только на localhost. Buckets `requests` и `sites` создает `minio-init`.
+
+Без Docker API и worker запускаются отдельно. Для этого заменить в `.env` container hostnames `db`, `redis`, `minio` и `chrome` на `localhost`.
 
 ```bash
 go run ./cmd/api
-```
-
-Новый entrypoint подключает PostgreSQL, Redis и MinIO до запуска HTTP-сервера. Legacy buckets `requests` и `sites`, заданные через `MINIO_ARCHIVE_BUCKET` и `MINIO_SITE_BUCKET`, должны существовать заранее. Приложение не создает buckets автоматически.
-
-Обработка ZIP и создание скриншотов запускаются отдельным процессом:
-
-```bash
 go run ./cmd/worker
 ```
 
-V2 migration запускается только явной командой `go run ./cmd/migrate --apply`. Перед запуском выполнить `docs/migration-v2.md`. `cmd/api` не запускает migrations автоматически.
+V2 migration запускается только явно. Перед запуском выполнить `docs/migration-v2.md`.
+
+```bash
+docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
+docker compose -f docker-compose.prod.yml --profile tools run --rm bootstrap-admin
+```
 
 Первый `super_admin` создается только после V2 migration:
 
@@ -30,7 +40,7 @@ BOOTSTRAP_ADMIN_EMAIL='root@example.com' \
 go run ./cmd/bootstrap-admin --apply
 ```
 
-Команда откажется запускаться без `--apply` и не создасть второго `super_admin`. Password и PostgreSQL DSN в output не печатаются.
+Команда откажется запускаться без `--apply` и не создаст второго `super_admin`. Password и PostgreSQL DSN в output не печатаются.
 
 ## Env нового API
 

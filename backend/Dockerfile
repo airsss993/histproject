@@ -1,31 +1,26 @@
-FROM golang:alpine AS builder
-
-LABEL stage=gobuilder
-
-ENV CGO_ENABLED=0
-
-
-RUN apk update --no-cache && apk add --no-cache tzdata
+FROM golang:1.26.0-alpine AS builder
 
 WORKDIR /build
 
-ADD go.mod .
-ADD go.sum .
+COPY go.mod go.sum ./
 RUN go mod download
+
 COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api \
+    && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/worker ./cmd/worker \
+    && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate \
+    && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/bootstrap-admin ./cmd/bootstrap-admin
 
-RUN go build -ldflags="-s -w" -o /app/main cmd/main.go
+FROM alpine:3.23.5
 
+RUN apk add --no-cache ca-certificates tzdata \
+    && addgroup -S histproject \
+    && adduser -S -G histproject histproject
 
-FROM scratch
-
-COPY --from=builder /tmp /tmp
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=builder /usr/share/zoneinfo/Asia/Shanghai /usr/share/zoneinfo/Asia/Shanghai
-ENV TZ=Asia/Shanghai
-
+ENV TZ=Asia/Yekaterinburg
 WORKDIR /app
-COPY --from=builder /app/main /app/main
 
+COPY --from=builder /out/ /app/
 
-CMD ["./main"]
+USER histproject
+CMD ["/app/api"]
