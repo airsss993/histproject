@@ -12,8 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	legacymigrations "github.com/airsss993/histproject/backend/migrations"
-	v2migrations "github.com/airsss993/histproject/backend/migrations/v2"
+	"github.com/airsss993/histproject/backend/migrations"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -85,11 +84,8 @@ func applyMigrations(ctx context.Context, databaseURL string) error {
 	if err := db.PingContext(ctx); err != nil {
 		return fmt.Errorf("connect migration database")
 	}
-	if err := legacymigrations.Up(ctx, db); err != nil {
-		return fmt.Errorf("apply legacy baseline")
-	}
-	if err := v2migrations.Run(ctx, db); err != nil {
-		return fmt.Errorf("apply V2 schema")
+	if err := migrations.Up(ctx, db); err != nil {
+		return fmt.Errorf("apply database schema")
 	}
 
 	return nil

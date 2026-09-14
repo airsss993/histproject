@@ -10,8 +10,7 @@ import (
 	"testing"
 	"time"
 
-	legacymigrations "github.com/airsss993/histproject/backend/migrations"
-	v2migrations "github.com/airsss993/histproject/backend/migrations/v2"
+	"github.com/airsss993/histproject/backend/migrations"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -156,28 +155,21 @@ func prepareSubmissionsDatabase(t *testing.T, ctx context.Context, databaseURL s
 		resetSubmissionsDatabase(t, cleanupCtx, db)
 		_ = db.Close()
 	})
-	if err := legacymigrations.Up(ctx, db); err != nil {
-		t.Fatalf("run legacy migrations: %v", err)
-	}
-	if err := v2migrations.Run(ctx, db); err != nil {
-		t.Fatalf("run V2 migrations: %v", err)
+	if err := migrations.Up(ctx, db); err != nil {
+		t.Fatalf("run migrations: %v", err)
 	}
 	return db
 }
 
 func insertSubmissionFixture(t *testing.T, ctx context.Context, db *sql.DB, id int, title string, status Status, eventType, eventDate string) {
 	t.Helper()
-	eventTypeID := 1
-	if eventType == "military" {
-		eventTypeID = 2
-	}
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO submissions.submissions (
-			id, title, description, event_date, event_type_id, event_type_code,
+			id, title, description, event_date, event_type_code,
 			email, telegram_username, archive_id, slug, status
-		) VALUES ($1, $2, 'description', $3, $4, $5,
-			'author@example.test', 'author', $6, $7, $8)
-	`, id, title, eventDate, eventTypeID, eventType, "archive-"+strings.ToLower(title), strings.ToLower(title), status)
+		) VALUES ($1, $2, 'description', $3, $4,
+			'author@example.test', 'author', $5, $6, $7)
+	`, id, title, eventDate, eventType, "archive-"+strings.ToLower(title), strings.ToLower(title), status)
 	if err != nil {
 		t.Fatalf("insert fixture %d: %v", id, err)
 	}
@@ -190,14 +182,6 @@ func resetSubmissionsDatabase(t *testing.T, ctx context.Context, db *sql.DB) {
 		DROP SCHEMA IF EXISTS submissions CASCADE;
 		DROP SCHEMA IF EXISTS events CASCADE;
 		DROP SCHEMA IF EXISTS notifications CASCADE;
-		DROP TABLE IF EXISTS public.request_audit_log CASCADE;
-		DROP TABLE IF EXISTS public.bot_subscriptions CASCADE;
-		DROP TABLE IF EXISTS public.objects CASCADE;
-		DROP TABLE IF EXISTS public.requests CASCADE;
-		DROP TABLE IF EXISTS public.admin_sessions CASCADE;
-		DROP TABLE IF EXISTS public.admins CASCADE;
-		DROP TYPE IF EXISTS public.request_status CASCADE;
-		DROP TYPE IF EXISTS public.admin_role CASCADE;
 		DROP TABLE IF EXISTS public.goose_db_version CASCADE;
 	`)
 	if err != nil {

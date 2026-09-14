@@ -8,7 +8,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func TestLegacyProviderContainsOnlyRootMigration(t *testing.T) {
+func TestProviderContainsOnlyInitialSchema(t *testing.T) {
 	db, err := sql.Open("pgx", "postgres://unused")
 	if err != nil {
 		t.Fatalf("open test database: %v", err)
@@ -24,8 +24,8 @@ func TestLegacyProviderContainsOnlyRootMigration(t *testing.T) {
 	if len(sources) != 1 {
 		t.Fatalf("source count = %d, want 1", len(sources))
 	}
-	if !strings.HasSuffix(sources[0].Path, "20260512200000_init.sql") {
-		t.Fatalf("source path = %q, want init migration", sources[0].Path)
+	if !strings.HasSuffix(sources[0].Path, "20260914000100_initial_schema.sql") {
+		t.Fatalf("source path = %q, want initial schema migration", sources[0].Path)
 	}
 }
 
