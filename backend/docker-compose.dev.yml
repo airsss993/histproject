@@ -1,57 +1,205 @@
-name: "histproject-backend"
+name: histproject-backend-dev
+
+x-app: &app
+  build: .
+  env_file:
+    - .env
+  environment:
+    APP_ENV: development
+    DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-histproject}?sslmode=disable
+    REDIS_ADDRESS: redis:6379
+    MINIO_ENDPOINT: minio:9000
+    MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-histproject}
+    MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-change-me}
+    MINIO_ARCHIVE_BUCKET: ${MINIO_ARCHIVE_BUCKET:-archives}
+    MINIO_SITE_BUCKET: ${MINIO_SITE_BUCKET:-sites}
+    CHROME_URL: http://chrome:9222
+    SITE_RENDER_BASE_URL: http://minio:9000/sites
+    SITE_PREVIEW_BASE_URL: http://localhost:8080/preview
+    SITE_PUBLIC_BASE_URL: http://localhost:8080/sites
+  networks:
+    - app_internal
+  restart: unless-stopped
 
 services:
-  app:
-    build: .
+  api:
+    <<: *app
+    command: ["/app/api"]
+    networks:
+      - app_internal
+      - egress
     ports:
-      - "7666:7666"
-    env_file:
-      - .env
+      - "127.0.0.1:7666:7666"
     depends_on:
-      minio:
+      db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:7666/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  worker:
+    <<: *app
+    command: ["/app/worker"]
+    networks:
+      - app_internal
+      - render_internal
+      - egress
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
       chrome:
         condition: service_healthy
 
-  minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+  migrate:
+    <<: *app
+    command: ["/app/migrate", "--apply"]
+    profiles: ["tools"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  bootstrap-admin:
+    <<: *app
+    command: ["/app/bootstrap-admin", "--apply"]
+    profiles: ["tools"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18.6-alpine3.23
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-histproject}
+      TZ: Asia/Yekaterinburg
+      PGTZ: Asia/Yekaterinburg
+    volumes:
+      - db-data:/var/lib/postgresql/18/docker
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:-histproject}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_internal
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.2.9-alpine3.22
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-change-me}"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app_internal
+    restart: unless-stopped
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-histproject}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change-me}
+    command: server /data --console-address ":9001"
     volumes:
       - minio-storage:/data
     ports:
-      - "9011:9001"
-      - "9010:9000"
-    command: server /data --console-address ":9001"
+      - "127.0.0.1:9010:9000"
+      - "127.0.0.1:9011:9001"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
-  redis:
-    image: redis:8.2-alpine
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-
-  chrome:
-    image: chromedp/headless-shell:latest
-    ports:
-      - "9222:9222"
-    healthcheck:
-      test: [ "CMD", "bash", "-c", "cat < /dev/null > /dev/tcp/localhost/9222" ]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 10
+    networks:
+      - app_internal
+      - render_internal
+    restart: unless-stopped
 
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-histproject}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-change-me}
+      MINIO_ARCHIVE_BUCKET: ${MINIO_ARCHIVE_BUCKET:-archives}
+      MINIO_SITE_BUCKET: ${MINIO_SITE_BUCKET:-sites}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        until mc alias set local http://minio:9000 "$$MINIO_ACCESS_KEY" "$$MINIO_SECRET_KEY"; do sleep 1; done;
+        mc mb --ignore-existing "local/$$MINIO_ARCHIVE_BUCKET";
+        mc mb --ignore-existing "local/$$MINIO_SITE_BUCKET";
+        mc anonymous set download "local/$$MINIO_SITE_BUCKET"
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - app_internal
+    restart: "no"
+
+  chrome:
+    image: chromedp/headless-shell:151.0.7922.109
+    healthcheck:
+      test: ["CMD", "bash", "-c", "cat < /dev/null > /dev/tcp/127.0.0.1/9222"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - render_internal
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    environment:
+      PUBLIC_ADDRESS: :80
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    networks:
+      - app_internal
+      - egress
+    restart: unless-stopped
 
 volumes:
   db-data:
   minio-storage:
   redis-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  app_internal:
+    internal: true
+  render_internal:
+    internal: true
+  egress:
