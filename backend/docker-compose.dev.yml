@@ -25,6 +25,9 @@ services:
   api:
     <<: *app
     command: ["/app/api"]
+    networks:
+      - app_internal
+      - egress
     ports:
       - "127.0.0.1:7666:7666"
     depends_on:
@@ -184,6 +187,7 @@ services:
         condition: service_completed_successfully
     networks:
       - app_internal
+      - egress
     restart: unless-stopped
 
 volumes:
