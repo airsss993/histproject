@@ -24,10 +24,10 @@ func NewTaskMux(processor TaskProcessor) *asynq.ServeMux {
 		if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 			return errors.Join(fmt.Errorf("%w: %v", ErrInvalidTaskPayload, err), asynq.SkipRetry)
 		}
-		if payload.RequestID <= 0 || strings.TrimSpace(payload.ArchiveID) == "" {
+		if payload.SubmissionID <= 0 || strings.TrimSpace(payload.ArchiveID) == "" {
 			return errors.Join(ErrInvalidTaskPayload, asynq.SkipRetry)
 		}
-		if err := processor.Process(ctx, payload.RequestID, payload.ArchiveID); err != nil {
+		if err := processor.Process(ctx, payload.SubmissionID, payload.ArchiveID); err != nil {
 			if errors.Is(err, ErrArchiveMismatch) || errors.Is(err, ErrUnsafeSlug) {
 				return errors.Join(fmt.Errorf("process archive task: %w", err), asynq.SkipRetry)
 			}

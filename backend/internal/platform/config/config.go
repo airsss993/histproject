@@ -188,7 +188,7 @@ func applyDevelopmentDefaults(cfg *Config) {
 		cfg.MinIOEndpoint = "localhost:9000"
 	}
 	if cfg.MinIOArchiveBucket == "" {
-		cfg.MinIOArchiveBucket = "requests"
+		cfg.MinIOArchiveBucket = "archives"
 	}
 	if cfg.MinIOSiteBucket == "" {
 		cfg.MinIOSiteBucket = "sites"

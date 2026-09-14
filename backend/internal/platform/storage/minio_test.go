@@ -79,7 +79,7 @@ func TestMinIOPingRejectsMissingBucket(t *testing.T) {
 	client := &objectClientStub{}
 	storage := &MinIO{
 		objects:       client,
-		archiveBucket: "requests",
+		archiveBucket: "archives",
 		siteBucket:    "sites",
 	}
 
@@ -95,7 +95,7 @@ func TestMinIOPingReturnsClientError(t *testing.T) {
 	client := &objectClientStub{err: want}
 	storage := &MinIO{
 		objects:       client,
-		archiveBucket: "requests",
+		archiveBucket: "archives",
 		siteBucket:    "sites",
 	}
 
@@ -108,19 +108,19 @@ func TestMinIOPingReturnsClientError(t *testing.T) {
 
 func TestMinIOPingChecksLegacyBuckets(t *testing.T) {
 	client := &objectClientStub{exists: true}
-	storage := &MinIO{objects: client, archiveBucket: "requests", siteBucket: "sites"}
+	storage := &MinIO{objects: client, archiveBucket: "archives", siteBucket: "sites"}
 
 	if err := storage.Ping(t.Context()); err != nil {
 		t.Fatalf("Ping() error = %v", err)
 	}
-	if len(client.buckets) != 2 || client.buckets[0] != "requests" || client.buckets[1] != "sites" {
+	if len(client.buckets) != 2 || client.buckets[0] != "archives" || client.buckets[1] != "sites" {
 		t.Fatalf("checked buckets = %#v", client.buckets)
 	}
 }
 
 func TestMinIOPutArchiveForwardsContextAndPreservesObjectKeySemantics(t *testing.T) {
 	client := &objectClientStub{exists: true}
-	storage := &MinIO{objects: client, archiveBucket: "requests", siteBucket: "sites"}
+	storage := &MinIO{objects: client, archiveBucket: "archives", siteBucket: "sites"}
 	type contextKey string
 	ctx := context.WithValue(t.Context(), contextKey("request"), "trace-id")
 
@@ -128,7 +128,7 @@ func TestMinIOPutArchiveForwardsContextAndPreservesObjectKeySemantics(t *testing
 	if err != nil {
 		t.Fatalf("PutArchive() error = %v", err)
 	}
-	if client.putContext != ctx || client.putBucket != "requests" || client.putSize != 3 {
+	if client.putContext != ctx || client.putBucket != "archives" || client.putSize != 3 {
 		t.Fatalf("upload = context:%v bucket:%q size:%d", client.putContext == ctx, client.putBucket, client.putSize)
 	}
 	if objectKey != client.putObject {
@@ -141,13 +141,13 @@ func TestMinIOPutArchiveForwardsContextAndPreservesObjectKeySemantics(t *testing
 
 func TestMinIODeleteArchiveUsesLegacyBucket(t *testing.T) {
 	client := &objectClientStub{exists: true}
-	storage := &MinIO{objects: client, archiveBucket: "requests", siteBucket: "sites"}
+	storage := &MinIO{objects: client, archiveBucket: "archives", siteBucket: "sites"}
 	ctx := t.Context()
 
 	if err := storage.DeleteArchive(ctx, "archive-id"); err != nil {
 		t.Fatalf("DeleteArchive() error = %v", err)
 	}
-	if client.removeCtx != ctx || client.removeBucket != "requests" || client.removeObject != "archive-id" {
+	if client.removeCtx != ctx || client.removeBucket != "archives" || client.removeObject != "archive-id" {
 		t.Fatalf("remove = context:%v bucket:%q object:%q", client.removeCtx == ctx, client.removeBucket, client.removeObject)
 	}
 }
@@ -155,7 +155,7 @@ func TestMinIODeleteArchiveUsesLegacyBucket(t *testing.T) {
 func TestMinIOGetArchiveUsesRawKeyAndReturnsSize(t *testing.T) {
 	object := &minio.Object{}
 	client := &objectClientStub{exists: true, getResult: object, statResult: minio.ObjectInfo{Size: 123}}
-	storage := &MinIO{objects: client, archiveBucket: "requests", siteBucket: "sites"}
+	storage := &MinIO{objects: client, archiveBucket: "archives", siteBucket: "sites"}
 	ctx := t.Context()
 
 	result, size, err := storage.GetArchive(ctx, "archive-id")
@@ -165,17 +165,17 @@ func TestMinIOGetArchiveUsesRawKeyAndReturnsSize(t *testing.T) {
 	if result != object || size != 123 {
 		t.Fatalf("GetArchive() = object:%v size:%d", result == object, size)
 	}
-	if client.statContext != ctx || client.statBucket != "requests" || client.statObject != "archive-id" {
+	if client.statContext != ctx || client.statBucket != "archives" || client.statObject != "archive-id" {
 		t.Fatalf("stat = context:%v bucket:%q object:%q", client.statContext == ctx, client.statBucket, client.statObject)
 	}
-	if client.getContext != ctx || client.getBucket != "requests" || client.getObject != "archive-id" {
+	if client.getContext != ctx || client.getBucket != "archives" || client.getObject != "archive-id" {
 		t.Fatalf("get = context:%v bucket:%q object:%q", client.getContext == ctx, client.getBucket, client.getObject)
 	}
 }
 
 func TestMinIOPutSiteFileUsesLegacyBucketAndContentType(t *testing.T) {
 	client := &objectClientStub{exists: true}
-	storage := &MinIO{objects: client, archiveBucket: "requests", siteBucket: "sites"}
+	storage := &MinIO{objects: client, archiveBucket: "archives", siteBucket: "sites"}
 	ctx := t.Context()
 
 	err := storage.PutSiteFile(ctx, "event/index.html", strings.NewReader("site"), 4, "text/html")
@@ -192,7 +192,7 @@ func TestMinIOPutSiteFileUsesLegacyBucketAndContentType(t *testing.T) {
 
 func TestMinIODeleteSiteFileUsesLegacyBucket(t *testing.T) {
 	client := &objectClientStub{exists: true}
-	storage := &MinIO{objects: client, archiveBucket: "requests", siteBucket: "sites"}
+	storage := &MinIO{objects: client, archiveBucket: "archives", siteBucket: "sites"}
 	ctx := t.Context()
 
 	if err := storage.DeleteSiteFile(ctx, "event/index.html"); err != nil {
@@ -208,7 +208,7 @@ func TestOpenDoesNotLeakCredentialsOnInvalidEndpoint(t *testing.T) {
 		Endpoint:      "://bad",
 		AccessKey:     "access-secret",
 		SecretKey:     "secret-value",
-		ArchiveBucket: "requests",
+		ArchiveBucket: "archives",
 		SiteBucket:    "sites",
 	})
 

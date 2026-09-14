@@ -36,8 +36,8 @@ func TestLoadFromUsesDevelopmentDefaults(t *testing.T) {
 	if cfg.MinIOEndpoint != "localhost:9000" {
 		t.Errorf("MinIOEndpoint = %q, want localhost:9000", cfg.MinIOEndpoint)
 	}
-	if cfg.MinIOArchiveBucket != "requests" {
-		t.Errorf("MinIOArchiveBucket = %q, want requests", cfg.MinIOArchiveBucket)
+	if cfg.MinIOArchiveBucket != "archives" {
+		t.Errorf("MinIOArchiveBucket = %q, want archives", cfg.MinIOArchiveBucket)
 	}
 	if cfg.MinIOSiteBucket != "sites" {
 		t.Errorf("MinIOSiteBucket = %q, want sites", cfg.MinIOSiteBucket)
@@ -122,7 +122,7 @@ func TestLoadFromRequiresProductionSecrets(t *testing.T) {
 				"MINIO_ENDPOINT":         "minio:9000",
 				"MINIO_ACCESS_KEY":       "access-key",
 				"MINIO_SECRET_KEY":       "secret-key",
-				"MINIO_ARCHIVE_BUCKET":   "requests",
+				"MINIO_ARCHIVE_BUCKET":   "archives",
 				"MINIO_SITE_BUCKET":      "sites",
 				"MAX_UPLOAD_BYTES":       "52428800",
 				"MAX_EXTRACTED_BYTES":    "209715200",

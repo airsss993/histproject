@@ -9,10 +9,10 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-func TestArchiveTaskHandlerProcessesLegacyPayload(t *testing.T) {
+func TestArchiveTaskHandlerProcessesPayload(t *testing.T) {
 	processor := &taskProcessorStub{}
 	mux := NewTaskMux(processor)
-	task := asynq.NewTask(platformqueue.ArchiveProcessTask, []byte(`{"RequestId":7,"ArchiveId":"archive-id"}`))
+	task := asynq.NewTask(platformqueue.ArchiveProcessTask, []byte(`{"submissionId":7,"archiveId":"archive-id"}`))
 
 	if err := mux.ProcessTask(t.Context(), task); err != nil {
 		t.Fatalf("ProcessTask() error = %v", err)
@@ -28,8 +28,8 @@ func TestArchiveTaskHandlerRejectsInvalidPayload(t *testing.T) {
 		payload string
 	}{
 		{name: "JSON", payload: `{`},
-		{name: "submission ID", payload: `{"RequestId":0,"ArchiveId":"archive-id"}`},
-		{name: "archive ID", payload: `{"RequestId":7,"ArchiveId":""}`},
+		{name: "submission ID", payload: `{"submissionId":0,"archiveId":"archive-id"}`},
+		{name: "archive ID", payload: `{"submissionId":7,"archiveId":""}`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestArchiveTaskHandlerRejectsInvalidPayload(t *testing.T) {
 func TestArchiveTaskHandlerReturnsProcessorError(t *testing.T) {
 	want := errors.New("processing failed")
 	processor := &taskProcessorStub{err: want}
-	task := asynq.NewTask(platformqueue.ArchiveProcessTask, []byte(`{"RequestId":7,"ArchiveId":"archive-id"}`))
+	task := asynq.NewTask(platformqueue.ArchiveProcessTask, []byte(`{"submissionId":7,"archiveId":"archive-id"}`))
 
 	err := NewTaskMux(processor).ProcessTask(t.Context(), task)
 	if !errors.Is(err, want) {

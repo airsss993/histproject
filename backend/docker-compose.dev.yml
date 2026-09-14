@@ -11,7 +11,7 @@ x-app: &app
     MINIO_ENDPOINT: minio:9000
     MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-histproject}
     MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-change-me}
-    MINIO_ARCHIVE_BUCKET: ${MINIO_ARCHIVE_BUCKET:-requests}
+    MINIO_ARCHIVE_BUCKET: ${MINIO_ARCHIVE_BUCKET:-archives}
     MINIO_SITE_BUCKET: ${MINIO_SITE_BUCKET:-sites}
     CHROME_URL: http://chrome:9222
     SITE_RENDER_BASE_URL: http://minio:9000/sites
@@ -143,7 +143,7 @@ services:
     environment:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-histproject}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-change-me}
-      MINIO_ARCHIVE_BUCKET: ${MINIO_ARCHIVE_BUCKET:-requests}
+      MINIO_ARCHIVE_BUCKET: ${MINIO_ARCHIVE_BUCKET:-archives}
       MINIO_SITE_BUCKET: ${MINIO_SITE_BUCKET:-sites}
     entrypoint: ["/bin/sh", "-c"]
     command:

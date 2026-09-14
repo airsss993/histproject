@@ -14,7 +14,7 @@ docker compose -f docker-compose.dev.yml run --rm bootstrap-admin
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-Внешние адреса: API `http://localhost:7666`, Caddy `http://localhost:8080`, MinIO API `http://localhost:9010`, MinIO Console `http://localhost:9011`. PostgreSQL и Redis доступны только на localhost. Buckets `requests` и `sites` создает `minio-init`.
+Внешние адреса: API `http://localhost:7666`, Caddy `http://localhost:8080`, MinIO API `http://localhost:9010`, MinIO Console `http://localhost:9011`. PostgreSQL и Redis доступны только на localhost. Buckets `archives` и `sites` создает `minio-init`.
 
 Без Docker API и worker запускаются отдельно. Для этого заменить в `.env` container hostnames `db`, `redis`, `minio` и `chrome` на `localhost`.
 
@@ -94,7 +94,7 @@ Login ограничен пятью попытками в минуту для п
 
 `GET /api/v1/events` принимает repeated `eventType`, `dateFrom`, `dateTo`, `page` и `pageSize`. Default page size равен `50`, maximum - `100`. Сортировка стабильная: `eventDate ASC`, затем `id ASC`.
 
-`POST /api/v1/submissions` принимает `multipart/form-data`: `title`, `description`, `eventDate`, `eventType`, `email`, `telegramUsername` и ZIP `archive`. Архив хранится в bucket `requests` под raw UUID key. Queue task идемпотентна по submission ID.
+`POST /api/v1/submissions` принимает `multipart/form-data`: `title`, `description`, `eventDate`, `eventType`, `email`, `telegramUsername` и ZIP `archive`. Архив хранится в bucket `archives` под raw UUID key. Queue task идемпотентна по submission ID.
 
 Контракт API находится в `docs/openapi.yaml`.
 
