@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
@@ -16,14 +15,7 @@ func NewAPI(cfg config.Config, logger *slog.Logger, modules Modules, checkers ..
 	health.NewHandler(2*time.Second, checkers...).Register(mux)
 	modules.Register(mux)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"error": map[string]string{
-				"code":    "not_found",
-				"message": "Маршрут не найден",
-			},
-		})
+		_ = httpserver.WriteError(w, http.StatusNotFound, "not_found", "Маршрут не найден", nil)
 	})
 
 	return httpserver.Chain(
