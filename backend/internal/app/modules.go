@@ -11,6 +11,7 @@ import (
 	"github.com/airsss993/histproject/backend/internal/modules/submissions"
 	"github.com/airsss993/histproject/backend/internal/platform/config"
 	"github.com/airsss993/histproject/backend/internal/platform/database"
+	"github.com/airsss993/histproject/backend/internal/platform/httpserver"
 	platformqueue "github.com/airsss993/histproject/backend/internal/platform/queue"
 	"github.com/airsss993/histproject/backend/internal/platform/redisstore"
 	"github.com/airsss993/histproject/backend/internal/platform/storage"
@@ -21,6 +22,7 @@ type Modules struct {
 	admins      *admins.Handler
 	events      *events.Handler
 	submissions *submissions.Handler
+	rateLimit   httpserver.ClientRateLimiter
 }
 
 func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database.Database, redisClient *redisstore.Store, storageClient *storage.MinIO) Modules {
@@ -59,7 +61,7 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		},
 		cfg.MaxUploadBytes,
 	)
-	return Modules{auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler}
+	return Modules{auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, rateLimit: redisClient.Allow}
 }
 
 func (modules Modules) Register(mux *http.ServeMux) {
