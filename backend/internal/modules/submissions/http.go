@@ -14,6 +14,9 @@ import (
 
 const multipartOverheadBytes int64 = 1 << 20
 
+// uploadTimeout replaces the server-wide read and write timeouts for archive uploads: 50 MB over a 1 Mbit/s uplink takes about 7 minutes.
+const uploadTimeout = 10 * time.Minute
+
 type HTTPService interface {
 	Create(context.Context, CreateInput) (Submission, error)
 	List(context.Context, ListFilter) (SubmissionPage, error)
@@ -54,6 +57,9 @@ func (handler *Handler) Register(mux *http.ServeMux, protectAdmin, protectSuperA
 }
 
 func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
+	controller := http.NewResponseController(w)
+	_ = controller.SetReadDeadline(time.Now().Add(uploadTimeout))
+	_ = controller.SetWriteDeadline(time.Now().Add(uploadTimeout))
 	r.Body = http.MaxBytesReader(w, r.Body, handler.maxUploadBytes+multipartOverheadBytes)
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
 		var maxBytesError *http.MaxBytesError
