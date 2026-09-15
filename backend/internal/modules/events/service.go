@@ -49,7 +49,7 @@ func (service *Service) Publish(ctx context.Context, snapshot Snapshot) (Event, 
 		fields["eventDate"] = "Обязательное поле"
 	}
 	if !eventTypePattern.MatchString(snapshot.EventType) {
-		fields["eventType"] = "Латинские буквы, цифры и underscore"
+		fields["eventType"] = "Латинские буквы, цифры и _"
 	}
 	if math.IsNaN(snapshot.Latitude) || math.IsInf(snapshot.Latitude, 0) || snapshot.Latitude < -90 || snapshot.Latitude > 90 {
 		fields["latitude"] = "От -90 до 90"
@@ -122,7 +122,7 @@ func normalizeFilter(input ListInput) (Filter, map[string]string) {
 	for _, value := range input.EventTypes {
 		eventType := strings.TrimSpace(value)
 		if !eventTypePattern.MatchString(eventType) {
-			fields["eventType"] = "Латинские буквы, цифры и underscore"
+			fields["eventType"] = "Латинские буквы, цифры и _"
 			continue
 		}
 		filter.EventTypes = append(filter.EventTypes, eventType)
@@ -130,7 +130,7 @@ func normalizeFilter(input ListInput) (Filter, map[string]string) {
 	filter.DateFrom = parseDate(input.DateFrom, "dateFrom", fields)
 	filter.DateTo = parseDate(input.DateTo, "dateTo", fields)
 	if filter.DateFrom != nil && filter.DateTo != nil && filter.DateFrom.After(*filter.DateTo) {
-		fields["dateTo"] = "Не раньше dateFrom"
+		fields["dateTo"] = "Не раньше даты начала"
 	}
 	return filter, fields
 }

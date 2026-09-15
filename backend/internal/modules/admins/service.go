@@ -121,7 +121,7 @@ func validateCreate(input CreateInput) map[string]string {
 		fields["login"] = "От 3 до 100 латинских букв, цифр и символов ._-"
 	}
 	if len(input.Password) < 12 || len(input.Password) > 72 {
-		fields["password"] = "От 12 до 72 байт"
+		fields["password"] = "От 12 до 72 байт: латинский символ занимает 1 байт, кириллический 2"
 	}
 	if input.Email != "" {
 		address, err := mail.ParseAddress(input.Email)

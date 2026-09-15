@@ -6,6 +6,7 @@ info:
     API карты исторических событий и панели модерации.
     Все маршруты /api/, кроме GET /api/v1/auth/session, ограничены 300 запросами в минуту
     с одного IP и при превышении отвечают 429 (RateLimited) с заголовком Retry-After.
+    Существующий маршрут с неподдерживаемым методом отвечает 405 method_not_allowed с заголовком Allow.
 servers:
   - url: /
 tags:
@@ -260,6 +261,7 @@ paths:
                 comment:
                   type: string
                   minLength: 1
+                  maxLength: 1000
       responses:
         "200":
           $ref: "#/components/responses/SubmissionResult"

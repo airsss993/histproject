@@ -76,6 +76,23 @@ func TestNewAPIReturnsJSONForUnknownRoute(t *testing.T) {
 	}
 }
 
+func TestNewAPIReturnsJSONForWrongMethod(t *testing.T) {
+	handler := NewAPI(testConfig(), testLogger(), Modules{}, passingChecker{})
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/healthz", nil))
+
+	if response.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want 405", response.Code)
+	}
+	if response.Header().Get("Allow") != "GET" {
+		t.Fatalf("Allow = %q, want GET", response.Header().Get("Allow"))
+	}
+	if response.Header().Get("Content-Type") != "application/json; charset=utf-8" {
+		t.Fatalf("Content-Type = %q", response.Header().Get("Content-Type"))
+	}
+}
+
 func testConfig() config.Config {
 	return config.Config{CORSOrigins: []string{"http://localhost:3000"}}
 }

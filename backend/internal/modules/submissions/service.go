@@ -22,6 +22,9 @@ var (
 	ErrInvalidTransition  = errors.New("invalid submission transition")
 )
 
+// maxRejectCommentRunes keeps the rejection notice inside one Telegram message (4096 characters).
+const maxRejectCommentRunes = 1000
+
 var telegramUsernamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{5,32}$`)
 
 type ValidationError struct {
@@ -172,6 +175,8 @@ func (service *Service) Reject(ctx context.Context, id int64, actor Actor, comme
 	}
 	if comment == "" {
 		fields["comment"] = "Обязательное поле"
+	} else if utf8.RuneCountInString(comment) > maxRejectCommentRunes {
+		fields["comment"] = fmt.Sprintf("Не более %d символов", maxRejectCommentRunes)
 	}
 	if len(fields) > 0 {
 		return Submission{}, &ValidationError{Fields: fields}
@@ -329,8 +334,10 @@ func validateCreateInput(input CreateInput, maxUploadBytes int64) map[string]str
 		fields["eventType"] = "Ожидается political или military"
 	}
 	parsedEmail, err := mail.ParseAddress(email)
-	if err != nil || parsedEmail.Address != email || utf8.RuneCountInString(email) > 70 {
+	if err != nil || parsedEmail.Address != email {
 		fields["email"] = "Некорректный email"
+	} else if utf8.RuneCountInString(email) > 70 {
+		fields["email"] = "Не более 70 символов"
 	}
 	if !telegramUsernamePattern.MatchString(telegramUsername) {
 		fields["telegramUsername"] = "От 5 до 32 латинских букв, цифр или _"
@@ -340,7 +347,7 @@ func validateCreateInput(input CreateInput, maxUploadBytes int64) map[string]str
 	} else if strings.ToLower(filepath.Ext(strings.TrimSpace(input.ArchiveName))) != ".zip" {
 		fields["archive"] = "Ожидается ZIP-архив"
 	} else if input.ArchiveSize <= 0 || maxUploadBytes <= 0 || input.ArchiveSize > maxUploadBytes {
-		fields["archive"] = fmt.Sprintf("Максимальный размер: %d байт", maxUploadBytes)
+		fields["archive"] = fmt.Sprintf("Не более %d МБ", maxUploadBytes>>20)
 	}
 	return fields
 }

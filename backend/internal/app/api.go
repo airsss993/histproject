@@ -3,6 +3,7 @@ package app
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/airsss993/histproject/backend/internal/platform/config"
@@ -20,8 +21,12 @@ func NewAPI(cfg config.Config, logger *slog.Logger, modules Modules, checkers ..
 	mux := http.NewServeMux()
 	health.NewHandler(2*time.Second, checkers...).Register(mux)
 	modules.Register(mux)
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		_ = httpserver.WriteError(w, http.StatusNotFound, "not_found", "Маршрут не найден", nil)
+	routes := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, pattern := mux.Handler(r); pattern != "" {
+			mux.ServeHTTP(w, r)
+			return
+		}
+		writeUnmatchedRoute(w, r, mux)
 	})
 
 	middleware := []httpserver.Middleware{
@@ -34,5 +39,23 @@ func NewAPI(cfg config.Config, logger *slog.Logger, modules Modules, checkers ..
 	if modules.rateLimit != nil {
 		middleware = append(middleware, httpserver.RateLimit(modules.rateLimit, apiRateLimit, apiRateLimitWindow, logger))
 	}
-	return httpserver.Chain(mux, middleware...)
+	return httpserver.Chain(routes, middleware...)
+}
+
+// writeUnmatchedRoute replaces the plain-text 404 and 405 of ServeMux with the API JSON error format.
+func writeUnmatchedRoute(w http.ResponseWriter, r *http.Request, mux *http.ServeMux) {
+	var allowed []string
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodDelete} {
+		probe := r.Clone(r.Context())
+		probe.Method = method
+		if _, pattern := mux.Handler(probe); pattern != "" {
+			allowed = append(allowed, method)
+		}
+	}
+	if len(allowed) == 0 {
+		_ = httpserver.WriteError(w, http.StatusNotFound, "not_found", "Маршрут не найден", nil)
+		return
+	}
+	w.Header().Set("Allow", strings.Join(allowed, ", "))
+	_ = httpserver.WriteError(w, http.StatusMethodNotAllowed, "method_not_allowed", "Метод не поддерживается", nil)
 }

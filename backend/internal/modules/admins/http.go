@@ -83,7 +83,7 @@ func (handler *Handler) list(w http.ResponseWriter, r *http.Request) {
 func (handler *Handler) changeRole(w http.ResponseWriter, r *http.Request) {
 	targetID, ok := parseAdminID(r.PathValue("id"))
 	if !ok {
-		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", map[string]string{"id": "Некорректный ID"})
+		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", map[string]string{"id": "Ожидается положительный ID"})
 		return
 	}
 	var request struct {
@@ -110,7 +110,7 @@ func (handler *Handler) changeRole(w http.ResponseWriter, r *http.Request) {
 func (handler *Handler) delete(w http.ResponseWriter, r *http.Request) {
 	targetID, ok := parseAdminID(r.PathValue("id"))
 	if !ok {
-		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", map[string]string{"id": "Некорректный ID"})
+		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", map[string]string{"id": "Ожидается положительный ID"})
 		return
 	}
 	actor, ok := handler.actorReader(r.Context())
@@ -138,7 +138,7 @@ func (handler *Handler) writeServiceError(w http.ResponseWriter, r *http.Request
 	case errors.Is(err, ErrSelfMutation):
 		_ = httpserver.WriteError(w, http.StatusConflict, "self_mutation", "Нельзя изменить или удалить себя", nil)
 	case errors.Is(err, ErrLastSuperAdmin):
-		_ = httpserver.WriteError(w, http.StatusConflict, "last_super_admin", "Нельзя изменить или удалить последнего super admin", nil)
+		_ = httpserver.WriteError(w, http.StatusConflict, "last_super_admin", "Нельзя изменить или удалить последнего суперадминистратора", nil)
 	default:
 		handler.logger.ErrorContext(r.Context(), "admin request failed",
 			"request_id", httpserver.RequestIDFromContext(r.Context()),
