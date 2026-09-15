@@ -122,7 +122,7 @@ func TestHTTPCreateAppliesRateLimitWithoutContactData(t *testing.T) {
 	mux.ServeHTTP(response, request)
 
 	assertSubmissionError(t, response, http.StatusTooManyRequests, "rate_limited")
-	if limiter.remoteAddress != "203.0.113.9:54000" {
+	if limiter.remoteAddress != "203.0.113.9" {
 		t.Fatalf("limiter input = %q", limiter.remoteAddress)
 	}
 	if service.createCalled {

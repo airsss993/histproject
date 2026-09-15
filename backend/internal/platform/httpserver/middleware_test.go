@@ -202,3 +202,19 @@ func TestAccessLogKeepsFirstResponseStatus(t *testing.T) {
 		t.Errorf("status = %#v, want 200", entry["status"])
 	}
 }
+
+func TestClientIPTrustsForwardedHeaderOnlyFromPrivatePeer(t *testing.T) {
+	proxied := httptest.NewRequest(http.MethodGet, "/", nil)
+	proxied.RemoteAddr = "172.18.0.5:41000"
+	proxied.Header.Set("X-Forwarded-For", "198.51.100.1, 203.0.113.9")
+	direct := httptest.NewRequest(http.MethodGet, "/", nil)
+	direct.RemoteAddr = "203.0.113.7:41000"
+	direct.Header.Set("X-Forwarded-For", "198.51.100.1")
+
+	if got := ClientIP(proxied); got != "203.0.113.9" {
+		t.Fatalf("proxied ClientIP = %q", got)
+	}
+	if got := ClientIP(direct); got != "203.0.113.7" {
+		t.Fatalf("direct ClientIP = %q", got)
+	}
+}

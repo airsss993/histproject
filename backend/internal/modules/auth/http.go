@@ -118,7 +118,7 @@ func (handler *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if handler.loginLimiter != nil {
-		allowed, err := handler.loginLimiter.Allow(r.Context(), request.Login, r.RemoteAddr)
+		allowed, err := handler.loginLimiter.Allow(r.Context(), request.Login, httpserver.ClientIP(r))
 		if err != nil {
 			handler.logger.ErrorContext(r.Context(), "auth rate limit failed",
 				"request_id", httpserver.RequestIDFromContext(r.Context()),

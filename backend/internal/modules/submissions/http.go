@@ -54,19 +54,6 @@ func (handler *Handler) Register(mux *http.ServeMux, protectAdmin, protectSuperA
 }
 
 func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
-	if handler.limiter != nil {
-		allowed, err := handler.limiter.Allow(r.Context(), r.RemoteAddr)
-		if err != nil {
-			handler.writeError(w, r, err)
-			return
-		}
-		if !allowed {
-			w.Header().Set("Retry-After", strconv.FormatInt(int64(submissionRateWindow/time.Second), 10))
-			_ = httpserver.WriteError(w, http.StatusTooManyRequests, "rate_limited", "Слишком много заявок", nil)
-			return
-		}
-	}
-
 	r.Body = http.MaxBytesReader(w, r.Body, handler.maxUploadBytes+multipartOverheadBytes)
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
 		var maxBytesError *http.MaxBytesError
@@ -107,6 +94,19 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if handler.limiter != nil {
+		allowed, err := handler.limiter.Allow(r.Context(), httpserver.ClientIP(r))
+		if err != nil {
+			handler.writeError(w, r, err)
+			return
+		}
+		if !allowed {
+			w.Header().Set("Retry-After", strconv.FormatInt(int64(submissionRateWindow/time.Second), 10))
+			_ = httpserver.WriteError(w, http.StatusTooManyRequests, "rate_limited", "Слишком много заявок", nil)
+			return
+		}
+	}
+
 	submission, err := handler.service.Create(r.Context(), input)
 	if err != nil {
 		handler.writeError(w, r, err)
@@ -118,17 +118,8 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) list(w http.ResponseWriter, r *http.Request) {
-	page, pageOK := optionalSubmissionInt(r.URL.Query().Get("page"))
-	pageSize, pageSizeOK := optionalSubmissionInt(r.URL.Query().Get("pageSize"))
-	if !pageOK || !pageSizeOK {
-		fields := make(map[string]string)
-		if !pageOK {
-			fields["page"] = "Ожидается положительное число"
-		}
-		if !pageSizeOK {
-			fields["pageSize"] = "Ожидается положительное число"
-		}
-		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", fields)
+	page, pageSize, ok := paginationParams(w, r)
+	if !ok {
 		return
 	}
 	result, err := handler.service.List(r.Context(), ListFilter{
@@ -225,10 +216,8 @@ func (handler *Handler) moderate(w http.ResponseWriter, r *http.Request, action 
 }
 
 func (handler *Handler) auditLog(w http.ResponseWriter, r *http.Request) {
-	page, pageOK := optionalSubmissionInt(r.URL.Query().Get("page"))
-	pageSize, pageSizeOK := optionalSubmissionInt(r.URL.Query().Get("pageSize"))
-	if !pageOK || !pageSizeOK {
-		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", nil)
+	page, pageSize, ok := paginationParams(w, r)
+	if !ok {
 		return
 	}
 	result, err := handler.service.AuditLog(r.Context(), AuditFilter{Search: r.URL.Query().Get("q"), Page: page, PageSize: pageSize})
@@ -319,10 +308,28 @@ func submissionID(value string) (int64, bool) {
 	return id, err == nil && id > 0
 }
 
+// paginationParams only parses numbers; normalizePagination owns the range rules.
+func paginationParams(w http.ResponseWriter, r *http.Request) (int, int, bool) {
+	fields := make(map[string]string)
+	page, pageOK := optionalSubmissionInt(r.URL.Query().Get("page"))
+	if !pageOK {
+		fields["page"] = "Ожидается положительное число"
+	}
+	pageSize, pageSizeOK := optionalSubmissionInt(r.URL.Query().Get("pageSize"))
+	if !pageSizeOK {
+		fields["pageSize"] = "Ожидается положительное число"
+	}
+	if len(fields) > 0 {
+		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", fields)
+		return 0, 0, false
+	}
+	return page, pageSize, true
+}
+
 func optionalSubmissionInt(value string) (int, bool) {
 	if value == "" {
 		return 0, true
 	}
 	parsed, err := strconv.Atoi(value)
-	return parsed, err == nil && parsed > 0
+	return parsed, err == nil
 }
