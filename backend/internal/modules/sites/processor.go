@@ -157,6 +157,17 @@ func (processor *Processor) uploadFile(ctx context.Context, directory string, fi
 	return errors.Join(uploadErr, closeErr)
 }
 
+// Fail rejects a submission whose archive task has run out of attempts.
+func (processor *Processor) Fail(ctx context.Context, submissionID int64) error {
+	rejectCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+	_, err := processor.submissions.RejectProcessing(rejectCtx, submissionID, "Не удалось обработать архив")
+	if err != nil && !errors.Is(err, submissions.ErrInvalidTransition) {
+		return fmt.Errorf("reject failed submission: %w", err)
+	}
+	return nil
+}
+
 func (processor *Processor) handleArchiveError(ctx context.Context, submissionID int64, err error) error {
 	if !isArchiveValidationError(err) {
 		return err

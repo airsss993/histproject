@@ -67,6 +67,7 @@ type taskProcessorStub struct {
 	archiveID    string
 	called       bool
 	err          error
+	failedID     int64
 }
 
 func (stub *taskProcessorStub) Process(ctx context.Context, submissionID int64, archiveID string) error {
@@ -75,4 +76,19 @@ func (stub *taskProcessorStub) Process(ctx context.Context, submissionID int64, 
 	stub.archiveID = archiveID
 	stub.called = true
 	return stub.err
+}
+
+func (stub *taskProcessorStub) Fail(_ context.Context, submissionID int64) error {
+	stub.failedID = submissionID
+	return nil
+}
+
+func TestArchiveTaskHandlerRejectsSubmissionForUnsafeSlug(t *testing.T) {
+	processor := &taskProcessorStub{err: ErrUnsafeSlug}
+	task := asynq.NewTask(platformqueue.ArchiveProcessTask, []byte(`{"submissionId":7,"archiveId":"archive-id"}`))
+
+	err := NewTaskMux(processor).ProcessTask(t.Context(), task)
+	if !errors.Is(err, asynq.SkipRetry) || processor.failedID != 7 {
+		t.Fatalf("ProcessTask() error = %v, failed submission = %d", err, processor.failedID)
+	}
 }
