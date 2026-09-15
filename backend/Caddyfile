@@ -1,3 +1,11 @@
+# MinIO answers a missing object with English S3 XML, and with 403 once anonymous listing is off.
+(minio_missing) {
+	@missing status 403 404
+	handle_response @missing {
+		respond "Не найдено" 404
+	}
+}
+
 {$PUBLIC_ADDRESS} {
 	encode zstd gzip
 
@@ -19,13 +27,22 @@
 		}
 		rewrite * /sites{path}
 		header Content-Security-Policy "sandbox allow-scripts allow-forms allow-popups"
-		reverse_proxy minio:9000
+		reverse_proxy minio:9000 {
+			import minio_missing
+		}
 	}
 
 	handle /sites/* {
 		header Content-Security-Policy "sandbox allow-scripts allow-forms allow-popups"
-		reverse_proxy minio:9000
+		reverse_proxy minio:9000 {
+			import minio_missing
+		}
 	}
 
-	respond "Not found" 404
+	handle_errors 502 503 504 {
+		header Content-Type "application/json; charset=utf-8"
+		respond `{"error":{"code":"service_unavailable","message":"Сервис временно недоступен"}}` {err.status_code}
+	}
+
+	respond "Не найдено" 404
 }

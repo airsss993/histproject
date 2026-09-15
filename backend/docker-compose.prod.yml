@@ -126,7 +126,8 @@ services:
         until mc alias set local http://minio:9000 "$$MINIO_ACCESS_KEY" "$$MINIO_SECRET_KEY"; do sleep 1; done;
         mc mb --ignore-existing "local/$$MINIO_ARCHIVE_BUCKET";
         mc mb --ignore-existing "local/$$MINIO_SITE_BUCKET";
-        mc anonymous set download "local/$$MINIO_SITE_BUCKET"
+        printf '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::%s/*"]}]}' "$$MINIO_SITE_BUCKET" > /tmp/site-policy.json;
+        mc anonymous set-json /tmp/site-policy.json "local/$$MINIO_SITE_BUCKET"
     depends_on:
       minio:
         condition: service_healthy
