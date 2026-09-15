@@ -3,10 +3,12 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -57,7 +59,7 @@ func TestLoginReturnsSameErrorForMissingAdminAndWrongPassword(t *testing.T) {
 	}{
 		{
 			name:       "missing admin",
-			reader:     &credentialReaderStub{err: errors.New("not found")},
+			reader:     &credentialReaderStub{err: fmt.Errorf("find admin credentials: %w", pgx.ErrNoRows)},
 			password:   "correct-password",
 			wantLookup: true,
 		},
@@ -91,7 +93,7 @@ func TestLoginReturnsSameErrorForMissingAdminAndWrongPassword(t *testing.T) {
 func TestAuthenticateAndLogoutUseSessionStore(t *testing.T) {
 	identity := Identity{AdminID: 7, Login: "admin", Role: "admin"}
 	sessions := &sessionStoreStub{identity: identity}
-	service := newService(&credentialReaderStub{}, sessions, time.Hour, func() (string, error) {
+	service := newService(&credentialReaderStub{adminID: 7, login: "admin", role: "admin"}, sessions, time.Hour, func() (string, error) {
 		return "unused", nil
 	})
 
@@ -108,6 +110,31 @@ func TestAuthenticateAndLogoutUseSessionStore(t *testing.T) {
 	}
 	if sessions.deletedToken != "session-token" {
 		t.Fatalf("deleted token = %q", sessions.deletedToken)
+	}
+}
+
+func TestLoginReturnsDatabaseErrorAsInternal(t *testing.T) {
+	want := errors.New("database unavailable")
+	service := newService(&credentialReaderStub{err: want}, &sessionStoreStub{}, time.Hour, newSessionToken)
+
+	_, _, err := service.Login(t.Context(), "admin", "password")
+	if !errors.Is(err, want) || errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("Login() error = %v, want database error", err)
+	}
+}
+
+func TestAuthenticateUsesCurrentAdminRole(t *testing.T) {
+	sessions := &sessionStoreStub{identity: Identity{AdminID: 7, Login: "admin", Role: "super_admin"}}
+	service := newService(&credentialReaderStub{adminID: 7, login: "admin", role: "admin"}, sessions, time.Hour, newSessionToken)
+
+	got, err := service.Authenticate(t.Context(), "session-token")
+	if err != nil || got.Role != "admin" {
+		t.Fatalf("Authenticate() = %#v, %v, want downgraded role", got, err)
+	}
+
+	deleted := newService(&credentialReaderStub{err: pgx.ErrNoRows}, sessions, time.Hour, newSessionToken)
+	if _, err := deleted.Authenticate(t.Context(), "session-token"); !errors.Is(err, ErrInvalidSession) || sessions.deletedToken != "session-token" {
+		t.Fatalf("Authenticate() for deleted admin error = %v, deleted token = %q", err, sessions.deletedToken)
 	}
 }
 

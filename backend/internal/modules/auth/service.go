@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -58,9 +59,12 @@ func (service *Service) Login(ctx context.Context, login, password string) (stri
 	}
 
 	adminID, storedLogin, passwordHash, role, err := service.credentials.FindCredentialsByLogin(ctx, login)
-	if err != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
 		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 		return "", Identity{}, ErrInvalidCredentials
+	}
+	if err != nil {
+		return "", Identity{}, fmt.Errorf("find admin credentials: %w", err)
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
 		return "", Identity{}, ErrInvalidCredentials
@@ -92,6 +96,19 @@ func (service *Service) Authenticate(ctx context.Context, token string) (Identit
 	if err != nil {
 		return Identity{}, fmt.Errorf("authenticate session: %w", err)
 	}
+	if !identity.Valid() {
+		return Identity{}, ErrInvalidSession
+	}
+	// The session snapshot can outlive a deleted or re-roled admin, so the role always comes from the database.
+	adminID, _, _, role, err := service.credentials.FindCredentialsByLogin(ctx, identity.Login)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && adminID != identity.AdminID) {
+		_ = service.sessions.Delete(ctx, token)
+		return Identity{}, ErrInvalidSession
+	}
+	if err != nil {
+		return Identity{}, fmt.Errorf("authenticate admin: %w", err)
+	}
+	identity.Role = role
 	if !identity.Valid() {
 		return Identity{}, ErrInvalidSession
 	}
