@@ -308,7 +308,7 @@ func submissionID(value string) (int64, bool) {
 	return id, err == nil && id > 0
 }
 
-// paginationParams only parses numbers; normalizePagination owns the range rules.
+// paginationParams rejects non-positive numbers; normalizePagination owns defaults and the pageSize cap.
 func paginationParams(w http.ResponseWriter, r *http.Request) (int, int, bool) {
 	fields := make(map[string]string)
 	page, pageOK := optionalSubmissionInt(r.URL.Query().Get("page"))
@@ -331,5 +331,5 @@ func optionalSubmissionInt(value string) (int, bool) {
 		return 0, true
 	}
 	parsed, err := strconv.Atoi(value)
-	return parsed, err == nil
+	return parsed, err == nil && parsed > 0
 }

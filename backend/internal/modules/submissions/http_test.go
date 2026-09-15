@@ -158,11 +158,11 @@ func TestHTTPListRejectsMalformedPagination(t *testing.T) {
 	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), 52_428_800)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
-	response := httptest.NewRecorder()
-
-	mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/admin/submissions?page=many", nil))
-
-	assertSubmissionFieldError(t, response, "page")
+	for _, page := range []string{"many", "0"} {
+		response := httptest.NewRecorder()
+		mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/admin/submissions?page="+page, nil))
+		assertSubmissionFieldError(t, response, "page")
+	}
 }
 
 func TestHTTPModerationPassesActorAndInput(t *testing.T) {
