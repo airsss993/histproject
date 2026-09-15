@@ -12,7 +12,7 @@ import (
 func TestReviewTransitionsNewSubmissionWithAudit(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 7, Status: StatusReview}}
 	notifier := &notifierStub{}
-	service := NewService(store, nil, nil, nil, notifier, 0)
+	service := NewService(store, nil, nil, nil, notifier, "https://example.test/sites")
 
 	result, err := service.Review(t.Context(), 7, Actor{Login: "editor", Role: "admin"})
 	if err != nil {
@@ -34,7 +34,7 @@ func TestReviewTransitionsNewSubmissionWithAudit(t *testing.T) {
 
 func TestRejectRequiresComment(t *testing.T) {
 	store := &submissionStoreStub{}
-	service := NewService(store, nil, nil, nil, nil, 0)
+	service := NewService(store, nil, nil, nil, nil, "https://example.test/sites")
 
 	_, err := service.Reject(t.Context(), 1, Actor{Login: "editor", Role: "admin"}, "  ")
 	var validationError *ValidationError
@@ -49,7 +49,7 @@ func TestRejectRequiresComment(t *testing.T) {
 func TestRejectTransitionsReviewSubmission(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 8, Status: StatusRejected}}
 	notifier := &notifierStub{}
-	service := NewService(store, nil, nil, nil, notifier, 0)
+	service := NewService(store, nil, nil, nil, notifier, "https://example.test/sites")
 
 	_, err := service.Reject(t.Context(), 8, Actor{Login: "editor", Role: "admin"}, " duplicate ")
 	if err != nil {
@@ -65,7 +65,7 @@ func TestRejectTransitionsReviewSubmission(t *testing.T) {
 
 func TestMarkReadyTransitionsProcessingSubmission(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 4, Status: StatusNew}}
-	service := NewService(store, nil, nil, nil, nil, 0)
+	service := NewService(store, nil, nil, nil, nil, "https://example.test/sites")
 
 	_, err := service.MarkReady(t.Context(), 4, "https://example.test/preview/event", "https://example.test/screenshot.png")
 	if err != nil {
@@ -79,7 +79,7 @@ func TestMarkReadyTransitionsProcessingSubmission(t *testing.T) {
 func TestRejectProcessingStoresReasonWithoutAdminAudit(t *testing.T) {
 	store := &submissionStoreStub{submission: Submission{ID: 5, Status: StatusRejected}}
 	notifier := &notifierStub{}
-	service := NewService(store, nil, nil, nil, notifier, 0)
+	service := NewService(store, nil, nil, nil, notifier, "https://example.test/sites")
 
 	_, err := service.RejectProcessing(t.Context(), 5, " archive rejected ")
 	if err != nil {
@@ -101,7 +101,7 @@ func TestCreateEnqueuesNotificationAfterArchiveTask(t *testing.T) {
 	archives := &archiveStoreStub{archiveID: "archive-id"}
 	jobs := &jobQueueStub{}
 	notifier := &notifierStub{}
-	service := NewService(store, nil, archives, jobs, notifier, 100)
+	service := NewService(store, nil, archives, jobs, notifier, "https://example.test/sites")
 
 	result, err := service.Create(t.Context(), CreateInput{
 		Title: "Event", Description: "Description", EventDate: mustSubmissionDate(t, "2020-01-02"),
@@ -121,7 +121,7 @@ func TestCreateEnqueuesNotificationAfterArchiveTask(t *testing.T) {
 
 func TestPublishValidatesCoordinatesBeforeTransition(t *testing.T) {
 	store := &submissionStoreStub{}
-	service := NewService(store, &eventPublisherStub{}, nil, nil, nil, 0)
+	service := NewService(store, &eventPublisherStub{}, nil, nil, nil, "https://example.test/sites")
 
 	_, err := service.Publish(t.Context(), 1, Actor{Login: "editor", Role: "admin"}, 91, 60)
 	var validationError *ValidationError
@@ -138,7 +138,7 @@ func TestPublishSendsSnapshotAfterTransition(t *testing.T) {
 	store := &submissionStoreStub{
 		getSubmission: Submission{
 			ID: 9, Title: "Event", Description: "Description", EventDate: date,
-			EventType: "military", SiteURL: "https://example.test/preview/event/index.html",
+			EventType: "military", SiteURL: "https://example.test/preview/event/index.html", Slug: "event",
 			ScreenshotURL: "https://example.test/sites/event/screenshot.png", Status: StatusReview,
 		},
 		submission: Submission{
@@ -149,11 +149,14 @@ func TestPublishSendsSnapshotAfterTransition(t *testing.T) {
 	}
 	publisher := &eventPublisherStub{}
 	notifier := &notifierStub{}
-	service := NewService(store, publisher, nil, nil, notifier, 0)
+	service := NewService(store, publisher, nil, nil, notifier, "https://example.test/sites")
 
 	result, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55.5, 60.5)
 	if err != nil {
 		t.Fatalf("Publish() error = %v", err)
+	}
+	if store.transition.SiteURL != "https://example.test/sites/event/index.html" {
+		t.Fatalf("public site URL = %q", store.transition.SiteURL)
 	}
 	if result.Status != StatusPublished || store.transition.From != StatusReview || store.transition.To != StatusPublished || store.transition.Audit.Action != "published" {
 		t.Fatalf("transition = %#v, result = %#v", store.transition, result)
@@ -174,7 +177,7 @@ func TestPublishDoesNotNotifyBeforeEventPublicationSucceeds(t *testing.T) {
 	}
 	publisher := &eventPublisherStub{err: errors.New("events unavailable")}
 	notifier := &notifierStub{}
-	service := NewService(store, publisher, nil, nil, notifier, 0)
+	service := NewService(store, publisher, nil, nil, notifier, "https://example.test/sites")
 
 	result, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55, 60)
 	if err == nil {
@@ -196,7 +199,7 @@ func TestPublishRetriesEventForAlreadyPublishedSubmission(t *testing.T) {
 	}
 	publisher := &eventPublisherStub{}
 	notifier := &notifierStub{}
-	service := NewService(store, publisher, nil, nil, notifier, 0)
+	service := NewService(store, publisher, nil, nil, notifier, "https://example.test/sites")
 
 	_, err := service.Publish(t.Context(), 10, Actor{Login: "editor", Role: "admin"}, 55, 60)
 	if err != nil {
@@ -215,7 +218,7 @@ func TestCreateDeletesUploadedArchiveWhenDatabaseInsertFails(t *testing.T) {
 	store := &submissionStoreStub{createError: want}
 	archives := &archiveStoreStub{archiveID: "archive-id"}
 	jobs := &jobQueueStub{}
-	service := NewService(store, nil, archives, jobs, nil, 52_428_800)
+	service := NewService(store, nil, archives, jobs, nil, "https://example.test/sites")
 	ctx := t.Context()
 
 	_, err := service.Create(ctx, CreateInput{
@@ -235,6 +238,33 @@ func TestCreateDeletesUploadedArchiveWhenDatabaseInsertFails(t *testing.T) {
 	}
 }
 
+func TestCreateRemovesSubmissionWhenArchiveTaskEnqueueFails(t *testing.T) {
+	want := errors.New("redis unavailable")
+	store := &submissionStoreStub{createdSubmission: Submission{ID: 12, Status: StatusProcessing}}
+	archives := &archiveStoreStub{archiveID: "archive-id"}
+	notifier := &notifierStub{}
+	service := NewService(store, nil, archives, &jobQueueStub{err: want}, notifier, "https://example.test/sites")
+
+	_, err := service.Create(t.Context(), CreateInput{
+		Title: "Event", Description: "Description", EventDate: mustSubmissionDate(t, "2020-01-02"),
+		EventType: "military", Email: "author@example.test", TelegramUsername: "author",
+		ArchiveName: "site.zip", ArchiveSize: 3, Archive: strings.NewReader("zip"),
+	})
+
+	if !errors.Is(err, want) || store.deletedID != 12 || archives.deletedID != "archive-id" || notifier.calls != 0 {
+		t.Fatalf("error = %v, deleted submission = %d, deleted archive = %q, notifier calls = %d", err, store.deletedID, archives.deletedID, notifier.calls)
+	}
+}
+
+func TestReviewSucceedsWhenNotificationEnqueueFails(t *testing.T) {
+	store := &submissionStoreStub{submission: Submission{ID: 7, Status: StatusReview}}
+	service := NewService(store, nil, nil, nil, &notifierStub{err: errors.New("redis unavailable")}, "https://example.test/sites")
+
+	if _, err := service.Review(t.Context(), 7, Actor{Login: "editor", Role: "admin"}); err != nil {
+		t.Fatalf("Review() error = %v, want committed transition to succeed", err)
+	}
+}
+
 type submissionStoreStub struct {
 	createRecord      CreateRecord
 	createdSubmission Submission
@@ -246,6 +276,7 @@ type submissionStoreStub struct {
 	getID             int64
 	getSubmission     Submission
 	getError          error
+	deletedID         int64
 }
 
 func (stub *submissionStoreStub) Create(_ context.Context, record CreateRecord) (Submission, error) {
@@ -262,6 +293,11 @@ func (stub *submissionStoreStub) Transition(_ context.Context, transition Transi
 func (stub *submissionStoreStub) Get(_ context.Context, id int64) (Submission, error) {
 	stub.getID = id
 	return stub.getSubmission, stub.getError
+}
+
+func (stub *submissionStoreStub) Delete(_ context.Context, id int64) error {
+	stub.deletedID = id
+	return nil
 }
 
 func (stub *submissionStoreStub) List(context.Context, ListFilter) (SubmissionPage, error) {
@@ -314,11 +350,12 @@ func (stub *archiveStoreStub) DeleteArchive(ctx context.Context, archiveID strin
 
 type jobQueueStub struct {
 	called bool
+	err    error
 }
 
 func (stub *jobQueueStub) EnqueueArchive(context.Context, int64, string) error {
 	stub.called = true
-	return nil
+	return stub.err
 }
 
 func mustSubmissionDate(t *testing.T, value string) time.Time {

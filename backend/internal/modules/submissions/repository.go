@@ -126,6 +126,13 @@ func (repository *Repository) Transition(ctx context.Context, transition Transit
 	return updated, nil
 }
 
+func (repository *Repository) Delete(ctx context.Context, id int64) error {
+	if _, err := repository.pool.Exec(ctx, `DELETE FROM submissions.submissions WHERE id = $1`, id); err != nil {
+		return fmt.Errorf("delete submission: %w", err)
+	}
+	return nil
+}
+
 func (repository *Repository) AuditLog(ctx context.Context, filter AuditFilter) (AuditPage, error) {
 	where, args := auditWhere(filter.Search)
 	var total int64

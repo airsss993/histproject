@@ -45,6 +45,7 @@ func runWithOpener(ctx context.Context, getenv func(string) string, stdout, stde
 	}
 
 	logger := logging.New(cfg.Environment, stdout)
+	slog.SetDefault(logger)
 	startupCtx, cancelStartup := context.WithTimeout(ctx, 10*time.Second)
 	dependencies, err := open(startupCtx, cfg)
 	cancelStartup()

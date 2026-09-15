@@ -235,7 +235,7 @@ func TestAPISubmissionFlow(t *testing.T) {
 		t.Fatalf("create editor: %v", err)
 	}
 
-	cfg := config.Config{SessionTTL: time.Hour, CORSOrigins: []string{"http://localhost:3000"}, MaxUploadBytes: 52_428_800}
+	cfg := config.Config{SessionTTL: time.Hour, CORSOrigins: []string{"http://localhost:3000"}, MaxUploadBytes: 52_428_800, SitePublicBaseURL: "https://storage.test/sites"}
 	logger := testLogger()
 	handler := NewAPI(cfg, logger, NewModules(cfg, logger, databaseClient, redisClient, storageClient), databaseClient, redisClient, storageClient)
 	editorCookie := appLogin(t, handler, "editor", "editor-password")
@@ -256,7 +256,7 @@ func TestAPISubmissionFlow(t *testing.T) {
 		storageClient,
 		queueClient,
 		nil,
-		cfg.MaxUploadBytes,
+		cfg.SitePublicBaseURL,
 	)
 	if _, err := workflow.MarkReady(ctx, rejectedID, "https://storage.test/preview/rejected/index.html", "https://storage.test/sites/rejected/screenshot.png"); err != nil {
 		t.Fatalf("mark rejected submission ready: %v", err)
@@ -288,7 +288,7 @@ func TestAPISubmissionFlow(t *testing.T) {
 	`, publishedID).Scan(&eventCount, &latitude, &siteURL); err != nil {
 		t.Fatalf("read published event: %v", err)
 	}
-	if eventCount != 1 || latitude != 56.5 || siteURL != "https://storage.test/sites/published/index.html" {
+	if eventCount != 1 || latitude != 56.5 || siteURL != "https://storage.test/sites/published-event-"+publishedArchiveID+"/index.html" {
 		t.Fatalf("published event = count:%d latitude:%f site:%q", eventCount, latitude, siteURL)
 	}
 	assertArchiveExists(t, ctx, storageClient, publishedArchiveID)

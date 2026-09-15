@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"net/mail"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -35,6 +37,7 @@ type Store interface {
 	Get(context.Context, int64) (Submission, error)
 	List(context.Context, ListFilter) (SubmissionPage, error)
 	Transition(context.Context, Transition) (Submission, error)
+	Delete(context.Context, int64) error
 	AuditLog(context.Context, AuditFilter) (AuditPage, error)
 }
 
@@ -56,26 +59,23 @@ type Notifier interface {
 }
 
 type Service struct {
-	store          Store
-	publisher      EventPublisher
-	archives       ArchiveStore
-	jobs           JobQueue
-	notifier       Notifier
-	maxUploadBytes int64
+	store             Store
+	publisher         EventPublisher
+	archives          ArchiveStore
+	jobs              JobQueue
+	notifier          Notifier
+	publicSiteBaseURL string
 }
 
-func NewService(store Store, publisher EventPublisher, archives ArchiveStore, jobs JobQueue, notifier Notifier, maxUploadBytes int64) *Service {
+func NewService(store Store, publisher EventPublisher, archives ArchiveStore, jobs JobQueue, notifier Notifier, publicSiteBaseURL string) *Service {
 	return &Service{
 		store: store, publisher: publisher, archives: archives, jobs: jobs,
-		notifier: notifier, maxUploadBytes: maxUploadBytes,
+		notifier: notifier, publicSiteBaseURL: publicSiteBaseURL,
 	}
 }
 
+// Create expects input already checked by validateCreateInput in the HTTP handler.
 func (service *Service) Create(ctx context.Context, input CreateInput) (Submission, error) {
-	fields := validateCreateInput(input, service.maxUploadBytes)
-	if len(fields) > 0 {
-		return Submission{}, &ValidationError{Fields: fields}
-	}
 	if service.archives == nil {
 		return Submission{}, errors.New("archive store is nil")
 	}
@@ -106,11 +106,16 @@ func (service *Service) Create(ctx context.Context, input CreateInput) (Submissi
 		return Submission{}, err
 	}
 	if err := service.jobs.EnqueueArchive(ctx, submission.ID, archiveID); err != nil {
-		return submission, fmt.Errorf("enqueue submission archive: %w", err)
+		err = fmt.Errorf("enqueue submission archive: %w", err)
+		if deleteErr := service.store.Delete(ctx, submission.ID); deleteErr != nil {
+			return Submission{}, errors.Join(err, fmt.Errorf("compensate submission insert: %w", deleteErr))
+		}
+		if deleteErr := service.archives.DeleteArchive(ctx, archiveID); deleteErr != nil {
+			return Submission{}, errors.Join(err, fmt.Errorf("compensate archive upload: %w", deleteErr))
+		}
+		return Submission{}, err
 	}
-	if err := service.notify(ctx, submission, "created"); err != nil {
-		return submission, err
-	}
+	service.notify(ctx, submission, "created")
 	return submission, nil
 }
 
@@ -155,7 +160,8 @@ func (service *Service) Review(ctx context.Context, id int64, actor Actor) (Subm
 	if err != nil {
 		return Submission{}, err
 	}
-	return submission, service.notify(ctx, submission, "reviewed")
+	service.notify(ctx, submission, "reviewed")
+	return submission, nil
 }
 
 func (service *Service) Reject(ctx context.Context, id int64, actor Actor, comment string) (Submission, error) {
@@ -177,7 +183,8 @@ func (service *Service) Reject(ctx context.Context, id int64, actor Actor, comme
 	if err != nil {
 		return Submission{}, err
 	}
-	return submission, service.notify(ctx, submission, "rejected")
+	service.notify(ctx, submission, "rejected")
+	return submission, nil
 }
 
 func (service *Service) MarkReady(ctx context.Context, id int64, siteURL, screenshotURL string) (Submission, error) {
@@ -201,7 +208,8 @@ func (service *Service) MarkReady(ctx context.Context, id int64, siteURL, screen
 	if err != nil {
 		return Submission{}, err
 	}
-	return submission, service.notify(ctx, submission, "ready")
+	service.notify(ctx, submission, "ready")
+	return submission, nil
 }
 
 func (service *Service) RejectProcessing(ctx context.Context, id int64, reason string) (Submission, error) {
@@ -222,7 +230,8 @@ func (service *Service) RejectProcessing(ctx context.Context, id int64, reason s
 	if err != nil {
 		return Submission{}, err
 	}
-	return submission, service.notify(ctx, submission, "rejected")
+	service.notify(ctx, submission, "rejected")
+	return submission, nil
 }
 
 func (service *Service) Publish(ctx context.Context, id int64, actor Actor, latitude, longitude float64) (Submission, error) {
@@ -238,7 +247,7 @@ func (service *Service) Publish(ctx context.Context, id int64, actor Actor, lati
 		if submission.Status != StatusReview {
 			return Submission{}, ErrInvalidTransition
 		}
-		publicSiteURL := strings.Replace(submission.SiteURL, "/preview/", "/sites/", 1)
+		publicSiteURL := strings.TrimRight(service.publicSiteBaseURL, "/") + "/" + url.PathEscape(submission.Slug) + "/index.html"
 		submission, err = service.store.Transition(ctx, Transition{
 			ID: id, From: StatusReview, To: StatusPublished, SiteURL: publicSiteURL,
 			Audit: Audit{AdminLogin: actor.Login, AdminRole: actor.Role, Action: "published"},
@@ -263,20 +272,20 @@ func (service *Service) Publish(ctx context.Context, id int64, actor Actor, lati
 	}); err != nil {
 		return submission, fmt.Errorf("publish submission event: %w", err)
 	}
-	if err := service.notify(ctx, submission, "published"); err != nil {
-		return submission, err
-	}
+	service.notify(ctx, submission, "published")
 	return submission, nil
 }
 
-func (service *Service) notify(ctx context.Context, submission Submission, action string) error {
+// notify runs after the status change is committed, so a failed enqueue is logged instead of failing the request.
+// ponytail: a lost notification stays lost, move to an outbox table in the Transition transaction if that matters.
+func (service *Service) notify(ctx context.Context, submission Submission, action string) {
 	if service.notifier == nil {
-		return nil
+		return
 	}
 	if err := service.notifier.SubmissionChanged(ctx, submission, action); err != nil {
-		return fmt.Errorf("enqueue %s submission notification: %w", action, err)
+		slog.ErrorContext(ctx, "enqueue submission notification failed",
+			"submission_id", submission.ID, "action", action, "error", err)
 	}
-	return nil
 }
 
 func validatePublication(id int64, latitude, longitude float64) map[string]string {

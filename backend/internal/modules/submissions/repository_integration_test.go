@@ -131,6 +131,13 @@ func TestRepositorySubmissionLifecycle(t *testing.T) {
 	if auditCount != 1 {
 		t.Fatalf("concurrent audit count = %d, want 1", auditCount)
 	}
+
+	if err := repository.Delete(ctx, 3); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+	if _, err := repository.Get(ctx, 3); !errors.Is(err, ErrSubmissionNotFound) {
+		t.Fatalf("Get() after Delete() error = %v", err)
+	}
 }
 
 func prepareSubmissionsDatabase(t *testing.T, ctx context.Context, databaseURL string) *sql.DB {

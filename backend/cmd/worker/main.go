@@ -36,6 +36,7 @@ func run(ctx context.Context, getenv func(string) string, stdout, stderr io.Writ
 	}
 
 	logger := logging.New(cfg.Environment, stdout)
+	slog.SetDefault(logger)
 	startupCtx, cancelStartup := context.WithTimeout(ctx, 10*time.Second)
 	dependencies, err := app.OpenDependencies(startupCtx, cfg)
 	cancelStartup()
@@ -70,7 +71,7 @@ func runWorker(ctx context.Context, cfg config.Config, logger *slog.Logger, depe
 	adminService := admins.NewService(admins.NewRepository(dependencies.Database.Pool()))
 	submissionService := submissions.NewService(
 		submissions.NewRepository(dependencies.Database.Pool()), nil, nil, nil,
-		app.NewSubmissionNotifier(queueClient), cfg.MaxUploadBytes,
+		app.NewSubmissionNotifier(queueClient), cfg.SitePublicBaseURL,
 	)
 	notificationService, err := app.NewNotificationService(cfg, dependencies.Database, submissionService, adminService)
 	if err != nil {

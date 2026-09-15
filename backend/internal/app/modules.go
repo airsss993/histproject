@@ -47,7 +47,7 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		storageClient,
 		queueClient,
 		NewSubmissionNotifier(queueClient),
-		cfg.MaxUploadBytes,
+		cfg.SitePublicBaseURL,
 	)
 	submissionHandler := submissions.NewHandler(
 		submissionService,
@@ -66,22 +66,16 @@ func (modules Modules) Register(mux *http.ServeMux) {
 	if modules.auth == nil || modules.admins == nil || modules.events == nil || modules.submissions == nil {
 		return
 	}
-	modules.auth.Register(mux)
-	modules.admins.Register(mux, func(next http.Handler) http.Handler {
-		return modules.auth.Authenticate(auth.RequireRole(string(admins.RoleSuperAdmin))(next))
-	})
-	modules.events.Register(mux, func(next http.Handler) http.Handler {
+	adminOnly := func(next http.Handler) http.Handler {
 		return modules.auth.Authenticate(auth.RequireRole(string(admins.RoleAdmin), string(admins.RoleSuperAdmin))(next))
-	})
-	modules.submissions.Register(
-		mux,
-		func(next http.Handler) http.Handler {
-			return modules.auth.Authenticate(auth.RequireRole(string(admins.RoleAdmin), string(admins.RoleSuperAdmin))(next))
-		},
-		func(next http.Handler) http.Handler {
-			return modules.auth.Authenticate(auth.RequireRole(string(admins.RoleSuperAdmin))(next))
-		},
-	)
+	}
+	superAdminOnly := func(next http.Handler) http.Handler {
+		return modules.auth.Authenticate(auth.RequireRole(string(admins.RoleSuperAdmin))(next))
+	}
+	modules.auth.Register(mux)
+	modules.admins.Register(mux, superAdminOnly)
+	modules.events.Register(mux, adminOnly)
+	modules.submissions.Register(mux, adminOnly, superAdminOnly)
 }
 
 type submissionEventPublisher struct {
