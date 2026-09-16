@@ -14,9 +14,9 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'https://api.russia-heroes.ru',
+        // Caddy из backend/docker-compose.dev.yml
+        target: process.env.VITE_API_PROXY ?? 'http://127.0.0.1:8080',
         changeOrigin: true,
-        secure: true,
       }
     }
   }
