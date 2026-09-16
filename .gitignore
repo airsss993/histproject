@@ -1,6 +1,8 @@
 # Рабочие записки между сессиями, вне git
 CLAUDE.md
 HANDOFF.md
+DESIGN-PLAN.md
+.claude/
 
 .DS_Store
 .idea/
