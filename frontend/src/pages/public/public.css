@@ -49,11 +49,23 @@
 .pm-dim .pm-map { opacity: 0.55; }
 .pm-hit { cursor: pointer; pointer-events: auto; outline: none; }
 .pm-cluster-n { fill: #F0B62A; font: 400 13px var(--ui); pointer-events: none; }
+.pm-cluster { transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pm-hit:hover > .pm-cluster, .pm-hit:focus-visible > .pm-cluster { transform: scale(1.12); }
+.pm-hit:focus-visible .pm-pin path { filter: drop-shadow(0 0 3px var(--gold)); }
+/* Метка: масштаб --s задаёт React, переход и "подскок" при выборе - CSS. Остриё в (0, 0) = transform-origin. */
+.pm-pin { transform: scale(var(--s)); transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pm-pin.sel { animation: pm-bounce 420ms cubic-bezier(0.3, 1.4, 0.5, 1); }
+@keyframes pm-bounce { from { transform: scale(calc(var(--s) * 0.6)); } }
+.pm-ring { transform-box: fill-box; transform-origin: center; animation: pm-ring-in 420ms ease-out, pm-ring-pulse 2.4s 420ms ease-in-out infinite; }
+@keyframes pm-ring-in { from { transform: scale(0.5); opacity: 0; } }
+@keyframes pm-ring-pulse { 50% { transform: scale(1.12); opacity: 0.4; } }
 .pm-popup {
   position: absolute; transform: translate(-50%, -100%); pointer-events: none;
+  animation: pm-popup-in 140ms ease-out;
   min-width: 214px; max-width: 320px; padding: 10px 14px; border-radius: 8px;
   background: rgba(17, 24, 56, 0.94); border: 1px solid var(--line);
 }
+@keyframes pm-popup-in { from { opacity: 0; transform: translate(-50%, calc(-100% + 6px)); } }
 .pm-popup-title { font: 500 14px/20px var(--ui); overflow-wrap: anywhere; }
 .pm-popup-meta { font: 600 13px/20px var(--display); letter-spacing: 0.06em; color: #F3C766; }
 
@@ -142,14 +154,28 @@
 .pm-centuries button:hover, .pm-centuries button.on { color: var(--gold); }
 .pm-centuries button.on i { background: var(--gold-line); }
 
-/* Карточка события */
+/* Карточка события: выноска у метки, стрелка на высоте --ay. Выше шапки и поиска, хотя живёт внутри карты. */
+.pm-callout { position: absolute; z-index: 5; }
+.pm-callout.fixed { top: auto; left: 100px; bottom: 32px; }
+.pm-callout-arrow {
+  position: absolute; top: var(--ay); width: 14px; height: 14px; margin-top: -7px;
+  background: var(--card); border: 1px solid var(--line); transform: rotate(45deg);
+  animation: pm-fade 220ms ease-out;
+}
+.pm-callout.right .pm-callout-arrow { left: -7px; border-top-color: transparent; border-right-color: transparent; }
+.pm-callout.left .pm-callout-arrow { right: -7px; border-bottom-color: transparent; border-left-color: transparent; }
+.pm-callout.fixed .pm-callout-arrow { display: none; }
 .pm-card {
-  position: absolute; left: 100px; bottom: 32px; width: 480px; max-height: calc(100% - 180px);
+  position: relative; width: 480px; max-height: calc(100dvh - 180px);
   display: flex; flex-direction: column; border-radius: 16px; overflow: hidden;
   background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
-  animation: pm-in 180ms ease-out;
+  animation: pm-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-@keyframes pm-in { from { opacity: 0; transform: translateY(8px); } }
+/* Карточка вырастает из метки. */
+.pm-callout.right .pm-card { transform-origin: 0 var(--ay); }
+.pm-callout.left .pm-card { transform-origin: 100% var(--ay); }
+.pm-callout.fixed .pm-card { transform-origin: 0 100%; }
+@keyframes pm-in { from { opacity: 0; transform: scale(0.9); } }
 .pm-card-preview { position: relative; height: 240px; flex: none; border-bottom: 1px dashed var(--line); background: repeating-linear-gradient(135deg, #0B1234 0 6px, #080E28 6px 12px); }
 .pm-card-preview.none { height: 88px; background: #080E28; }
 .pm-card-preview img, .pm-sheet-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -315,4 +341,8 @@
   .pm-centuries button i { width: 8px; }
   .pm-404 h1 { font-size: 34px; line-height: 40px; }
   .pm-404-code { font-size: 64px; line-height: 72px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pm-pin, .pm-pin.sel, .pm-ring, .pm-cluster, .pm-popup, .pm-card, .pm-callout-arrow { animation: none; transition: none; }
 }

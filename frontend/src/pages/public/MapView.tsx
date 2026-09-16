@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -33,7 +33,7 @@ export function PinShape({ type, size, state = 'normal' }: { type: EventType; si
   const fill = selected ? color : state === 'hover' ? alpha(color, 0.14) : INK
   return (
     <g fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round">
-      {selected && <circle cx={32} cy={28} r={33} stroke={alpha(color, 0.34)} strokeWidth={1.6} />}
+      {selected && <circle className="pm-ring" cx={32} cy={28} r={33} stroke={alpha(color, 0.34)} strokeWidth={1.6} />}
       <path d={DROP} fill={fill} />
       {size < 32
         ? <circle cx={32} cy={25} r={4} fill={selected ? INK : color} stroke="none" />
@@ -120,21 +120,60 @@ interface Props {
   /** Режим выбора места: клик по карте и перетаскивание метки вызывают onPick. */
   pick?: { lat: number; lng: number } | null
   onPick?: (lat: number, lng: number) => void
+  /** Карточка выбранного события: встаёт рядом с его меткой и ездит вместе с картой. */
+  callout?: React.ReactNode
 }
 
-/** Метка на карте: остриё в (0, 0), наведение увеличивает в 1.14 раза. */
+const selectedPx = (size: number) => Math.max(size, 32) * 1.1
+
+/** Метка на карте: остриё в (0, 0), наведение увеличивает в 1.14 раза. Масштаб в CSS, чтобы он анимировался. */
 function Marker({ type, state, size }: { type: EventType; state: PinState; size: number }) {
-  const px = state === 'selected' ? Math.max(size, 32) * 1.1 : state === 'hover' ? size * 1.14 : size
+  const px = state === 'selected' ? selectedPx(size) : state === 'hover' ? size * 1.14 : size
   return (
-    <g transform={`scale(${px / 64}) translate(-32 -58)`}>
-      <circle cx={32} cy={30} r={32 * Math.max(1, 28 / px)} fill="transparent" />
-      <PinShape type={type} size={px} state={state} />
+    <g className={state === 'selected' ? 'pm-pin sel' : 'pm-pin'} style={{ '--s': px / 64 } as React.CSSProperties}>
+      <g transform="translate(-32 -58)">
+        <circle cx={32} cy={30} r={32 * Math.max(1, 28 / px)} fill="transparent" />
+        <PinShape type={type} size={px} state={state} />
+      </g>
     </g>
   )
 }
 
+// Поля под шапку, рейл и шкалу веков: в них карточка не заходит, пока метка на экране.
+const EDGE = { top: 104, right: 110, bottom: 32, left: 100 }
+// При lo > hi побеждает lo.
+const clamp = (v: number, lo: number, hi: number) => Math.max(Math.min(v, hi), lo)
+
+/** Выноска у метки (x, y - остриё): справа, если влезает, иначе слева; по вертикали прижата к экрану. */
+function Callout({ x, y, pin, width, height, children }:
+  { x: number; y: number; pin: number; width: number; height: number; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [[w, h], setSize] = useState([0, 0])
+  useLayoutEffect(() => {
+    const el = ref.current!
+    const measure = () => setSize([el.offsetWidth, el.offsetHeight])
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const gap = pin * 0.35 + 14
+  const cy = y - pin / 2
+  const right = x + gap + w <= width - EDGE.right || x - gap - w < EDGE.left
+  // Уехавшую за край метку карточка догоняет, а не остаётся прижатой к краю.
+  const top = clamp(clamp(cy - h / 2, EDGE.top, height - EDGE.bottom - h), cy - h + 28, cy - 28)
+  const arrow = clamp(cy - top, 20, h - 20)
+  return (
+    <div ref={ref} className={`pm-callout ${right ? 'right' : 'left'}`}
+      style={{ left: right ? x + gap : x - gap - w, top, '--ay': `${arrow}px` } as React.CSSProperties}>
+      <i className="pm-callout-arrow" />
+      {children}
+    </div>
+  )
+}
+
 export const MapView = forwardRef<MapHandle, Props>(function MapView(
-  { events, isActive, selectedId, onSelect, pad, labels, sea = INK, interactive = true, pick, onPick }, ref) {
+  { events, isActive, selectedId, onSelect, pad, labels, sea = INK, interactive = true, pick, onPick, callout }, ref) {
   const wrap = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map>()
   const pickRef = useRef<maplibregl.Marker>()
@@ -199,13 +238,27 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     flyTo: (lat, lng) => mapRef.current?.flyTo({ center: [lng, lat], zoom: 10, duration: 800 }),
   }), [])
 
+  // Выбранное за краем экрана (из поиска, ленты, ссылки) подвозим в центр, иначе карточку не видно.
+  const hasCallout = !!callout
+  useEffect(() => {
+    const map = mapRef.current!
+    const e = events.find(ev => ev.id === selectedId)
+    if (!e || !hasCallout) return
+    const lng = e.longitude + 360 * Math.round((map.getCenter().lng - e.longitude) / 360)
+    const { x, y } = map.project([lng, e.latitude])
+    const { width, height } = map.getContainer().getBoundingClientRect()
+    if (x < EDGE.left || y < EDGE.top || x > width - EDGE.right || y > height - EDGE.bottom)
+      map.easeTo({ center: [lng, e.latitude], duration: 600 })
+  }, [selectedId, events, hasCallout])
+
   // Точки в экранных координатах; кластеризуем только активные, по сетке CELL.
   // ponytail: сеточная кластеризация O(n), на десятках тысяч меток понадобится supercluster.
   const view = useMemo(() => {
     type P = { e: HistEvent; x: number; y: number; lng: number }
     const map = mapRef.current
     const inactive: P[] = [], singles: P[] = [], clusters: { x: number; y: number; members: P[] }[] = []
-    if (!map) return { singles, clusters, inactive, k: 1 }
+    let sel: { x: number; y: number } | undefined
+    if (!map) return { singles, clusters, inactive, sel, k: 1, width: 0, height: 0 }
     const { width, height } = map.getContainer().getBoundingClientRect()
     const center = map.getCenter().lng
     const cells = new Map<string, P[]>()
@@ -213,6 +266,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
       // Берём копию мира, ближайшую к центру, иначе метки у 180-го меридиана уезжают за экран.
       const lng = e.longitude + 360 * Math.round((center - e.longitude) / 360)
       const { x, y } = map.project([lng, e.latitude])
+      if (e.id === selectedId) sel = { x, y }
       if (x < -CELL || y < -CELL || x > width + CELL || y > height + CELL) continue
       const pt = { e, x, y, lng }
       if (!isActive(e)) { inactive.push(pt); continue }
@@ -223,7 +277,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
       if (m.length === 1) singles.push(m[0])
       else clusters.push({ x: m.reduce((s, p) => s + p.x, 0) / m.length, y: m.reduce((s, p) => s + p.y, 0) / m.length, members: m })
     }
-    return { singles, clusters, inactive, k: 2 ** (map.getZoom() - baseZoom.current) }
+    return { singles, clusters, inactive, sel, k: 2 ** (map.getZoom() - baseZoom.current), width, height }
     // tick - перерисовка при движении карты.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, isActive, tick, selectedId])
@@ -254,7 +308,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
         {view.clusters.map(c => (
           <g key={c.members[0].e.id} transform={`translate(${c.x},${c.y})`} {...button(() => zoomToCluster(c.members))}
             aria-label={`${c.members.length} событий, приблизить`}>
-            <circle r={16.5} fill={alpha(GOLD, 0.12)} stroke={GOLD} strokeWidth={1.6} />
+            <circle className="pm-cluster" r={16.5} fill={alpha(GOLD, 0.12)} stroke={GOLD} strokeWidth={1.6} />
             <text textAnchor="middle" dy={4.5} className="pm-cluster-n">{c.members.length}</text>
           </g>
         ))}
@@ -272,6 +326,10 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
           <div className="pm-popup-meta">{yearOf(hovered.e)} · {TYPE_LABEL[hovered.e.eventType]}</div>
         </div>
       )}
+      {callout && (view.sel
+        ? <Callout x={view.sel.x} y={view.sel.y} pin={selectedPx(pin)} width={view.width} height={view.height}>{callout}</Callout>
+        // Событие не в списке (ссылка на снятое, ещё грузится): метки нет, карточка в углу.
+        : <div className="pm-callout fixed">{callout}</div>)}
     </div>
   )
 })

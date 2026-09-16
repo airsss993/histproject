@@ -168,7 +168,8 @@ export const PublicMap: React.FC = () => {
     <>
     <div className={`pm-root${overlay && overlay.kind !== 'empty' ? ' pm-dim' : ''}`}>
       <MapView ref={mapRef} events={events} isActive={isActive} selectedId={showCard ? selectedId : null}
-        onSelect={select} pad={mobile ? 16 : 48} labels={!mobile} />
+        onSelect={select} pad={mobile ? 16 : 48} labels={!mobile}
+        callout={showCard && !mobile && <Card key={selectedId} event={selected ?? undefined} onClose={closeCard} />} />
 
       {screen ? (layer === 'filters'
         ? filtersPanel
@@ -245,9 +246,7 @@ export const PublicMap: React.FC = () => {
           </div>
         )}
 
-        {showCard && (mobile
-          ? <Sheet event={selected ?? undefined} onClose={closeCard} />
-          : <Card event={selected ?? undefined} onClose={closeCard} />)}
+        {showCard && mobile && <Sheet event={selected ?? undefined} onClose={closeCard} />}
 
         {overlay && (
           <div className={`pm-state pm-glass pm-state-${overlay.kind}`} role={overlay.kind === 'error' ? 'alert' : 'status'}>
