@@ -62,8 +62,8 @@
 }
 .pm-header > * { pointer-events: auto; }
 .pm-header-plain { background: none; }
-.pm-logo { display: flex; align-items: center; gap: 20px; }
-.pm-logo-mark { flex: none; }
+.pm-logo { display: flex; align-items: center; gap: 14px; }
+.pm-logo-mark { flex: none; height: 48px; }
 .pm-logo-text { font: 500 14px var(--ui); letter-spacing: 0.16em; text-transform: uppercase; }
 
 /* Кнопки */
@@ -300,7 +300,7 @@
 @media (max-width: 640px) {
   .pm-header { height: auto; padding: 14px 16px 0; }
   .pm-logo { gap: 12px; }
-  .pm-logo-mark { width: 34px; height: 34px; }
+  .pm-logo-mark { height: 40px; }
   .pm-logo-text { font-size: 12px; letter-spacing: 0.14em; }
   .pm-search-wrap { left: 16px; right: 16px; width: auto; transform: none; top: 60px; }
   .pm-search { padding: 12px 16px; }

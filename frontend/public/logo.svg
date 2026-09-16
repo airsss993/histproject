@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="314 112 626 992" fill="none" stroke="#D4AE5C" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <mask id="globe" maskUnits="userSpaceOnUse" x="314" y="112" width="626" height="992">
+      <rect x="314" y="112" width="626" height="992" fill="#fff" stroke="none"/>
+      <path d="M587 340V985L627 1090L667 985V340Z" fill="#000" stroke="#000" stroke-width="40"/>
+      <path d="M627 775L553 670A90 90 0 1 1 701 670Z" fill="#000" stroke="#000" stroke-width="40"/>
+    </mask>
+    <mask id="blade" maskUnits="userSpaceOnUse" x="314" y="112" width="626" height="992">
+      <rect x="314" y="112" width="626" height="992" fill="#fff" stroke="none"/>
+      <path d="M627 775L553 670A90 90 0 1 1 701 670Z" fill="#000" stroke="#000" stroke-width="40"/>
+    </mask>
+  </defs>
+  <g mask="url(#globe)">
+    <circle cx="627" cy="648" r="244"/>
+    <ellipse cx="627" cy="648" rx="159" ry="244"/>
+    <path d="M330 648H924"/>
+    <path d="M440 500Q627 600 814 500"/>
+    <path d="M440 796Q627 690 814 796"/>
+  </g>
+  <g mask="url(#blade)">
+    <path d="M587 368V985L627 1090L667 985V368"/>
+    <path d="M627 380V1040"/>
+  </g>
+  <path d="M627 775L553 670A90 90 0 1 1 701 670Z"/>
+  <circle cx="627" cy="637" r="36"/>
+  <path d="M478 352C470 368 492 378 506 368C545 342 590 336 627 368C664 336 709 342 748 368C762 378 784 368 776 352C700 300 554 300 478 352Z"/>
+  <path d="M603 322L611 206H643L651 322"/>
+  <path d="M607 246H647M605 284H649"/>
+  <circle cx="627" cy="165" r="33"/>
+</svg>

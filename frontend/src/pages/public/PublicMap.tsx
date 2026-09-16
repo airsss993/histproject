@@ -45,9 +45,7 @@ function useIsMobile() {
 
 export const Logo: React.FC<{ short?: boolean; onClick?: () => void }> = ({ short, onClick }) => (
   <button type="button" className="pm-logo" onClick={onClick}>
-    <svg className="pm-logo-mark" width={40} height={40} viewBox="0 0 64 64" fill="none" stroke="#D4AE5C" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx={32} cy={34} r={17} /><path d="M15 34H49" /><path d="M32 3V8" /><path d="M24 12H40" /><path d="M32 12V61" />
-    </svg>
+    <img className="pm-logo-mark" src="/logo.svg" alt="" />
     <span className="pm-logo-text">{short ? 'Страна Героев' : 'Россия - страна Героев'}</span>
   </button>
 )
