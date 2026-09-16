@@ -99,7 +99,8 @@ func (service *Service) Create(ctx context.Context, input CreateInput) (Submissi
 		Title: title, Description: strings.TrimSpace(input.Description), EventDate: input.EventDate,
 		EventType: strings.TrimSpace(input.EventType), Email: strings.TrimSpace(input.Email),
 		TelegramUsername: strings.TrimPrefix(strings.TrimSpace(input.TelegramUsername), "@"),
-		ArchiveID:        archiveID, Slug: slugValue + "-" + archiveID,
+		Latitude:         input.Latitude, Longitude: input.Longitude,
+		ArchiveID: archiveID, Slug: slugValue + "-" + archiveID,
 	})
 	if err != nil {
 		deleteErr := service.archives.DeleteArchive(ctx, archiveID)
@@ -298,13 +299,17 @@ func validatePublication(id int64, latitude, longitude float64) map[string]strin
 	if id <= 0 {
 		fields["id"] = "Ожидается положительный ID"
 	}
+	validateCoordinates(fields, latitude, longitude)
+	return fields
+}
+
+func validateCoordinates(fields map[string]string, latitude, longitude float64) {
 	if math.IsNaN(latitude) || math.IsInf(latitude, 0) || latitude < -90 || latitude > 90 {
 		fields["latitude"] = "От -90 до 90"
 	}
 	if math.IsNaN(longitude) || math.IsInf(longitude, 0) || longitude < -180 || longitude > 180 {
 		fields["longitude"] = "От -180 до 180"
 	}
-	return fields
 }
 
 func invalidSubmissionID() *ValidationError {
@@ -342,6 +347,7 @@ func validateCreateInput(input CreateInput, maxUploadBytes int64) map[string]str
 	if !telegramUsernamePattern.MatchString(telegramUsername) {
 		fields["telegramUsername"] = "От 5 до 32 латинских букв, цифр или _"
 	}
+	validateCoordinates(fields, input.Latitude, input.Longitude)
 	if input.Archive == nil {
 		fields["archive"] = "Обязательное поле"
 	} else if strings.ToLower(filepath.Ext(strings.TrimSpace(input.ArchiveName))) != ".zip" {

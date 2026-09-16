@@ -79,10 +79,12 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 		defer func() { _ = archive.Close() }()
 	}
 	eventDate, dateErr := time.Parse(time.DateOnly, strings.TrimSpace(r.FormValue("eventDate")))
+	latitude, latitudeErr := strconv.ParseFloat(strings.TrimSpace(r.FormValue("latitude")), 64)
+	longitude, longitudeErr := strconv.ParseFloat(strings.TrimSpace(r.FormValue("longitude")), 64)
 	input := CreateInput{
 		Title: r.FormValue("title"), Description: r.FormValue("description"), EventDate: eventDate,
 		EventType: r.FormValue("eventType"), Email: r.FormValue("email"),
-		TelegramUsername: r.FormValue("telegramUsername"), Archive: archive,
+		TelegramUsername: r.FormValue("telegramUsername"), Latitude: latitude, Longitude: longitude, Archive: archive,
 	}
 	if archiveHeader != nil {
 		input.ArchiveName = archiveHeader.Filename
@@ -91,6 +93,12 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 	fields := validateCreateInput(input, handler.maxUploadBytes)
 	if dateErr != nil {
 		fields["eventDate"] = "Ожидается дата YYYY-MM-DD"
+	}
+	if latitudeErr != nil {
+		fields["latitude"] = "Поставьте точку на карте"
+	}
+	if longitudeErr != nil {
+		fields["longitude"] = "Поставьте точку на карте"
 	}
 	if archiveErr != nil {
 		fields["archive"] = "Обязательное поле"
@@ -263,20 +271,22 @@ func (handler *Handler) writeError(w http.ResponseWriter, r *http.Request, err e
 }
 
 type submissionResponse struct {
-	ID               int64  `json:"id"`
-	Title            string `json:"title"`
-	Description      string `json:"description"`
-	EventDate        string `json:"eventDate"`
-	EventType        string `json:"eventType"`
-	Email            string `json:"email"`
-	TelegramUsername string `json:"telegramUsername"`
-	SiteURL          string `json:"siteUrl,omitempty"`
-	ScreenshotURL    string `json:"screenshotUrl,omitempty"`
-	Slug             string `json:"slug,omitempty"`
-	Status           Status `json:"status"`
-	AdminComment     string `json:"adminComment,omitempty"`
-	CreatedAt        string `json:"createdAt"`
-	UpdatedAt        string `json:"updatedAt"`
+	ID               int64    `json:"id"`
+	Title            string   `json:"title"`
+	Description      string   `json:"description"`
+	EventDate        string   `json:"eventDate"`
+	EventType        string   `json:"eventType"`
+	Email            string   `json:"email"`
+	TelegramUsername string   `json:"telegramUsername"`
+	Latitude         *float64 `json:"latitude,omitempty"`
+	Longitude        *float64 `json:"longitude,omitempty"`
+	SiteURL          string   `json:"siteUrl,omitempty"`
+	ScreenshotURL    string   `json:"screenshotUrl,omitempty"`
+	Slug             string   `json:"slug,omitempty"`
+	Status           Status   `json:"status"`
+	AdminComment     string   `json:"adminComment,omitempty"`
+	CreatedAt        string   `json:"createdAt"`
+	UpdatedAt        string   `json:"updatedAt"`
 }
 
 func newSubmissionResponse(submission Submission) submissionResponse {
@@ -284,6 +294,7 @@ func newSubmissionResponse(submission Submission) submissionResponse {
 		ID: submission.ID, Title: submission.Title, Description: submission.Description,
 		EventDate: submission.EventDate.Format(time.DateOnly), EventType: submission.EventType,
 		Email: submission.Email, TelegramUsername: submission.TelegramUsername,
+		Latitude: submission.Latitude, Longitude: submission.Longitude,
 		SiteURL: submission.SiteURL, ScreenshotURL: submission.ScreenshotURL, Slug: submission.Slug,
 		Status: submission.Status, AdminComment: submission.AdminComment,
 		CreatedAt: submission.CreatedAt.Format(time.RFC3339), UpdatedAt: submission.UpdatedAt.Format(time.RFC3339),

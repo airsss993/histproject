@@ -22,14 +22,11 @@ func (repository *Repository) Create(ctx context.Context, input CreateRecord) (S
 	submission, err := scanSubmission(repository.pool.QueryRow(ctx, `
 		INSERT INTO submissions.submissions (
 			title, description, event_date, event_type_code,
-			email, telegram_username, archive_id, slug, status
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'processing')
-		RETURNING id, title, description, event_date, event_type_code, email,
-			telegram_username, archive_id, COALESCE(site_url, ''),
-			COALESCE(screenshot_url, ''), COALESCE(slug, ''), status::TEXT,
-			COALESCE(admin_comment, ''), created_at, updated_at
+			email, telegram_username, latitude, longitude, archive_id, slug, status
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'processing')
+		RETURNING `+submissionColumns+`
 	`, input.Title, input.Description, input.EventDate, input.EventType,
-		input.Email, input.TelegramUsername, input.ArchiveID, input.Slug))
+		input.Email, input.TelegramUsername, input.Latitude, input.Longitude, input.ArchiveID, input.Slug))
 	if err != nil {
 		return Submission{}, fmt.Errorf("create submission: %w", err)
 	}
@@ -102,10 +99,7 @@ func (repository *Repository) Transition(ctx context.Context, transition Transit
 			screenshot_url = CASE WHEN $4 = '' THEN screenshot_url ELSE $4 END,
 			updated_at = NOW()
 		WHERE id = $5
-		RETURNING id, title, description, event_date, event_type_code, email,
-			telegram_username, archive_id, COALESCE(site_url, ''),
-			COALESCE(screenshot_url, ''), COALESCE(slug, ''), status::TEXT,
-			COALESCE(admin_comment, ''), created_at, updated_at
+		RETURNING `+submissionColumns+`
 	`, transition.To, transition.Comment, transition.SiteURL, transition.ScreenshotURL, transition.ID))
 	if err != nil {
 		return Submission{}, fmt.Errorf("update submission status: %w", err)
@@ -170,12 +164,13 @@ func (repository *Repository) AuditLog(ctx context.Context, filter AuditFilter) 
 	return AuditPage{Items: items, Page: filter.Page, PageSize: filter.PageSize, Total: total}, nil
 }
 
-const submissionSelect = `
-	SELECT id, title, description, event_date, event_type_code, email,
-		telegram_username, archive_id, COALESCE(site_url, ''),
-		COALESCE(screenshot_url, ''), COALESCE(slug, ''), status::TEXT,
-		COALESCE(admin_comment, ''), created_at, updated_at
-	FROM submissions.submissions`
+// submissionColumns follows the Scan order in scanSubmission.
+const submissionColumns = `id, title, description, event_date, event_type_code, email,
+	telegram_username, latitude, longitude, archive_id, COALESCE(site_url, ''),
+	COALESCE(screenshot_url, ''), COALESCE(slug, ''), status::TEXT,
+	COALESCE(admin_comment, ''), created_at, updated_at`
+
+const submissionSelect = `SELECT ` + submissionColumns + ` FROM submissions.submissions`
 
 type rowScanner interface {
 	Scan(...any) error
@@ -187,7 +182,7 @@ func scanSubmission(row rowScanner) (Submission, error) {
 	err := row.Scan(
 		&submission.ID, &submission.Title, &submission.Description, &submission.EventDate,
 		&submission.EventType, &submission.Email, &submission.TelegramUsername,
-		&submission.ArchiveID, &submission.SiteURL, &submission.ScreenshotURL,
+		&submission.Latitude, &submission.Longitude, &submission.ArchiveID, &submission.SiteURL, &submission.ScreenshotURL,
 		&submission.Slug, &status, &submission.AdminComment,
 		&submission.CreatedAt, &submission.UpdatedAt,
 	)

@@ -703,7 +703,7 @@ components:
       enum: [processing, new, review, rejected, published]
     CreateSubmissionInput:
       type: object
-      required: [title, description, eventDate, eventType, email, telegramUsername, archive]
+      required: [title, description, eventDate, eventType, email, telegramUsername, latitude, longitude, archive]
       properties:
         title:
           type: string
@@ -724,6 +724,17 @@ components:
         telegramUsername:
           type: string
           pattern: "^[A-Za-z0-9_]{5,32}$"
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: Точка события, которую ставит автор
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
         archive:
           type: string
           format: binary
@@ -748,6 +759,13 @@ components:
           format: email
         telegramUsername:
           type: string
+        latitude:
+          type: number
+          format: double
+          description: Нет у заявок, созданных до появления точки от автора
+        longitude:
+          type: number
+          format: double
         siteUrl:
           type: string
         screenshotUrl:

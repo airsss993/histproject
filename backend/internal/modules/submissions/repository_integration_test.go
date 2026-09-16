@@ -34,12 +34,13 @@ func TestRepositorySubmissionLifecycle(t *testing.T) {
 	created, err := repository.Create(ctx, CreateRecord{
 		Title: "Alpha", Description: "First", EventDate: mustRepositoryDate(t, "2020-01-02"),
 		EventType: "military", Email: "alpha@example.test", TelegramUsername: "alpha",
-		ArchiveID: "archive-alpha", Slug: "alpha",
+		Latitude: 55.75, Longitude: 37.62, ArchiveID: "archive-alpha", Slug: "alpha",
 	})
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
-	if created.ID != 1 || created.Status != StatusProcessing || created.EventType != "military" || created.ArchiveID != "archive-alpha" {
+	if created.ID != 1 || created.Status != StatusProcessing || created.EventType != "military" || created.ArchiveID != "archive-alpha" ||
+		created.Latitude == nil || *created.Latitude != 55.75 || created.Longitude == nil || *created.Longitude != 37.62 {
 		t.Fatalf("created submission = %#v", created)
 	}
 

@@ -29,7 +29,8 @@ func TestHTTPCreateParsesMultipartAndReturnsProcessingSubmission(t *testing.T) {
 	if response.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
 	}
-	if service.createInput.Title != "Event" || service.createInput.EventType != "military" || service.createInput.ArchiveName != "site.zip" {
+	if service.createInput.Title != "Event" || service.createInput.EventType != "military" || service.createInput.ArchiveName != "site.zip" ||
+		service.createInput.Latitude != 55.75 || service.createInput.Longitude != 37.62 {
 		t.Fatalf("create input = %#v", service.createInput)
 	}
 	if string(service.archive) != "zip" {
@@ -80,6 +81,8 @@ func TestHTTPCreateValidatesPublicFields(t *testing.T) {
 		{name: "event type", mutate: func(values map[string]string) { values["eventType"] = "unknown" }, filename: "site.zip", field: "eventType"},
 		{name: "email", mutate: func(values map[string]string) { values["email"] = "not-an-email" }, filename: "site.zip", field: "email"},
 		{name: "telegram", mutate: func(values map[string]string) { values["telegramUsername"] = "bad name" }, filename: "site.zip", field: "telegramUsername"},
+		{name: "required latitude", mutate: func(values map[string]string) { delete(values, "latitude") }, filename: "site.zip", field: "latitude"},
+		{name: "longitude range", mutate: func(values map[string]string) { values["longitude"] = "181" }, filename: "site.zip", field: "longitude"},
 		{name: "zip", mutate: func(map[string]string) {}, filename: "site.rar", field: "archive"},
 		{name: "required archive", mutate: func(map[string]string) {}, filename: "", field: "archive"},
 	}
@@ -346,6 +349,7 @@ func validSubmissionForm() map[string]string {
 	return map[string]string{
 		"title": "Event", "description": "Description", "eventDate": "2020-01-02",
 		"eventType": "military", "email": "author@example.test", "telegramUsername": "author_name",
+		"latitude": "55.75", "longitude": "37.62",
 	}
 }
 

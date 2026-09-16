@@ -23,14 +23,17 @@ type Submission struct {
 	EventType        string
 	Email            string
 	TelegramUsername string
-	ArchiveID        string
-	SiteURL          string
-	ScreenshotURL    string
-	Slug             string
-	Status           Status
-	AdminComment     string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	// Latitude и Longitude пусты у заявок, созданных до того, как точку стал ставить автор.
+	Latitude      *float64
+	Longitude     *float64
+	ArchiveID     string
+	SiteURL       string
+	ScreenshotURL string
+	Slug          string
+	Status        Status
+	AdminComment  string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type Actor struct {
@@ -74,6 +77,8 @@ type CreateRecord struct {
 	EventType        string
 	Email            string
 	TelegramUsername string
+	Latitude         float64
+	Longitude        float64
 	ArchiveID        string
 	Slug             string
 }
@@ -85,6 +90,8 @@ type CreateInput struct {
 	EventType        string
 	Email            string
 	TelegramUsername string
+	Latitude         float64
+	Longitude        float64
 	ArchiveName      string
 	ArchiveSize      int64
 	Archive          io.Reader
