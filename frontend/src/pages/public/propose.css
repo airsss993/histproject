@@ -1,43 +1,44 @@
-/* Окно заявки. Значения из "Предложить событие.dc.html" (Claude Design). */
-.pm-root.pp-overlay { z-index: 50; background: rgba(1, 0, 17, 0.72); overflow-y: auto; --ok: #7FA98A; --warn: #D2A85A; --field: #0B1234; }
-.pp-modal {
-  position: relative; width: 640px; max-width: calc(100% - 32px); max-height: calc(100% - 76px); margin: 38px auto;
-  display: flex; flex-direction: column; overflow: hidden;
-  border-radius: 16px; background: #0E162A; border: 1px solid var(--line); box-shadow: var(--shadow);
-  animation: pm-in 180ms ease-out;
-}
-.pp-head { padding: 24px 28px; border-bottom: 1px dashed var(--line); display: flex; align-items: center; gap: 16px; }
-.pp-title { font: 500 28px/36px var(--display); color: var(--gold); margin-bottom: 6px !important; }
-.pm-root .pp-x {
-  width: 32px; height: 32px; flex: none; border-radius: 999px; border: 1px solid var(--line);
-  color: var(--muted); font: 400 16px/30px var(--ui); text-align: center;
-}
-.pm-root .pp-x:hover:not(:disabled) { border-color: var(--gold-line); color: var(--gold-soft); }
-.pm-root .pp-x:disabled { opacity: 0.4; cursor: default; }
+/* Страница заявки. Раскладка по форме создания метки trudovaya-slava, цвета и шрифты из публичных экранов. */
+.pm-root.pp-page { z-index: 50; display: flex; flex-direction: column; background: #070E2A; animation: pm-in 180ms ease-out; --ok: #7FA98A; --warn: #D2A85A; --field: #0B1234; }
 
-.pp-steps { padding: 18px 28px; border-bottom: 1px dashed var(--line); display: flex; align-items: center; gap: 12px; font: 500 15px var(--ui); }
-.pp-step-n {
-  width: 24px; height: 24px; flex: none; border-radius: 999px; border: 1px solid var(--line);
-  color: var(--dim); font: 600 13px/22px var(--ui); text-align: center;
-}
-.pp-step-n.on { background: var(--gold); border-color: var(--gold); color: var(--ink); }
-.pp-step-n.done { border-color: var(--gold-line); color: var(--gold-soft); }
-.pp-step-line { flex: 1; border-top: 1px dashed var(--line); }
-.pp-step-line.done { border-color: var(--gold-line); }
-.pp-gold { color: var(--gold-soft); }
-.pp-dim { color: var(--dim); }
+.pp-top { flex: none; height: 64px; padding: 0 32px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--line-soft); }
+.pm-root .pp-back { padding: 6px 10px; border-radius: 8px; color: var(--muted); font: 400 14px var(--ui); white-space: nowrap; }
+.pm-root .pp-back:hover:not(:disabled) { color: var(--gold-soft); background: var(--gold-wash); }
+.pm-root .pp-back:disabled { opacity: 0.4; cursor: default; }
+.pp-divider { width: 1px; height: 20px; background: var(--line); flex: none; }
+.pp-top-title { flex: 1; min-width: 0; font: 500 26px/1 var(--display); color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.pp-banner {
-  margin: 20px 28px 0; padding: 14px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: center;
-  border: 1px solid var(--danger); background: rgba(196, 111, 98, 0.12); color: var(--danger); font: 400 14px/22px var(--ui);
-}
-.pp-banner-icon { width: 22px; height: 22px; flex: none; border-radius: 999px; border: 1px solid var(--danger); font: 500 13px/20px var(--ui); text-align: center; }
+.pp-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 40px 32px 80px; }
+.pp-inner { max-width: 680px; margin: 0 auto; }
+.pp-inner.result { padding-top: 40px; }
+.pp-intro { margin-bottom: 36px !important; font: 400 16px/26px var(--ui); color: var(--text-2); }
+.pp-fields { margin: 0; padding: 0; border: 0; min-width: 0; }
 
-.pp-body { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
-.pp-body.result { padding: 40px; }
-.pp-foot { flex: none; padding: 20px 28px; border-top: 1px dashed var(--line); display: flex; align-items: center; gap: 12px; }
-.pp-foot.col { flex-direction: column; align-items: stretch; gap: 10px; }
-.pm-root .pp-foot .pm-btn:disabled { background: #706136; border-color: #706136; color: rgba(255, 255, 255, 0.22); cursor: default; }
+.pp-section { margin-bottom: 36px; padding-bottom: 36px; border-bottom: 1px dashed var(--line); scroll-margin-top: 16px; }
+.pp-section:last-child { border-bottom: 0; margin-bottom: 0; }
+.pp-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.pp-section-num {
+  width: 28px; height: 28px; flex: none; border-radius: 8px; border: 1px solid var(--gold-line); background: var(--gold-wash);
+  color: var(--gold); font: 500 11px/26px var(--mono); text-align: center; letter-spacing: 0.04em;
+}
+.pp-section-num.bad { border-color: var(--danger); color: var(--danger); background: rgba(196, 111, 98, 0.12); }
+.pp-section-title { flex: 1; min-width: 0; font: 500 26px/32px var(--display); }
+.pp-badge { font: 400 11px/16px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+.pp-stack { display: flex; flex-direction: column; gap: 20px; }
+.pp-lead { margin-bottom: 12px !important; font: 400 14px/22px var(--ui); color: var(--dim); }
+
+/* Место */
+.pp-search { position: relative; margin-bottom: 12px; }
+.pp-places {
+  position: absolute; z-index: 3; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none;
+  border-radius: 8px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.pm-root .pp-places button { width: 100%; padding: 8px 10px; border-radius: 6px; text-align: left; font: 400 14px/20px var(--ui); color: var(--text-2); }
+.pm-root .pp-places button:hover { background: var(--gold-wash); color: #fff; }
+.pp-map { position: relative; height: 340px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+.pp-map.bad { border-color: var(--danger); }
+.pp-coord { margin-top: 10px; font: 400 13px/20px var(--mono); color: var(--dim); }
+.pp-coord b { font-weight: 500; color: var(--gold-soft); }
 
 /* Поля */
 .pp-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -72,12 +73,10 @@
 }
 .pm-root .pp-type:hover { border-color: var(--gold-line); }
 .pm-root .pp-type.bad { border-color: var(--danger); }
-.pm-root .pp-type.on { border-color: var(--gold); background: var(--gold-wash); color: var(--gold); }
-.pp-radio { width: 18px; height: 18px; flex: none; border-radius: 999px; border: 1px solid currentColor; opacity: 0.6; display: flex; align-items: center; justify-content: center; }
-.pp-type:not(.on) .pp-radio { border-color: var(--line); opacity: 1; }
-.pp-type.bad .pp-radio { border-color: var(--danger); }
-.pp-type.on .pp-radio { opacity: 1; }
-.pp-type.on .pp-radio::after { content: ''; width: 8px; height: 8px; border-radius: 999px; background: var(--gold); }
+.pp-dot { width: 8px; height: 8px; flex: none; border-radius: 999px; background: var(--c); }
+.pp-type.military { --c: #F0B62A; }
+.pp-type.political { --c: #8FB4E8; }
+.pm-root .pp-type.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 12%, transparent); }
 
 /* Архив */
 .pm-root .pp-drop {
@@ -98,18 +97,11 @@
 .pp-file-note.ok { color: var(--ok); }
 .pp-file-note.bad { color: var(--danger); }
 
-/* Шаг 2 */
-.pp-summary { border-top: 1px dashed var(--line); padding-top: 16px; display: flex; gap: 14px; align-items: center; }
-.pp-thumb { width: 44px; height: 44px; flex: none; border-radius: 8px; border: 1px solid var(--line); }
-.pp-summary-title { font: 500 15px/22px var(--ui); }
-.pp-progress { display: flex; flex-direction: column; gap: 16px; border-top: 1px dashed var(--line); padding-top: 16px; }
+.pp-progress { display: flex; flex-direction: column; gap: 8px; }
 .pp-progress-row { display: flex; justify-content: space-between; gap: 12px; font: 400 14px/20px var(--ui); }
 .pp-muted { color: var(--muted); white-space: nowrap; }
 .pp-bar { height: 4px; border-radius: 999px; background: #131C40; overflow: hidden; }
 .pp-bar div { height: 100%; background: var(--gold); border-radius: 999px; transition: width 120ms linear; }
-.pm-root .pp-foot .pm-btn.pp-busy:disabled { background: #A6976F; border-color: #A6976F; color: var(--ink); }
-.pp-spin { width: 13px; height: 13px; border-radius: 999px; border: 1.8px solid rgba(1, 0, 17, 0.35); border-top-color: var(--ink); animation: pp-spin 800ms linear infinite; }
-@keyframes pp-spin { to { transform: rotate(360deg); } }
 
 /* Результат */
 .pp-result { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
@@ -131,31 +123,40 @@
 .pp-fail-text { margin-top: 10px !important; font: 400 15px/24px var(--ui); color: var(--text-2); }
 .pp-body.result:has(.pp-fail) { padding: 24px 28px; }
 
-/* Мобильный: на весь экран */
-.pp-overlay.mobile { background: #070E2A; }
-.pp-overlay.mobile .pp-modal {
-  width: 100%; max-width: none; height: 100%; max-height: none; margin: 0;
-  border: 0; border-radius: 0; box-shadow: none; background: #070E2A; animation: none;
+
+/* Нижняя панель */
+.pp-actbar { flex: none; min-height: 72px; padding: 14px 32px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--line-soft); background: rgba(7, 14, 42, 0.96); }
+.pm-root .pp-x {
+  width: 32px; height: 32px; flex: none; border-radius: 999px; border: 1px solid var(--line);
+  color: var(--muted); font: 400 16px/30px var(--ui); text-align: center;
 }
-.pp-overlay.mobile .pp-head { padding: 16px; gap: 12px; }
-.pp-head-title { font: 600 18px/26px var(--ui); }
-.pp-logo { height: 36px; }
-.pp-overlay.mobile .pp-steps { padding: 14px 16px; gap: 10px; font-size: 14px; }
-.pp-overlay.mobile .pp-step-n { width: 22px; height: 22px; font-size: 12px; line-height: 20px; }
-.pp-overlay.mobile .pp-step-n.on { line-height: 22px; }
-.pp-overlay.mobile .pp-banner { margin: 16px 16px 0; }
-.pp-overlay.mobile .pp-body { padding: 16px; gap: 16px; }
-.pp-overlay.mobile .pp-body.result { padding: 32px 20px; }
-.pp-overlay.mobile .pp-foot { padding: 16px; }
-.pp-overlay.mobile .pp-field { gap: 6px; }
-.pp-overlay.mobile .pp-pair { flex-direction: column; gap: 16px; }
+.pm-root .pp-x:hover:not(:disabled) { border-color: var(--gold-line); color: var(--gold-soft); }
+.pm-root .pp-x.small { width: 24px; height: 24px; line-height: 22px; font-size: 14px; border: 0; }
+
+/* Тост незаполненных полей */
+.pp-toast {
+  position: absolute; z-index: 4; right: 32px; bottom: 88px; width: 300px; padding: 14px 16px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--danger); box-shadow: var(--shadow); animation: pm-in 180ms ease-out;
+}
+.pp-toast-head { display: flex; align-items: center; gap: 10px; font: 500 15px/22px var(--ui); color: var(--danger); }
+.pp-banner-icon { width: 22px; height: 22px; flex: none; border-radius: 999px; border: 1px solid var(--danger); font: 500 13px/20px var(--ui); text-align: center; }
+.pp-toast-list { margin: 8px 0 0; padding: 0 0 0 32px; font: 400 14px/22px var(--ui); color: var(--text-2); }
+
+/* Мобильный */
+.pp-page.mobile .pp-top { height: 56px; padding: 0 12px; gap: 10px; }
+.pp-page.mobile .pp-top-title { font-size: 22px; }
+.pp-page.mobile .pp-scroll { padding: 20px 16px 40px; }
+.pp-page.mobile .pp-intro { margin-bottom: 28px !important; font-size: 15px; line-height: 24px; }
+.pp-page.mobile .pp-section { margin-bottom: 28px; padding-bottom: 28px; }
+.pp-page.mobile .pp-section-title { font-size: 22px; line-height: 28px; }
+.pp-page.mobile .pp-pair { flex-direction: column; gap: 20px; }
+.pp-page.mobile .pp-map { height: 300px; }
 .pm-root.mobile .pp-input { padding: 14px; font-size: 16px; }
-.pm-root.mobile .pp-area { height: 108px; }
+.pm-root.mobile .pp-area { height: 120px; }
 .pm-root.mobile .pp-type { justify-content: center; height: 48px; font-size: 15px; }
-.pp-overlay.mobile .pp-file { padding: 14px; gap: 12px; }
-.pp-overlay.mobile .pp-fail { flex-direction: column; }
-.pp-overlay.mobile .pp-result-title { font-size: 32px; line-height: 40px; }
-.pp-overlay.mobile .pp-result-text { font-size: 16px; line-height: 26px; }
-.pp-overlay.mobile .pp-code { font-size: 16px; padding: 6px 14px; }
-.pm-root .pp-foot .pp-wide, .pp-overlay.mobile .pp-foot .pm-btn, .pp-overlay.mobile .pp-foot .pm-btn-ghost { height: 52px; font-size: 16px; }
-.pp-center { text-align: center; }
+.pp-page.mobile .pp-actbar { padding: 12px 16px; }
+.pp-page.mobile .pp-actbar .pm-btn { flex: 1; height: 48px; }
+.pp-page.mobile .pp-toast { left: 16px; right: 16px; width: auto; bottom: 84px; }
+.pp-page.mobile .pp-fail { flex-direction: column; }
+.pp-page.mobile .pp-result-title { font-size: 32px; line-height: 40px; }
+.pp-page.mobile .pp-result-text { font-size: 16px; line-height: 26px; }
