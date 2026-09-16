@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchAllEvents, fetchEvent, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
@@ -43,6 +43,22 @@ function useIsMobile() {
   return m
 }
 
+/** true ещё ms после закрытия: слой не размонтируется, пока играет анимация ухода (pm-out в public.css). */
+function useLeaving(open: boolean, ms = 160) {
+  const [leaving, setLeaving] = useState(false)
+  const was = useRef(open)
+  // layout-эффект: иначе между закрытием и уходом успевает отрисоваться кадр без панели.
+  useLayoutEffect(() => {
+    const closed = was.current && !open
+    was.current = open
+    setLeaving(closed)
+    if (!closed) return
+    const t = setTimeout(() => setLeaving(false), ms)
+    return () => clearTimeout(t)
+  }, [open, ms])
+  return leaving
+}
+
 export const Logo: React.FC<{ short?: boolean; onClick?: () => void }> = ({ short, onClick }) => (
   <button type="button" className="pm-logo" onClick={onClick}>
     <img className="pm-logo-mark" src="/logo.svg" alt="" />
@@ -79,6 +95,7 @@ export const PublicMap: React.FC = () => {
   })
 
   const [layer, setLayer] = useState<Layer>('none')
+  const filtersLeaving = useLeaving(layer === 'filters')
   const [draft, setDraft] = useState<Filter>(applied)
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
@@ -153,7 +170,7 @@ export const PublicMap: React.FC = () => {
           : null
 
   const filtersPanel = (
-    <Filters mobile={mobile} draft={draft} setDraft={setDraft} events={events}
+    <Filters mobile={mobile} leaving={layer !== 'filters'} draft={draft} setDraft={setDraft} events={events}
       onClose={() => setLayer('none')}
       onApply={() => { applyFilter(draft); setLayer('none') }}
       onReset={resetFilters} />
@@ -218,7 +235,7 @@ export const PublicMap: React.FC = () => {
           )}
         </div>
 
-        {!mobile && layer === 'filters' && filtersPanel}
+        {!mobile && (layer === 'filters' || filtersLeaving) && filtersPanel}
         {!mobile && layer === 'feed' && <Feed events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />}
 
         {!mobile && load.status === 'ready' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
@@ -370,9 +387,9 @@ const TypeGlyph: React.FC<{ t: EventType }> = ({ t }) => (
 )
 
 const Filters: React.FC<{
-  mobile: boolean; draft: Filter; setDraft: (f: Filter) => void; events: HistEvent[]
+  mobile: boolean; leaving: boolean; draft: Filter; setDraft: (f: Filter) => void; events: HistEvent[]
   onClose: () => void; onApply: () => void; onReset: () => void
-}> = ({ mobile, draft, setDraft, events, onClose, onApply, onReset }) => {
+}> = ({ mobile, leaving, draft, setDraft, events, onClose, onApply, onReset }) => {
   const n = events.filter(e => matches(draft, e)).length
   // Пока год вводится руками, он может выйти за диапазон: полоса не должна вылезать из трека.
   const pct = (y: number) => Math.min(100, Math.max(0, ((y - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100))
@@ -381,7 +398,7 @@ const Filters: React.FC<{
   const setTo = (v: number) => setDraft({ ...draft, to: Math.max(clampYear(v, MAX_YEAR), draft.from) })
   const badge = filterBadge(draft)
   return (
-    <section className={mobile ? 'pm-screen' : 'pm-panel pm-glass'} aria-label="Фильтры">
+    <section className={mobile ? 'pm-screen' : `pm-panel pm-glass${leaving ? ' out' : ''}`} aria-label="Фильтры">
       <div className="pm-panel-head">
         <h2>Фильтры</h2>
         {badge > 0 && <span className="pm-badge">{badge}</span>}

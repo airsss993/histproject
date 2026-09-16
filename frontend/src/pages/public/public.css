@@ -208,8 +208,9 @@
 .pm-panel {
   position: absolute; left: 24px; top: 104px; width: 380px; max-height: calc(100% - 132px);
   display: flex; flex-direction: column; border-radius: 16px; box-shadow: var(--shadow);
-  animation: pm-in 180ms ease-out;
+  animation: pm-in 180ms ease-out; transform-origin: 0 0;
 }
+.pm-panel.out { animation: pm-out 160ms ease-in forwards; pointer-events: none; }
 .pm-screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: #070E2A; overflow-y: auto; }
 .pm-panel-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px; border-bottom: 1px dashed var(--line); }
 .pm-screen .pm-panel-head { padding: 18px 16px; gap: 12px; }
@@ -354,5 +355,6 @@
 @media (prefers-reduced-motion: reduce) {
   .pm-pin, .pm-pin.sel, .pm-pin path, .pm-pin circle, .pm-appear, .pm-ring, .pm-cluster, .pm-popup, .pm-card, .pm-callout-arrow,
   .pm-callout.out .pm-card, .pm-callout.out .pm-callout-arrow { animation: none; transition: none; }
-  .pm-callout.out { visibility: hidden; }
+  .pm-panel, .pm-panel.out { animation: none; }
+  .pm-callout.out, .pm-panel.out { visibility: hidden; }
 }
