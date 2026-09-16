@@ -1,28 +1,15 @@
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { geoAlbers, geoGraticule, geoPath } from 'd3-geo'
-import { select } from 'd3-selection'
-import { zoom as d3zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom'
-import { feature } from 'topojson-client'
-import type { GeometryCollection, Topology } from 'topojson-specification'
-import type { Feature } from 'geojson'
-import world from 'world-atlas/countries-110m.json'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import maplibregl from 'maplibre-gl'
+import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import type { FeatureCollection, Position } from 'geojson'
 import { TYPE_LABEL, yearOf, type EventType, type HistEvent } from './api.ts'
-
-const topo = world as unknown as Topology<{ countries: GeometryCollection<{ name: string }> }>
-const COUNTRIES = feature(topo, topo.objects.countries).features as Feature[]
-const RUSSIA = COUNTRIES.find(f => f.properties?.name === 'Russia')!
-
-const NEIGHBOURS = new Set(['Kazakhstan', 'China', 'Mongolia', 'Ukraine', 'Belarus', 'Finland', 'Norway', 'Sweden', 'Poland',
-  'Estonia', 'Latvia', 'Lithuania', 'Turkey', 'Japan', 'Iran', 'Georgia', 'Azerbaijan', 'Armenia', 'Uzbekistan',
-  'Kyrgyzstan', 'Turkmenistan', 'Tajikistan', 'North Korea', 'South Korea', 'Afghanistan', 'Moldova', 'Romania',
-  'Germany', 'Iraq', 'Slovakia', 'Hungary', 'Czechia', 'India', 'Pakistan', 'Nepal', 'Denmark', 'Bulgaria'])
-const LABELS: Record<string, string> = { Kazakhstan: 'КАЗАХСТАН', China: 'КИТАЙ', Mongolia: 'МОНГОЛИЯ', Finland: 'ФИНЛЯНДИЯ', Ukraine: 'УКРАИНА', Japan: 'ЯПОНИЯ' }
-const OTHERS = COUNTRIES.filter(f => NEIGHBOURS.has(f.properties?.name))
 
 export const TYPE_COLOR: Record<EventType, string> = { political: '#8FB4E8', military: '#F0B62A' }
 const CELL = 56
 const INK = '#060D2E'
 const MUTED = '#4E5C86'
+const GOLD = '#F0B62A'
 
 // Метка из "Логотип и метки": капля 64x64 с остриём в (32, 58), глиф типа в окне.
 const DROP = 'M32 58C32 58 13 37 13 25A19 19 0 0 1 51 25C51 37 32 58 32 58Z'
@@ -32,7 +19,7 @@ const GLYPH: Record<EventType, string[]> = {
 }
 const alpha = (hex: string, a: number) => hex + Math.round(a * 255).toString(16).padStart(2, '0')
 
-// Размер метки в px по зуму: 16 - залитая капля, 24 - капля с точкой, от 32 - с глифом.
+// Размер метки в px по приближению k относительно начального вида.
 const pinSize = (k: number) => (k < 1.5 ? 16 : k < 2.5 ? 24 : k < 4 ? 32 : 44)
 
 export type PinState = 'normal' | 'hover' | 'selected' | 'inactive'
@@ -55,7 +42,66 @@ export function PinShape({ type, size, state = 'normal' }: { type: EventType; si
   )
 }
 
-export interface MapHandle { zoomBy(k: number): void }
+// Тёмная подложка OpenFreeMap (схема OpenMapTiles). Россия и регионы - из russia-regions.geojson (OSM).
+const OMF = 'https://tiles.openfreemap.org'
+const NAME: ExpressionSpecification = ['coalesce', ['get', 'name:ru'], ['get', 'name']]
+const HALO = { 'text-halo-color': INK, 'text-halo-width': 1.2 }
+const LABEL_LAYERS = ['country-label', 'city-label', 'village-label']
+const style = (sea: string): StyleSpecification => ({
+  version: 8,
+  glyphs: `${OMF}/fonts/{fontstack}/{range}.pbf`,
+  sources: {
+    omf: {
+      type: 'vector', url: `${OMF}/planet`,
+      attribution: '<a href="https://openfreemap.org">OpenFreeMap</a> <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    },
+  },
+  layers: [
+    { id: 'land', type: 'background', paint: { 'background-color': '#070C24' } },
+    { id: 'water', type: 'fill', source: 'omf', 'source-layer': 'water', paint: { 'fill-color': sea } },
+    { id: 'roads', type: 'line', source: 'omf', 'source-layer': 'transportation', minzoom: 6,
+      filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary']]],
+      paint: { 'line-color': '#1E2A58', 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.5, 12, 2] } },
+    { id: 'borders', type: 'line', source: 'omf', 'source-layer': 'boundary',
+      filter: ['all', ['==', ['get', 'admin_level'], 2], ['==', ['get', 'maritime'], 0], ['==', ['get', 'disputed'], 0]],
+      paint: { 'line-color': '#2C4272', 'line-width': 0.8 } },
+    { id: 'country-label', type: 'symbol', source: 'omf', 'source-layer': 'place', filter: ['==', ['get', 'class'], 'country'],
+      layout: { 'text-field': NAME, 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-transform': 'uppercase', 'text-letter-spacing': 0.14 },
+      paint: { 'text-color': MUTED, ...HALO } },
+    { id: 'city-label', type: 'symbol', source: 'omf', 'source-layer': 'place', minzoom: 4,
+      filter: ['in', ['get', 'class'], ['literal', ['city', 'town']]],
+      layout: { 'text-field': NAME, 'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], 4, 10, 10, 14] },
+      paint: { 'text-color': '#93A8D0', ...HALO } },
+    { id: 'village-label', type: 'symbol', source: 'omf', 'source-layer': 'place', minzoom: 9,
+      filter: ['in', ['get', 'class'], ['literal', ['village', 'hamlet']]],
+      layout: { 'text-field': NAME, 'text-font': ['Noto Sans Regular'], 'text-size': 11 },
+      paint: { 'text-color': MUTED, ...HALO } },
+  ],
+})
+
+// Чукотка пересекает 180-й меридиан: сдвигаем долготы кольца, чтобы полигон не растягивался через весь мир.
+const unwrap = (ring: Position[]) => ring.reduce<Position[]>((out, [lng, lat]) => {
+  const prev = out.length ? out[out.length - 1][0] : lng
+  out.push([lng + 360 * Math.round((prev - lng) / 360), lat])
+  return out
+}, [])
+const russia = fetch('/russia-regions.geojson').then(r => r.json() as Promise<FeatureCollection>).then(fc => {
+  for (const f of fc.features) {
+    const g = f.geometry
+    if (g.type === 'Polygon') g.coordinates = g.coordinates.map(unwrap)
+    else if (g.type === 'MultiPolygon') g.coordinates = g.coordinates.map(p => p.map(unwrap))
+  }
+  return fc
+})
+
+const RUSSIA_BOUNDS: [number, number, number, number] = [19, 41, 191, 82]
+const PICK_PIN = `<svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="${GOLD}" stroke-width="2.8" style="display:block">`
+  + `<path d="${DROP}" fill="${INK}"/><circle cx="32" cy="25" r="6" fill="${GOLD}" stroke="none"/></svg>`
+
+export interface MapHandle {
+  zoomBy(k: number): void
+  flyTo(lat: number, lng: number): void
+}
 
 interface Props {
   events: HistEvent[]
@@ -66,6 +112,9 @@ interface Props {
   labels: boolean
   sea?: string
   interactive?: boolean
+  /** Режим выбора места: клик по карте и перетаскивание метки вызывают onPick. */
+  pick?: { lat: number; lng: number } | null
+  onPick?: (lat: number, lng: number) => void
 }
 
 /** Метка на карте: остриё в (0, 0), наведение увеличивает в 1.14 раза. */
@@ -80,118 +129,127 @@ function Marker({ type, state, size }: { type: EventType; state: PinState; size:
 }
 
 export const MapView = forwardRef<MapHandle, Props>(function MapView(
-  { events, isActive, selectedId, onSelect, pad, labels, sea = '#060D2E', interactive = true }, ref) {
+  { events, isActive, selectedId, onSelect, pad, labels, sea = INK, interactive = true, pick, onPick }, ref) {
   const wrap = useRef<HTMLDivElement>(null)
-  const svg = useRef<SVGSVGElement>(null)
-  const zb = useRef<ZoomBehavior<SVGSVGElement, unknown>>()
-  const [size, setSize] = useState({ w: 0, h: 0 })
-  const [t, setT] = useState<ZoomTransform>(zoomIdentity)
+  const mapRef = useRef<maplibregl.Map>()
+  const pickRef = useRef<maplibregl.Marker>()
+  const onPickRef = useRef(onPick)
+  onPickRef.current = onPick
+  const baseZoom = useRef(0)
+  const [tick, setTick] = useState(0)
   const [hover, setHover] = useState<number | null>(null)
 
-  useLayoutEffect(() => {
-    const el = wrap.current!
-    const ro = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }))
-    ro.observe(el)
-    return () => ro.disconnect()
+  useEffect(() => {
+    const map = new maplibregl.Map({
+      container: wrap.current!, style: style(sea), bounds: RUSSIA_BOUNDS, fitBoundsOptions: { padding: pad },
+      interactive, maxZoom: 14, renderWorldCopies: true, dragRotate: false, pitchWithRotate: false,
+      attributionControl: { compact: true },
+    })
+    map.touchZoomRotate.disableRotation()
+    mapRef.current = map
+    baseZoom.current = map.getZoom()
+    const redraw = () => setTick(t => t + 1)
+    map.on('move', redraw)
+    map.on('resize', redraw)
+    map.on('click', e => onPickRef.current?.(e.lngLat.lat, e.lngLat.wrap().lng))
+    map.on('load', () => russia.then(fc => {
+      if (!map.getStyle()) return
+      map.addSource('russia', { type: 'geojson', data: fc })
+      map.addLayer({ id: 'russia', type: 'fill', source: 'russia', paint: { 'fill-color': '#101A48' } }, 'water')
+      map.addLayer({ id: 'regions', type: 'line', source: 'russia', paint: { 'line-color': '#32406E', 'line-width': ['interpolate', ['linear'], ['zoom'], 2, 0.4, 6, 1] } }, 'borders')
+    }).catch(() => undefined))
+    redraw()
+    return () => { map.remove(); mapRef.current = undefined; pickRef.current = undefined }
+    // Карта создаётся один раз; pad и sea на лету не меняются.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const geo = useMemo(() => {
-    if (!size.w) return null
-    const proj = geoAlbers().rotate([-105, 0]).center([0, 62]).parallels([50, 70])
-      .fitExtent([[pad, pad], [size.w - pad, size.h - pad]], RUSSIA)
-    const path = geoPath(proj)
-    return {
-      proj,
-      russia: path(RUSSIA) ?? '',
-      others: path({ type: 'FeatureCollection', features: OTHERS }) ?? '',
-      grat: path(geoGraticule().step([15, 15])()) ?? '',
-      labels: OTHERS.filter(f => LABELS[f.properties?.name]).map(f => ({ name: LABELS[f.properties?.name], c: path.centroid(f) })),
-    }
-  }, [size, pad])
+  useEffect(() => {
+    const map = mapRef.current!
+    const apply = () => LABEL_LAYERS.forEach(id => map.setLayoutProperty(id, 'visibility', labels ? 'visible' : 'none'))
+    if (map.isStyleLoaded()) apply()
+    else map.once('styledata', apply)
+  }, [labels])
 
   useEffect(() => {
-    if (!svg.current || !size.w || !interactive) return
-    const z = d3zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 12])
-      .translateExtent([[0, 0], [size.w, size.h]])
-      .on('zoom', ev => setT(ev.transform))
-    zb.current = z
-    select(svg.current).call(z)
-    return () => { select(svg.current!).on('.zoom', null) }
-  }, [size, interactive])
+    const map = mapRef.current!
+    map.getCanvas().style.cursor = onPick ? 'crosshair' : ''
+    if (!pick) { pickRef.current?.remove(); pickRef.current = undefined; return }
+    if (!pickRef.current) {
+      const el = document.createElement('div')
+      el.innerHTML = PICK_PIN
+      el.className = 'pm-pick'
+      el.setAttribute('aria-label', 'Место события, можно перетащить')
+      const m = new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, 4], draggable: true })
+      m.on('dragend', () => { const p = m.getLngLat(); onPickRef.current?.(p.lat, p.wrap().lng) })
+      pickRef.current = m.setLngLat([pick.lng, pick.lat]).addTo(map)
+    } else pickRef.current.setLngLat([pick.lng, pick.lat])
+  }, [pick, onPick])
 
-  const setTransform = (next: ZoomTransform) => { if (svg.current && zb.current) select(svg.current).call(zb.current.transform, next) }
   useImperativeHandle(ref, () => ({
-    zoomBy: k => { if (svg.current && zb.current) select(svg.current).call(zb.current.scaleBy, k) },
+    zoomBy: k => { const map = mapRef.current; if (map) map.zoomTo(map.getZoom() + Math.log2(k)) },
+    flyTo: (lat, lng) => mapRef.current?.flyTo({ center: [lng, lat], zoom: 10, duration: 800 }),
   }), [])
 
   // Точки в экранных координатах; кластеризуем только активные, по сетке CELL.
   // ponytail: сеточная кластеризация O(n), на десятках тысяч меток понадобится supercluster.
   const view = useMemo(() => {
-    if (!geo) return { singles: [], clusters: [], inactive: [] }
-    type P = { e: HistEvent; x: number; y: number; px: number; py: number }
-    const inactive: P[] = [], cells = new Map<string, P[]>()
+    type P = { e: HistEvent; x: number; y: number }
+    const map = mapRef.current
+    const inactive: P[] = [], singles: P[] = [], clusters: { x: number; y: number; members: P[] }[] = []
+    if (!map) return { singles, clusters, inactive, k: 1 }
+    const { width, height } = map.getContainer().getBoundingClientRect()
+    const center = map.getCenter().lng
+    const cells = new Map<string, P[]>()
     for (const e of events) {
-      const p = geo.proj([e.longitude, e.latitude])
-      if (!p) continue
-      const [x, y] = t.apply(p)
-      const pt = { e, x, y, px: p[0], py: p[1] }
+      // Берём копию мира, ближайшую к центру, иначе метки у 180-го меридиана уезжают за экран.
+      const { x, y } = map.project([e.longitude + 360 * Math.round((center - e.longitude) / 360), e.latitude])
+      if (x < -CELL || y < -CELL || x > width + CELL || y > height + CELL) continue
+      const pt = { e, x, y }
       if (!isActive(e)) { inactive.push(pt); continue }
-      const key = e.id === selectedId ? `sel` : `${Math.floor(x / CELL)}:${Math.floor(y / CELL)}`
+      const key = e.id === selectedId ? 'sel' : `${Math.floor(x / CELL)}:${Math.floor(y / CELL)}`
       cells.set(key, [...(cells.get(key) ?? []), pt])
     }
-    const singles: P[] = [], clusters: { x: number; y: number; members: P[] }[] = []
     for (const m of cells.values()) {
       if (m.length === 1) singles.push(m[0])
       else clusters.push({ x: m.reduce((s, p) => s + p.x, 0) / m.length, y: m.reduce((s, p) => s + p.y, 0) / m.length, members: m })
     }
-    return { singles, clusters, inactive }
-  }, [geo, events, isActive, t, selectedId])
+    return { singles, clusters, inactive, k: 2 ** (map.getZoom() - baseZoom.current) }
+    // tick - перерисовка при движении карты.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, isActive, tick, selectedId])
 
-  const zoomToCluster = (members: { px: number; py: number }[]) => {
-    const xs = members.map(m => m.px), ys = members.map(m => m.py)
-    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
-    const k = Math.min(12, 0.6 / Math.max((x1 - x0) / size.w, (y1 - y0) / size.h, 0.01))
-    setTransform(zoomIdentity.translate(size.w / 2, size.h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2))
+  const zoomToCluster = (members: { e: HistEvent }[]) => {
+    const b = new maplibregl.LngLatBounds()
+    members.forEach(({ e }) => b.extend([e.longitude, e.latitude]))
+    mapRef.current?.fitBounds(b, { padding: 80, maxZoom: 12, duration: 600 })
   }
 
   const hovered = view.singles.find(p => p.e.id === hover && p.e.id !== selectedId)
-  const pin = pinSize(t.k)
+  const pin = pinSize(view.k)
 
   return (
-    <div ref={wrap} className="pm-map">
-      <svg ref={svg} width={size.w} height={size.h} style={{ display: 'block', background: sea }}>
-        {geo && (
-          <>
-            <g transform={t.toString()}>
-              <path d={geo.grat} fill="none" stroke="rgba(50,64,110,0.4)" strokeWidth={0.6} vectorEffect="non-scaling-stroke" />
-              <path d={geo.others} fill="#080E28" stroke="#2C4272" strokeWidth={0.7} vectorEffect="non-scaling-stroke" />
-              <path d={geo.russia} fill="#0B1234" stroke="#32406E" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-            </g>
-            {labels && geo.labels.map(l => {
-              const [x, y] = t.apply(l.c)
-              return <text key={l.name} x={x} y={y} textAnchor="middle" className="pm-map-label">{l.name}</text>
-            })}
-            {view.inactive.map(p => (
-              <g key={p.e.id} transform={`translate(${p.x},${p.y})`} style={{ pointerEvents: 'none' }}>
-                <Marker type={p.e.eventType} state="inactive" size={pin} />
-              </g>
-            ))}
-            {view.clusters.map(c => (
-              <g key={c.members[0].e.id} transform={`translate(${c.x},${c.y})`} className="pm-hit"
-                role="button" aria-label={`${c.members.length} событий, приблизить`} onClick={() => zoomToCluster(c.members)}>
-                <circle r={16.5} fill={alpha(TYPE_COLOR.military, 0.12)} stroke={TYPE_COLOR.military} strokeWidth={1.6} />
-                <text textAnchor="middle" dy={4.5} className="pm-cluster-n">{c.members.length}</text>
-              </g>
-            ))}
-            {view.singles.map(p => (
-              <g key={p.e.id} transform={`translate(${p.x},${p.y})`} className="pm-hit" role="button" aria-label={p.e.title}
-                onMouseEnter={() => setHover(p.e.id)} onMouseLeave={() => setHover(null)} onClick={() => onSelect(p.e.id)}>
-                <Marker type={p.e.eventType} size={pin} state={p.e.id === selectedId ? 'selected' : p.e.id === hover ? 'hover' : 'normal'} />
-              </g>
-            ))}
-          </>
-        )}
+    <div className="pm-map" style={{ background: sea }}>
+      <div ref={wrap} className="pm-map-canvas" />
+      <svg className="pm-map-overlay">
+        {view.inactive.map(p => (
+          <g key={p.e.id} transform={`translate(${p.x},${p.y})`}>
+            <Marker type={p.e.eventType} state="inactive" size={pin} />
+          </g>
+        ))}
+        {view.clusters.map(c => (
+          <g key={c.members[0].e.id} transform={`translate(${c.x},${c.y})`} className="pm-hit"
+            role="button" aria-label={`${c.members.length} событий, приблизить`} onClick={() => zoomToCluster(c.members)}>
+            <circle r={16.5} fill={alpha(GOLD, 0.12)} stroke={GOLD} strokeWidth={1.6} />
+            <text textAnchor="middle" dy={4.5} className="pm-cluster-n">{c.members.length}</text>
+          </g>
+        ))}
+        {view.singles.map(p => (
+          <g key={p.e.id} transform={`translate(${p.x},${p.y})`} className="pm-hit" role="button" aria-label={p.e.title}
+            onMouseEnter={() => setHover(p.e.id)} onMouseLeave={() => setHover(null)} onClick={() => onSelect(p.e.id)}>
+            <Marker type={p.e.eventType} size={pin} state={p.e.id === selectedId ? 'selected' : p.e.id === hover ? 'hover' : 'normal'} />
+          </g>
+        ))}
       </svg>
       {hovered && (
         <div className="pm-popup" style={{ left: hovered.x, top: hovered.y - pin * 1.14 - 8 }}>
