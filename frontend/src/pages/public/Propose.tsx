@@ -99,6 +99,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   const pickerRef = useRef<HTMLInputElement>(null)
   const mapRef = useRef<MapHandle>(null)
   const abortRef = useRef<() => void>()
+  const chosenRef = useRef('') // выбранное место: его текст в поле не ищем повторно
   const sending = phase.k === 'sending'
 
   useEffect(() => {
@@ -117,7 +118,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   // Поиск места через Nominatim: не чаще раза в 500 мс, как требуют правила сервиса.
   useEffect(() => {
     const q = query.trim()
-    if (q.length < 3) { setPlaces([]); return }
+    if (q.length < 3 || q === chosenRef.current) { setPlaces([]); return }
     const ctrl = new AbortController()
     const t = setTimeout(() => {
       fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ru&q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
@@ -207,7 +208,9 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     const lat = +p.lat, lng = +p.lon
     pick(lat, lng)
     mapRef.current?.flyTo(lat, lng)
-    setQuery(p.display_name.split(',')[0])
+    const name = p.display_name.split(',')[0].trim()
+    chosenRef.current = name
+    setQuery(name)
     setPlaces([])
   }
 
@@ -331,7 +334,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
           <>
             <p className="pp-lead">Найдите место через поиск или нажмите на карту. Метку можно перетащить.</p>
             <div className="pp-search">
-              <input className="pp-input" value={query} placeholder="Город, село, урочище" aria-label="Поиск места"
+              <input className="pp-input" value={query} maxLength={200} placeholder="Город, село, урочище" aria-label="Поиск места"
                 onChange={e => setQuery(e.target.value)} />
               {places.length > 0 && (
                 <ul className="pp-places" role="listbox">
@@ -386,9 +389,9 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
               <input className="pp-input" type="email" autoComplete="email" value={d.email} maxLength={70} placeholder="ivan@example.ru"
                 onChange={e => set('email', e.target.value, 'email')} onBlur={() => d.email && show('email')} />
             </Text>
-            <Text label="Telegram" error={visible('telegram')} hint='Без "@", для вопросов модератора'>
-              <input className="pp-input" value={d.telegram} maxLength={32} placeholder="ivan_petrov" autoCapitalize="none" spellCheck={false}
-                onChange={e => set('telegram', e.target.value, 'telegram')} onBlur={() => d.telegram && show('telegram')} />
+            <Text label="Telegram" error={visible('telegram')} hint='Для вопросов модератора'>
+              <input className="pp-input" value={d.telegram} maxLength={33} placeholder="ivan_petrov" autoCapitalize="none" spellCheck={false}
+                onChange={e => set('telegram', e.target.value.replace(/^@/, ''), 'telegram')} onBlur={() => d.telegram && show('telegram')} />
             </Text>
           </div>
         ), 'не публикуются')}

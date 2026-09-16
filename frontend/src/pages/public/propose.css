@@ -31,9 +31,9 @@
 .pp-search { position: relative; margin-bottom: 12px; }
 .pp-places {
   position: absolute; z-index: 3; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none;
-  border-radius: 8px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
+  max-height: 260px; overflow-y: auto; border-radius: 8px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
 }
-.pm-root .pp-places button { width: 100%; padding: 8px 10px; border-radius: 6px; text-align: left; font: 400 14px/20px var(--ui); color: var(--text-2); }
+.pm-root .pp-places button { width: 100%; padding: 8px 10px; border-radius: 6px; text-align: left; font: 400 14px/20px var(--ui); color: var(--text-2); overflow-wrap: anywhere; }
 .pm-root .pp-places button:hover { background: var(--gold-wash); color: #fff; }
 .pp-map { position: relative; height: 340px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
 .pp-map.bad { border-color: var(--danger); }
@@ -56,7 +56,7 @@
 .pm-root .pp-input:focus-visible { outline: none; }
 .pm-root .pp-field.bad .pp-input, .pm-root .pp-input.bad { border-color: var(--danger); }
 .pm-root .pp-input:disabled { opacity: 0.6; }
-.pm-root .pp-area { height: 92px; resize: vertical; display: block; font-size: 15px; line-height: 24px; }
+.pm-root .pp-area { height: 92px; min-height: 92px; max-height: 320px; resize: vertical; display: block; font-size: 15px; line-height: 24px; }
 .pp-date { display: flex; align-items: center; gap: 10px; position: relative; }
 .pm-root .pp-date input:not(.pp-picker) {
   flex: 1; min-width: 0; margin: 0; padding: 0; border: 0; outline: none; background: none;
@@ -114,15 +114,13 @@
 .pp-code { padding: 5px 12px; border-radius: 4px; background: var(--field); border: 1px solid var(--line); font: 400 15px var(--mono); }
 .pm-root .pp-copy { padding: 5px 12px; border-radius: 4px; border: 1px solid var(--gold-line); color: var(--gold-soft); font: 500 13px var(--ui); }
 .pm-root .pp-copy:hover { border-color: var(--gold); }
-.pp-result-text { max-width: 460px; font: 400 18px/28px var(--ui); color: var(--text-2); }
+.pp-result-text { max-width: 460px; overflow-wrap: anywhere; font: 400 18px/28px var(--ui); color: var(--text-2); }
 .pp-fail { display: flex; gap: 18px; align-items: flex-start; }
 .pp-fail-title { font: 500 28px/36px var(--display); }
 .pp-fail-title.bad { color: var(--danger); }
 .pp-fail-title.warn { color: var(--warn); }
 .pp-tag { font: 400 11px var(--mono); color: var(--dim); }
-.pp-fail-text { margin-top: 10px !important; font: 400 15px/24px var(--ui); color: var(--text-2); }
-.pp-body.result:has(.pp-fail) { padding: 24px 28px; }
-
+.pp-fail-text { margin-top: 10px !important; overflow-wrap: anywhere; font: 400 15px/24px var(--ui); color: var(--text-2); }
 
 /* Нижняя панель */
 .pp-actbar { flex: none; min-height: 72px; padding: 14px 32px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--line-soft); background: rgba(7, 14, 42, 0.96); }
@@ -152,7 +150,7 @@
 .pp-page.mobile .pp-pair { flex-direction: column; gap: 20px; }
 .pp-page.mobile .pp-map { height: 300px; }
 .pm-root.mobile .pp-input { padding: 14px; font-size: 16px; }
-.pm-root.mobile .pp-area { height: 120px; }
+.pm-root.mobile .pp-area { height: 120px; min-height: 120px; }
 .pm-root.mobile .pp-type { justify-content: center; height: 48px; font-size: 15px; }
 .pp-page.mobile .pp-actbar { padding: 12px 16px; }
 .pp-page.mobile .pp-actbar .pm-btn { flex: 1; height: 48px; }
