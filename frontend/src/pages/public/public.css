@@ -16,8 +16,8 @@
   --danger: #C46F62;
   --shadow: 0 12px 40px rgba(0, 0, 20, 0.6);
   --display: 'Cormorant Garamond', Georgia, serif;
-  --ui: 'Geist', system-ui, sans-serif;
-  --mono: 'Geist Mono', ui-monospace, monospace;
+  --ui: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   position: fixed;
   inset: 0;
