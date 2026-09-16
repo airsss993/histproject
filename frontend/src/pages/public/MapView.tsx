@@ -4,6 +4,7 @@ import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { FeatureCollection, Position } from 'geojson'
 import { TYPE_LABEL, yearOf, type EventType, type HistEvent } from './api.ts'
+import { LEAVE_MS, Presence } from './presence.tsx'
 
 export const TYPE_COLOR: Record<EventType, string> = { political: '#8FB4E8', military: '#F0B62A' }
 const CELL = 56
@@ -140,7 +141,6 @@ function Marker({ type, state, size }: { type: EventType; state: PinState; size:
 }
 
 // Поля под шапку, рейл и шкалу веков: в них карточка не заходит, пока метка на экране.
-const CLOSE_MS = 160
 const EDGE = { top: 104, right: 110, bottom: 32, left: 100 }
 // При lo > hi побеждает lo.
 const clamp = (v: number, lo: number, hi: number) => Math.max(Math.min(v, hi), lo)
@@ -241,7 +241,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   }), [])
 
   // Ушедшую карточку (закрыли или выбрали другую) держим, пока играет анимация ухода
-  // (CLOSE_MS = длительность pm-out в public.css); новая в это время уже выезжает у своей метки.
+  // (LEAVE_MS); новая в это время уже выезжает у своей метки.
   type Shown = { key: number | null; node: React.ReactNode }
   const liveKey = callout ? selectedId : undefined
   const live = useRef<Shown>()
@@ -253,7 +253,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
       return gone ? [...rest, gone] : rest.length === l.length ? l : rest
     })
     // Без очистки: таймер должен сработать, даже если карточку успели сменить ещё раз.
-    if (gone) setTimeout(() => setLeaving(l => l.filter(x => x !== gone)), CLOSE_MS)
+    if (gone) setTimeout(() => setLeaving(l => l.filter(x => x !== gone)), LEAVE_MS)
   }, [liveKey])
   // После эффекта выше: он должен видеть карточку прошлого рендера.
   useEffect(() => { live.current = liveKey === undefined ? undefined : { key: liveKey, node: callout } })
@@ -351,12 +351,12 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
           </g>
         ))}
       </svg>
-      {hovered && (
+      <Presence>{hovered && (
         <div className="pm-popup" style={{ left: hovered.x, top: hovered.y - pin * 1.14 - 8 }}>
           <div className="pm-popup-title">{hovered.e.title}</div>
           <div className="pm-popup-meta">{yearOf(hovered.e)} · {TYPE_LABEL[hovered.e.eventType]}</div>
         </div>
-      )}
+      )}</Presence>
       {cards.map(c => {
         const at = c.key === null ? undefined : view.anchors.get(c.key)
         return at

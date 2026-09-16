@@ -38,6 +38,17 @@
 .pm-glass { background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); }
 .pm-hatch { background: repeating-linear-gradient(135deg, #0B1234 0 6px, #080E28 6px 12px); }
 
+/* Появление и уход слоёв. Класс out ставит Presence (presence.tsx) на LEAVE_MS. */
+@keyframes pm-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes pm-out { to { opacity: 0; transform: translateY(8px); } }
+@keyframes pm-fade { from { opacity: 0; } }
+@keyframes pm-fade-out { to { opacity: 0; } }
+.pm-root .out, .pm-root.out { animation: pm-out 160ms ease-in forwards; pointer-events: none; }
+/* У этих свой transform: только прозрачность. */
+.pm-root .pm-state.out, .pm-root .pm-popup.out, .pm-root .pm-sheet-shade.out { animation-name: pm-fade-out; }
+.pm-root .pm-callout.out { animation: none; }
+.pm-root .pm-sheet.out { animation: none; transform: translateY(100%); }
+
 /* Карта */
 .pm-map { position: absolute; inset: 0; transition: opacity 180ms ease-out; }
 .pm-map-canvas { position: absolute; inset: 0; }
@@ -112,6 +123,7 @@
 
 /* Рейл */
 .pm-rail {
+  animation: pm-in 180ms ease-out;
   position: absolute; left: 24px; top: 120px; width: 56px; padding: 10px 0; border-radius: 999px;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
@@ -128,7 +140,7 @@
 .pm-search:focus-within { border-color: var(--gold); }
 .pm-search input::placeholder { color: var(--muted); }
 .pm-counter { font: 400 13px var(--ui); color: var(--dim); white-space: nowrap; }
-.pm-results { border-radius: 16px; overflow: hidden auto; max-height: 60vh; }
+.pm-results { animation: pm-in 180ms ease-out; border-radius: 16px; overflow: hidden auto; max-height: 60vh; }
 .pm-result, .pm-feed-item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 20px; text-align: left; border-bottom: 1px dashed var(--line-soft); transition: background 120ms ease-out; }
 .pm-result:last-child { border-bottom: 0; }
 .pm-result:hover, .pm-feed-item:hover { background: rgba(19, 28, 64, 0.6); }
@@ -139,7 +151,7 @@
 .pm-result-title { font: 400 15px var(--ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Легенда */
-.pm-legend { position: absolute; left: 100px; bottom: 28px; display: flex; gap: 18px; padding: 12px 18px; border-radius: 999px; backdrop-filter: none; }
+.pm-legend { animation: pm-in 180ms ease-out; position: absolute; left: 100px; bottom: 28px; display: flex; gap: 18px; padding: 12px 18px; border-radius: 999px; backdrop-filter: none; }
 .pm-legend span { display: flex; align-items: center; gap: 8px; font: 400 13px/20px var(--ui); color: var(--text-2); }
 .pm-legend i { width: 12px; height: 12px; border-radius: 999px; }
 
@@ -172,18 +184,16 @@
   position: relative; width: 480px; max-height: calc(100dvh - 180px);
   display: flex; flex-direction: column; border-radius: 16px; overflow: hidden;
   background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
-  animation: pm-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: pm-pop 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 /* Карточка вырастает из метки. */
 .pm-callout.right .pm-card { transform-origin: 0 var(--ay); }
 .pm-callout.left .pm-card { transform-origin: 100% var(--ay); }
 .pm-callout.fixed .pm-card { transform-origin: 0 100%; }
-@keyframes pm-in { from { opacity: 0; transform: scale(0.9); } }
-.pm-callout.out { pointer-events: none; }
-.pm-callout.out .pm-card { animation: pm-out 160ms ease-in forwards; }
+@keyframes pm-pop { from { opacity: 0; transform: scale(0.9); } }
+.pm-callout.out .pm-card { animation: pm-pop-out 160ms ease-in forwards; }
 .pm-callout.out .pm-callout-arrow { animation: pm-fade-out 160ms ease-in forwards; }
-@keyframes pm-out { to { opacity: 0; transform: scale(0.94); } }
-@keyframes pm-fade-out { to { opacity: 0; } }
+@keyframes pm-pop-out { to { opacity: 0; transform: scale(0.94); } }
 .pm-card-preview { position: relative; height: 240px; flex: none; border-bottom: 1px dashed var(--line); background: repeating-linear-gradient(135deg, #0B1234 0 6px, #080E28 6px 12px); }
 .pm-card-preview.none { height: 88px; background: #080E28; }
 .pm-card-preview img, .pm-sheet-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -208,10 +218,9 @@
 .pm-panel {
   position: absolute; left: 24px; top: 104px; width: 380px; max-height: calc(100% - 132px);
   display: flex; flex-direction: column; border-radius: 16px; box-shadow: var(--shadow);
-  animation: pm-in 180ms ease-out; transform-origin: 0 0;
+  animation: pm-in 180ms ease-out;
 }
-.pm-panel.out { animation: pm-out 160ms ease-in forwards; pointer-events: none; }
-.pm-screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: #070E2A; overflow-y: auto; }
+.pm-screen { animation: pm-in 180ms ease-out; position: absolute; inset: 0; display: flex; flex-direction: column; background: #070E2A; overflow-y: auto; }
 .pm-panel-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px; border-bottom: 1px dashed var(--line); }
 .pm-screen .pm-panel-head { padding: 18px 16px; gap: 12px; }
 .pm-panel-head h2 { font: 600 20px/28px var(--ui); }
@@ -278,6 +287,7 @@
 
 /* Состояния */
 .pm-state {
+  animation: pm-fade 180ms ease-out;
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 420px; max-width: calc(100% - 32px);
   padding: 28px; border-radius: 16px; box-shadow: var(--shadow);
   display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
@@ -313,8 +323,9 @@
 .pm-bottombar button { height: 52px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 10px; font: 500 15px var(--ui); }
 .pm-bottombar .pm-round { width: 52px; color: var(--gold-soft); }
 .pm-sheet-shade { position: absolute; inset: 0; background: rgba(1, 0, 17, 0.45); animation: pm-fade 180ms ease-out; }
-@keyframes pm-fade { from { opacity: 0; } }
+@keyframes pm-sheet-in { from { transform: translateY(100%); } }
 .pm-sheet {
+  animation: pm-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   position: absolute; left: 0; right: 0; bottom: 0; height: min(620px, 85%);
   display: flex; flex-direction: column; border-radius: 16px 16px 0 0;
   background: #0E162A; border: 1px solid var(--line); box-shadow: var(--shadow);
@@ -352,9 +363,8 @@
   .pm-404-code { font-size: 64px; line-height: 72px; }
 }
 
+/* Спиннер и скелетон - индикаторы, а не украшение: их оставляем. */
 @media (prefers-reduced-motion: reduce) {
-  .pm-pin, .pm-pin.sel, .pm-pin path, .pm-pin circle, .pm-appear, .pm-ring, .pm-cluster, .pm-popup, .pm-card, .pm-callout-arrow,
-  .pm-callout.out .pm-card, .pm-callout.out .pm-callout-arrow { animation: none; transition: none; }
-  .pm-panel, .pm-panel.out { animation: none; }
-  .pm-callout.out, .pm-panel.out { visibility: hidden; }
+  .pm-root, .pm-root *:not(.pm-state-icon, .pm-skel-lines i) { animation: none !important; transition: none !important; }
+  .pm-root .out, .pm-root.out { visibility: hidden; }
 }

@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchAllEvents, fetchEvent, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { ProposeModal } from './Propose.tsx'
+import { Presence } from './presence.tsx'
 import './public.css'
 
 export const MIN_YEAR = 862
@@ -43,22 +44,6 @@ function useIsMobile() {
   return m
 }
 
-/** true ещё ms после закрытия: слой не размонтируется, пока играет анимация ухода (pm-out в public.css). */
-function useLeaving(open: boolean, ms = 160) {
-  const [leaving, setLeaving] = useState(false)
-  const was = useRef(open)
-  // layout-эффект: иначе между закрытием и уходом успевает отрисоваться кадр без панели.
-  useLayoutEffect(() => {
-    const closed = was.current && !open
-    was.current = open
-    setLeaving(closed)
-    if (!closed) return
-    const t = setTimeout(() => setLeaving(false), ms)
-    return () => clearTimeout(t)
-  }, [open, ms])
-  return leaving
-}
-
 export const Logo: React.FC<{ short?: boolean; onClick?: () => void }> = ({ short, onClick }) => (
   <button type="button" className="pm-logo" onClick={onClick}>
     <img className="pm-logo-mark" src="/logo.svg" alt="" />
@@ -95,7 +80,6 @@ export const PublicMap: React.FC = () => {
   })
 
   const [layer, setLayer] = useState<Layer>('none')
-  const filtersLeaving = useLeaving(layer === 'filters')
   const [draft, setDraft] = useState<Filter>(applied)
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
@@ -170,7 +154,7 @@ export const PublicMap: React.FC = () => {
           : null
 
   const filtersPanel = (
-    <Filters mobile={mobile} leaving={layer !== 'filters'} draft={draft} setDraft={setDraft} events={events}
+    <Filters mobile={mobile} draft={draft} setDraft={setDraft} events={events}
       onClose={() => setLayer('none')}
       onApply={() => { applyFilter(draft); setLayer('none') }}
       onReset={resetFilters} />
@@ -180,6 +164,7 @@ export const PublicMap: React.FC = () => {
   const modal = <ProposeModal open={proposeOpen} mobile={mobile} onClose={closePropose} />
   // На телефоне фильтры и лента - экраны поверх карты: карта остаётся смонтированной и не теряет вид.
   const screen = mobile && (layer === 'filters' || layer === 'feed')
+  const feed = <Feed mobile={mobile} events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />
 
   return (
     <>
@@ -188,10 +173,7 @@ export const PublicMap: React.FC = () => {
         onSelect={select} pad={mobile ? 16 : 48} labels={!mobile}
         callout={showCard && !mobile && <Card key={selectedId} event={selected ?? undefined} onClose={closeCard} />} />
 
-      {screen ? (layer === 'filters'
-        ? filtersPanel
-        : <Feed mobile events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />
-      ) : (
+      {!screen && (
       <>
         <div role="banner" className="pm-header">
           <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
@@ -199,7 +181,7 @@ export const PublicMap: React.FC = () => {
           {!mobile && <button type="button" className={`pm-btn-ghost pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}
         </div>
 
-        {!mobile && layer !== 'filters' && layer !== 'feed' && (
+        <Presence>{!mobile && layer !== 'filters' && layer !== 'feed' && (
           <nav className="pm-rail pm-glass" aria-label="Управление картой">
             <button type="button" onClick={() => openLayer('filters')} title="Фильтры" className={filterBadge(applied) ? 'on' : ''}>Ф</button>
             <button type="button" onClick={() => openLayer('feed')} title="Лента событий">Л</button>
@@ -207,7 +189,7 @@ export const PublicMap: React.FC = () => {
             <button type="button" onClick={() => mapRef.current?.zoomBy(1 / 1.6)} title="Отдалить">-</button>
             <button type="button" title="Колесо мыши - масштаб, перетаскивание - сдвиг, клик по метке - карточка события, клик по кругу с числом - приблизить группу">?</button>
           </nav>
-        )}
+        )}</Presence>
 
         <div className={`pm-search-wrap${layer === 'filters' || layer === 'feed' ? ' pm-muted' : ''}`}>
           <label className="pm-search pm-glass">
@@ -219,7 +201,7 @@ export const PublicMap: React.FC = () => {
               ? <button type="button" className="pm-link" onClick={() => setLayer('search')}>Показать список ↓</button>
               : load.status === 'ready' && <span className="pm-counter">{q ? `${found.length} из ${filtered.length}` : filtered.length}</span>}
           </label>
-          {layer === 'search' && q && (
+          <Presence>{layer === 'search' && !!q && (
             <div className="pm-results pm-glass">
               {found.length === 0 && <div className="pm-results-empty">Ничего не нашлось</div>}
               {found.slice(0, 8).map(e => (
@@ -232,19 +214,19 @@ export const PublicMap: React.FC = () => {
                 </button>
               ))}
             </div>
-          )}
+          )}</Presence>
         </div>
 
-        {!mobile && (layer === 'filters' || filtersLeaving) && filtersPanel}
-        {!mobile && layer === 'feed' && <Feed events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />}
+        <Presence>{!mobile && layer === 'filters' && filtersPanel}</Presence>
+        <Presence>{!mobile && layer === 'feed' && feed}</Presence>
 
-        {!mobile && load.status === 'ready' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
+        <Presence>{!mobile && load.status === 'ready' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
           <div className="pm-legend pm-glass">
             {TYPES.map(t => (
               <span key={t}><i style={{ background: TYPE_COLOR[t] }} />{TYPE_PLURAL[t]} · {counts[t]}</span>
             ))}
           </div>
-        )}
+        )}</Presence>
 
         <div className="pm-centuries" aria-label="Шкала веков">
           {ROMAN.map((n, i) => (
@@ -263,18 +245,20 @@ export const PublicMap: React.FC = () => {
           </div>
         )}
 
-        {showCard && mobile && <Sheet event={selected ?? undefined} onClose={closeCard} />}
+        <Presence>{showCard && mobile && <Sheet event={selected ?? undefined} onClose={closeCard} />}</Presence>
 
-        {overlay && (
+        <Presence>{overlay && (
           <div className={`pm-state pm-glass pm-state-${overlay.kind}`} role={overlay.kind === 'error' ? 'alert' : 'status'}>
             <div className="pm-state-icon">{overlay.kind === 'error' ? '!' : overlay.kind === 'empty' ? '0' : ''}</div>
             <div className="pm-state-title">{overlay.title}</div>
             <div className="pm-state-text">{overlay.text}</div>
             <button type="button" className={overlay.kind === 'loading' ? 'pm-btn-ghost' : 'pm-btn'} onClick={overlay.run}>{overlay.action}</button>
           </div>
-        )}
+        )}</Presence>
       </>
       )}
+      {/* На телефоне фильтры и лента - экраны поверх остального; уходя, закрывают уже вернувшийся интерфейс. */}
+      <Presence>{screen && (layer === 'filters' ? filtersPanel : feed)}</Presence>
     </div>
     {modal}
     </>
@@ -339,7 +323,7 @@ const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = ({
   )
 }
 
-const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = ({ event: e, onClose }) => {
+const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void; className?: string }> = ({ event: e, onClose, className = '' }) => {
   const [open, setOpen] = useState(false)
   const startY = useRef<number | null>(null)
   const { share } = useShare(e)
@@ -353,8 +337,8 @@ const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = (
   }
   return (
     <>
-      <div className="pm-sheet-shade" onClick={onClose} />
-      <section className={`pm-sheet${open ? ' open' : ''}`} aria-label="Карточка события">
+      <div className={`pm-sheet-shade ${className}`} onClick={onClose} />
+      <section className={`pm-sheet${open ? ' open' : ''} ${className}`} aria-label="Карточка события">
         <div className="pm-sheet-handle" role="button" aria-label={open ? 'Свернуть' : 'Развернуть'}
           onPointerDown={ev => { startY.current = ev.clientY }} onPointerUp={ev => onUp(ev.clientY)}>
           <i />
@@ -387,9 +371,9 @@ const TypeGlyph: React.FC<{ t: EventType }> = ({ t }) => (
 )
 
 const Filters: React.FC<{
-  mobile: boolean; leaving: boolean; draft: Filter; setDraft: (f: Filter) => void; events: HistEvent[]
-  onClose: () => void; onApply: () => void; onReset: () => void
-}> = ({ mobile, leaving, draft, setDraft, events, onClose, onApply, onReset }) => {
+  mobile: boolean; draft: Filter; setDraft: (f: Filter) => void; events: HistEvent[]
+  onClose: () => void; onApply: () => void; onReset: () => void; className?: string
+}> = ({ mobile, draft, setDraft, events, onClose, onApply, onReset, className = '' }) => {
   const n = events.filter(e => matches(draft, e)).length
   // Пока год вводится руками, он может выйти за диапазон: полоса не должна вылезать из трека.
   const pct = (y: number) => Math.min(100, Math.max(0, ((y - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100))
@@ -398,7 +382,7 @@ const Filters: React.FC<{
   const setTo = (v: number) => setDraft({ ...draft, to: Math.max(clampYear(v, MAX_YEAR), draft.from) })
   const badge = filterBadge(draft)
   return (
-    <section className={mobile ? 'pm-screen' : `pm-panel pm-glass${leaving ? ' out' : ''}`} aria-label="Фильтры">
+    <section className={`${mobile ? 'pm-screen' : 'pm-panel pm-glass'} ${className}`} aria-label="Фильтры">
       <div className="pm-panel-head">
         <h2>Фильтры</h2>
         {badge > 0 && <span className="pm-badge">{badge}</span>}
@@ -454,11 +438,11 @@ const Filters: React.FC<{
 
 const Feed: React.FC<{
   mobile?: boolean; events: HistEvent[]; applied: Filter
-  onSelect: (id: number) => void; onClose: () => void; onPropose: () => void
-}> = ({ mobile, events, applied, onSelect, onClose, onPropose }) => {
+  onSelect: (id: number) => void; onClose: () => void; onPropose: () => void; className?: string
+}> = ({ mobile, events, applied, onSelect, onClose, onPropose, className = '' }) => {
   const sorted = useMemo(() => [...events].sort((a, b) => a.eventDate.localeCompare(b.eventDate)), [events])
   return (
-    <section className={mobile ? 'pm-screen' : 'pm-panel pm-glass pm-feed'} aria-label="Лента событий">
+    <section className={`${mobile ? 'pm-screen' : 'pm-panel pm-glass pm-feed'} ${className}`} aria-label="Лента событий">
       <div className="pm-panel-head">
         <h2>Лента событий</h2>
         <span className="pm-grow" />

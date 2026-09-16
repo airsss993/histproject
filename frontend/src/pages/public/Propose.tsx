@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { MapView, type MapHandle } from './MapView.tsx'
+import { Presence, useLeaving } from './presence.tsx'
 import { submitProposal, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType } from './api.ts'
 import './propose.css'
 
@@ -101,6 +102,14 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   const abortRef = useRef<() => void>()
   const chosenRef = useRef('') // выбранное место: его текст в поле не ищем повторно
   const sending = phase.k === 'sending'
+  const leaving = useLeaving(open)
+  // Отправленную заявку сбрасываем после анимации ухода, иначе окно гаснет уже с пустой формой.
+  const resetOnHide = useRef(false)
+  useEffect(() => {
+    if (open || leaving || !resetOnHide.current) return
+    resetOnHide.current = false
+    setD(EMPTY); setPhase({ k: 'form' }); setShown(new Set()); setServer({}); setToast([]); setQuery('')
+  }, [open, leaving])
 
   useEffect(() => {
     if (!open) return
@@ -127,7 +136,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     return () => { clearTimeout(t); ctrl.abort() }
   }, [query])
 
-  if (!open) return null
+  if (!open && !leaving) return null
 
   const local = validate(d)
   const errors: Errors = { ...local, ...server }
@@ -144,7 +153,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   }
 
   const reset = () => { setD(EMPTY); setPhase({ k: 'form' }); setShown(new Set()); setServer({}); setToast([]); setQuery('') }
-  const close = () => { if (phase.k === 'done') reset(); else setPhase({ k: 'form' }); onClose() }
+  const close = () => { if (phase.k === 'done') resetOnHide.current = true; else setPhase({ k: 'form' }); onClose() }
 
   const pickFile = async (file: File | undefined) => {
     if (!file) return
@@ -336,7 +345,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
             <div className="pp-search">
               <input className="pp-input" value={query} maxLength={200} placeholder="Город, село, урочище" aria-label="Поиск места"
                 onChange={e => setQuery(e.target.value)} />
-              {places.length > 0 && (
+              <Presence>{places.length > 0 && (
                 <ul className="pp-places" role="listbox">
                   {places.map(p => (
                     <li key={p.place_id}>
@@ -344,7 +353,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
                     </li>
                   ))}
                 </ul>
-              )}
+              )}</Presence>
             </div>
             <div className={`pp-map${visible('place') ? ' bad' : ''}`}>
               <MapView ref={mapRef} events={[]} isActive={none} selectedId={null} onSelect={noop} pad={12} labels
@@ -420,7 +429,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   }
 
   return (
-    <div className={`pm-root pp-page${mobile ? ' mobile' : ''}`} role="dialog" aria-modal="true" aria-labelledby="pp-title">
+    <div className={`pm-root pp-page${mobile ? ' mobile' : ''}${open ? '' : ' out'}`} role="dialog" aria-modal="true" aria-labelledby="pp-title">
       <div className="pp-top">
         <button type="button" className="pp-back" disabled={sending} onClick={close}>{mobile ? '<' : '<- Карта'}</button>
         <span className="pp-divider" />
@@ -435,7 +444,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
         </div>
       </div>
       <div className="pp-actbar">{foot}</div>
-      {toast.length > 0 && (
+      <Presence>{toast.length > 0 && (
         <div className="pp-toast" role="alert">
           <div className="pp-toast-head">
             <span className="pp-banner-icon">!</span>
@@ -444,7 +453,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
           </div>
           <ul className="pp-toast-list">{toast.map(f => <li key={f}>{LABEL[f]}</li>)}</ul>
         </div>
-      )}
+      )}</Presence>
     </div>
   )
 }
