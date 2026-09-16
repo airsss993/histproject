@@ -140,13 +140,14 @@ function Marker({ type, state, size }: { type: EventType; state: PinState; size:
 }
 
 // Поля под шапку, рейл и шкалу веков: в них карточка не заходит, пока метка на экране.
+const CLOSE_MS = 160
 const EDGE = { top: 104, right: 110, bottom: 32, left: 100 }
 // При lo > hi побеждает lo.
 const clamp = (v: number, lo: number, hi: number) => Math.max(Math.min(v, hi), lo)
 
 /** Выноска у метки (x, y - остриё): справа, если влезает, иначе слева; по вертикали прижата к экрану. */
-function Callout({ x, y, pin, width, height, children }:
-  { x: number; y: number; pin: number; width: number; height: number; children: React.ReactNode }) {
+function Callout({ x, y, pin, width, height, out, children }:
+  { x: number; y: number; pin: number; width: number; height: number; out: boolean; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
   const [[w, h], setSize] = useState([0, 0])
   useLayoutEffect(() => {
@@ -164,7 +165,7 @@ function Callout({ x, y, pin, width, height, children }:
   const top = clamp(clamp(cy - h / 2, EDGE.top, height - EDGE.bottom - h), cy - h + 28, cy - 28)
   const arrow = clamp(cy - top, 20, h - 20)
   return (
-    <div ref={ref} className={`pm-callout ${right ? 'right' : 'left'}`}
+    <div ref={ref} className={`pm-callout ${right ? 'right' : 'left'}${out ? ' out' : ''}`}
       style={{ left: right ? x + gap : x - gap - w, top, '--ay': `${arrow}px` } as React.CSSProperties}>
       <i className="pm-callout-arrow" />
       {children}
@@ -175,6 +176,7 @@ function Callout({ x, y, pin, width, height, children }:
 export const MapView = forwardRef<MapHandle, Props>(function MapView(
   { events, isActive, selectedId, onSelect, pad, labels, sea = INK, interactive = true, pick, onPick, callout }, ref) {
   const wrap = useRef<HTMLDivElement>(null)
+  const hasCallout = !!callout
   const mapRef = useRef<maplibregl.Map>()
   const pickRef = useRef<maplibregl.Marker>()
   const onPickRef = useRef(onPick)
@@ -238,8 +240,21 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     flyTo: (lat, lng) => mapRef.current?.flyTo({ center: [lng, lat], zoom: 10, duration: 800 }),
   }), [])
 
+  // Закрытую карточку держим, пока играет анимация ухода (CLOSE_MS = длительность pm-out в public.css).
+  const kept = useRef<{ node: React.ReactNode; id: number | null }>()
+  if (callout) kept.current = { node: callout, id: selectedId }
+  const [closing, setClosing] = useState(false)
+  useEffect(() => {
+    if (hasCallout) { setClosing(false); return }
+    if (!kept.current) return
+    setClosing(true)
+    const t = setTimeout(() => { kept.current = undefined; setClosing(false) }, CLOSE_MS)
+    return () => clearTimeout(t)
+  }, [hasCallout])
+  const shown = callout || (closing ? kept.current?.node : undefined)
+  const anchorId = callout ? selectedId : closing ? kept.current?.id ?? null : null
+
   // Выбранное за краем экрана (из поиска, ленты, ссылки) подвозим в центр, иначе карточку не видно.
-  const hasCallout = !!callout
   useEffect(() => {
     const map = mapRef.current!
     const e = events.find(ev => ev.id === selectedId)
@@ -266,7 +281,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
       // Берём копию мира, ближайшую к центру, иначе метки у 180-го меридиана уезжают за экран.
       const lng = e.longitude + 360 * Math.round((center - e.longitude) / 360)
       const { x, y } = map.project([lng, e.latitude])
-      if (e.id === selectedId) sel = { x, y }
+      if (e.id === anchorId) sel = { x, y }
       if (x < -CELL || y < -CELL || x > width + CELL || y > height + CELL) continue
       const pt = { e, x, y, lng }
       if (!isActive(e)) { inactive.push(pt); continue }
@@ -280,7 +295,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     return { singles, clusters, inactive, sel, k: 2 ** (map.getZoom() - baseZoom.current), width, height }
     // tick - перерисовка при движении карты.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, isActive, tick, selectedId])
+  }, [events, isActive, tick, selectedId, anchorId])
 
   // Долготы уже подогнаны к видимой копии мира, иначе группа через 180-й меридиан растянется на весь мир.
   const zoomToCluster = (members: { e: HistEvent; lng: number }[]) => {
@@ -326,10 +341,10 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
           <div className="pm-popup-meta">{yearOf(hovered.e)} · {TYPE_LABEL[hovered.e.eventType]}</div>
         </div>
       )}
-      {callout && (view.sel
-        ? <Callout x={view.sel.x} y={view.sel.y} pin={selectedPx(pin)} width={view.width} height={view.height}>{callout}</Callout>
+      {shown && (view.sel
+        ? <Callout x={view.sel.x} y={view.sel.y} pin={selectedPx(pin)} width={view.width} height={view.height} out={!callout}>{shown}</Callout>
         // Событие не в списке (ссылка на снятое, ещё грузится): метки нет, карточка в углу.
-        : <div className="pm-callout fixed">{callout}</div>)}
+        : <div className={`pm-callout fixed${callout ? '' : ' out'}`}>{shown}</div>)}
     </div>
   )
 })

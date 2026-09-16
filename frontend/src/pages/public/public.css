@@ -176,6 +176,11 @@
 .pm-callout.left .pm-card { transform-origin: 100% var(--ay); }
 .pm-callout.fixed .pm-card { transform-origin: 0 100%; }
 @keyframes pm-in { from { opacity: 0; transform: scale(0.9); } }
+.pm-callout.out { pointer-events: none; }
+.pm-callout.out .pm-card { animation: pm-out 160ms ease-in forwards; }
+.pm-callout.out .pm-callout-arrow { animation: pm-fade-out 160ms ease-in forwards; }
+@keyframes pm-out { to { opacity: 0; transform: scale(0.94); } }
+@keyframes pm-fade-out { to { opacity: 0; } }
 .pm-card-preview { position: relative; height: 240px; flex: none; border-bottom: 1px dashed var(--line); background: repeating-linear-gradient(135deg, #0B1234 0 6px, #080E28 6px 12px); }
 .pm-card-preview.none { height: 88px; background: #080E28; }
 .pm-card-preview img, .pm-sheet-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -344,5 +349,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pm-pin, .pm-pin.sel, .pm-ring, .pm-cluster, .pm-popup, .pm-card, .pm-callout-arrow { animation: none; transition: none; }
+  .pm-pin, .pm-pin.sel, .pm-ring, .pm-cluster, .pm-popup, .pm-card, .pm-callout-arrow,
+  .pm-callout.out .pm-card, .pm-callout.out .pm-callout-arrow { animation: none; transition: none; }
+  .pm-callout.out { visibility: hidden; }
 }
