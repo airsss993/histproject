@@ -54,6 +54,9 @@
 .pm-hit:focus-visible .pm-pin path { filter: drop-shadow(0 0 3px var(--gold)); }
 /* Метка: масштаб --s задаёт React, переход и "подскок" при выборе - CSS. Остриё в (0, 0) = transform-origin. */
 .pm-pin { transform: scale(var(--s)); transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pm-pin path, .pm-pin circle { transition: fill 240ms ease-out, stroke 240ms ease-out; }
+/* Метки и группы, появившиеся после фильтра или зума. */
+.pm-appear { animation: pm-fade 240ms ease-out; }
 .pm-pin.sel { animation: pm-bounce 420ms cubic-bezier(0.3, 1.4, 0.5, 1); }
 @keyframes pm-bounce { from { transform: scale(calc(var(--s) * 0.6)); } }
 .pm-ring { transform-box: fill-box; transform-origin: center; animation: pm-ring-in 420ms ease-out, pm-ring-pulse 2.4s 420ms ease-in-out infinite; }
@@ -349,7 +352,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pm-pin, .pm-pin.sel, .pm-ring, .pm-cluster, .pm-popup, .pm-card, .pm-callout-arrow,
+  .pm-pin, .pm-pin.sel, .pm-pin path, .pm-pin circle, .pm-appear, .pm-ring, .pm-cluster, .pm-popup, .pm-card, .pm-callout-arrow,
   .pm-callout.out .pm-card, .pm-callout.out .pm-callout-arrow { animation: none; transition: none; }
   .pm-callout.out { visibility: hidden; }
 }

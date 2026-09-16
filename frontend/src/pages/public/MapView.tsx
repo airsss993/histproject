@@ -240,19 +240,28 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     flyTo: (lat, lng) => mapRef.current?.flyTo({ center: [lng, lat], zoom: 10, duration: 800 }),
   }), [])
 
-  // Закрытую карточку держим, пока играет анимация ухода (CLOSE_MS = длительность pm-out в public.css).
-  const kept = useRef<{ node: React.ReactNode; id: number | null }>()
-  if (callout) kept.current = { node: callout, id: selectedId }
-  const [closing, setClosing] = useState(false)
+  // Ушедшую карточку (закрыли или выбрали другую) держим, пока играет анимация ухода
+  // (CLOSE_MS = длительность pm-out в public.css); новая в это время уже выезжает у своей метки.
+  type Shown = { key: number | null; node: React.ReactNode }
+  const liveKey = callout ? selectedId : undefined
+  const live = useRef<Shown>()
+  const [leaving, setLeaving] = useState<Shown[]>([])
   useEffect(() => {
-    if (hasCallout) { setClosing(false); return }
-    if (!kept.current) return
-    setClosing(true)
-    const t = setTimeout(() => { kept.current = undefined; setClosing(false) }, CLOSE_MS)
-    return () => clearTimeout(t)
-  }, [hasCallout])
-  const shown = callout || (closing ? kept.current?.node : undefined)
-  const anchorId = callout ? selectedId : closing ? kept.current?.id ?? null : null
+    const gone = live.current && live.current.key !== liveKey ? live.current : undefined
+    setLeaving(l => {
+      const rest = l.filter(x => x.key !== liveKey)
+      return gone ? [...rest, gone] : rest.length === l.length ? l : rest
+    })
+    // Без очистки: таймер должен сработать, даже если карточку успели сменить ещё раз.
+    if (gone) setTimeout(() => setLeaving(l => l.filter(x => x !== gone)), CLOSE_MS)
+  }, [liveKey])
+  // После эффекта выше: он должен видеть карточку прошлого рендера.
+  useEffect(() => { live.current = liveKey === undefined ? undefined : { key: liveKey, node: callout } })
+  const cards = [
+    ...leaving.map(c => ({ ...c, out: true })),
+    ...(liveKey === undefined ? [] : [{ key: liveKey, node: callout, out: false }]),
+  ]
+  const anchorIds = cards.map(c => c.key).join()
 
   // Выбранное за краем экрана (из поиска, ленты, ссылки) подвозим в центр, иначе карточку не видно.
   useEffect(() => {
@@ -271,9 +280,10 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   const view = useMemo(() => {
     type P = { e: HistEvent; x: number; y: number; lng: number }
     const map = mapRef.current
-    const inactive: P[] = [], singles: P[] = [], clusters: { x: number; y: number; members: P[] }[] = []
-    let sel: { x: number; y: number } | undefined
-    if (!map) return { singles, clusters, inactive, sel, k: 1, width: 0, height: 0 }
+    const pts: (P & { active: boolean })[] = [], clusters: { x: number; y: number; members: P[] }[] = []
+    const anchors = new Map<number, { x: number; y: number }>()
+    if (!map) return { pins: pts, clusters, anchors, k: 1, width: 0, height: 0 }
+    const wanted = new Set(anchorIds.split(',').map(Number))
     const { width, height } = map.getContainer().getBoundingClientRect()
     const center = map.getCenter().lng
     const cells = new Map<string, P[]>()
@@ -281,21 +291,27 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
       // Берём копию мира, ближайшую к центру, иначе метки у 180-го меридиана уезжают за экран.
       const lng = e.longitude + 360 * Math.round((center - e.longitude) / 360)
       const { x, y } = map.project([lng, e.latitude])
-      if (e.id === anchorId) sel = { x, y }
+      if (wanted.has(e.id)) anchors.set(e.id, { x, y })
       if (x < -CELL || y < -CELL || x > width + CELL || y > height + CELL) continue
-      const pt = { e, x, y, lng }
-      if (!isActive(e)) { inactive.push(pt); continue }
+      const pt = { e, x, y, lng, active: isActive(e) }
+      pts.push(pt)
+      if (!pt.active) continue
       const key = e.id === selectedId ? 'sel' : `${Math.floor(x / CELL)}:${Math.floor(y / CELL)}`
       cells.set(key, [...(cells.get(key) ?? []), pt])
     }
+    const grouped = new Set<number>()
     for (const m of cells.values()) {
-      if (m.length === 1) singles.push(m[0])
-      else clusters.push({ x: m.reduce((s, p) => s + p.x, 0) / m.length, y: m.reduce((s, p) => s + p.y, 0) / m.length, members: m })
+      if (m.length === 1) continue
+      m.forEach(p => grouped.add(p.e.id))
+      clusters.push({ x: m.reduce((s, p) => s + p.x, 0) / m.length, y: m.reduce((s, p) => s + p.y, 0) / m.length, members: m })
     }
-    return { singles, clusters, inactive, sel, k: 2 ** (map.getZoom() - baseZoom.current), width, height }
+    // Активные и неактивные одним списком в порядке events: при смене фильтра метка остаётся тем же
+    // DOM-узлом и перекрашивается плавно, а не пересоздаётся.
+    const pins = pts.filter(p => !grouped.has(p.e.id))
+    return { pins, clusters, anchors, k: 2 ** (map.getZoom() - baseZoom.current), width, height }
     // tick - перерисовка при движении карты.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, isActive, tick, selectedId, anchorId])
+  }, [events, isActive, tick, selectedId, anchorIds])
 
   // Долготы уже подогнаны к видимой копии мира, иначе группа через 180-й меридиан растянется на весь мир.
   const zoomToCluster = (members: { e: HistEvent; lng: number }[]) => {
@@ -308,30 +324,30 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     className: 'pm-hit', role: 'button', tabIndex: 0, onClick: run,
     onKeyDown: (ev: React.KeyboardEvent) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); run() } },
   })
-  const hovered = view.singles.find(p => p.e.id === hover && p.e.id !== selectedId)
+  const hovered = view.pins.find(p => p.active && p.e.id === hover && p.e.id !== selectedId)
   const pin = pinSize(view.k)
 
   return (
     <div className="pm-map" style={{ background: sea }}>
       <div ref={wrap} className="pm-map-canvas" />
       <svg className="pm-map-overlay">
-        {view.inactive.map(p => (
-          <g key={p.e.id} transform={`translate(${p.x},${p.y})`}>
-            <Marker type={p.e.eventType} state="inactive" size={pin} />
-          </g>
-        ))}
         {view.clusters.map(c => (
-          <g key={c.members[0].e.id} transform={`translate(${c.x},${c.y})`} {...button(() => zoomToCluster(c.members))}
-            aria-label={`${c.members.length} событий, приблизить`}>
+          <g key={`c${c.members[0].e.id}`} transform={`translate(${c.x},${c.y})`} {...button(() => zoomToCluster(c.members))}
+            className="pm-hit pm-appear" aria-label={`${c.members.length} событий, приблизить`}>
             <circle className="pm-cluster" r={16.5} fill={alpha(GOLD, 0.12)} stroke={GOLD} strokeWidth={1.6} />
             <text textAnchor="middle" dy={4.5} className="pm-cluster-n">{c.members.length}</text>
           </g>
         ))}
-        {view.singles.map(p => (
+        {view.pins.map(p => p.active ? (
           <g key={p.e.id} transform={`translate(${p.x},${p.y})`} {...button(() => onSelect(p.e.id))} aria-label={p.e.title}
+            className="pm-hit pm-appear"
             onMouseEnter={() => setHover(p.e.id)} onMouseLeave={() => setHover(null)}
             onFocus={() => setHover(p.e.id)} onBlur={() => setHover(null)}>
             <Marker type={p.e.eventType} size={pin} state={p.e.id === selectedId ? 'selected' : p.e.id === hover ? 'hover' : 'normal'} />
+          </g>
+        ) : (
+          <g key={p.e.id} transform={`translate(${p.x},${p.y})`} className="pm-appear">
+            <Marker type={p.e.eventType} state="inactive" size={pin} />
           </g>
         ))}
       </svg>
@@ -341,10 +357,13 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
           <div className="pm-popup-meta">{yearOf(hovered.e)} · {TYPE_LABEL[hovered.e.eventType]}</div>
         </div>
       )}
-      {shown && (view.sel
-        ? <Callout x={view.sel.x} y={view.sel.y} pin={selectedPx(pin)} width={view.width} height={view.height} out={!callout}>{shown}</Callout>
-        // Событие не в списке (ссылка на снятое, ещё грузится): метки нет, карточка в углу.
-        : <div className={`pm-callout fixed${callout ? '' : ' out'}`}>{shown}</div>)}
+      {cards.map(c => {
+        const at = c.key === null ? undefined : view.anchors.get(c.key)
+        return at
+          ? <Callout key={c.key} x={at.x} y={at.y} pin={selectedPx(pin)} width={view.width} height={view.height} out={c.out}>{c.node}</Callout>
+          // Событие не в списке (ссылка на снятое, ещё грузится): метки нет, карточка в углу.
+          : <div key={c.key} className={`pm-callout fixed${c.out ? ' out' : ''}`}>{c.node}</div>
+      })}
     </div>
   )
 })
