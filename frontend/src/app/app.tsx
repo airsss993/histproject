@@ -1,15 +1,17 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { store } from './store.ts'
-import { PublicMap } from '../pages/public/PublicMap.tsx'
-import { NotFound } from '../pages/public/NotFound.tsx'
 import { LogIn } from '../pages/login/login.tsx'
 import { Admin } from '../pages/admin/admin.tsx'
 import { HisLog } from '../pages/hislog/hislog.tsx'
 import { Moder } from '../pages/moder/moder.tsx'
 import { Madder } from '../pages/admader/madder.tsx'
+
+// Карта (MapLibre) грузится отдельным чанком, админка её не тянет.
+const PublicMap = lazy(() => import('../pages/public/PublicMap.tsx').then(m => ({ default: m.PublicMap })))
+const NotFound = lazy(() => import('../pages/public/NotFound.tsx').then(m => ({ default: m.NotFound })))
 
 const rootElement = document.getElementById('root');
   if (rootElement) {
@@ -17,6 +19,7 @@ const rootElement = document.getElementById('root');
       <React.StrictMode>
         <Provider store={store}>
           <BrowserRouter>
+            <Suspense fallback={null}>
             <Routes>
               <Route path="/" element={<Navigate to="/map" replace />} />
               <Route path="/app" element={<Navigate to="/map" replace />} />
@@ -28,6 +31,7 @@ const rootElement = document.getElementById('root');
               <Route path="/mod" element={<Moder />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </Provider>
       </React.StrictMode>

@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -85,14 +85,19 @@ const unwrap = (ring: Position[]) => ring.reduce<Position[]>((out, [lng, lat]) =
   out.push([lng + 360 * Math.round((prev - lng) / 360), lat])
   return out
 }, [])
-const russia = fetch('/russia-regions.geojson').then(r => r.json() as Promise<FeatureCollection>).then(fc => {
-  for (const f of fc.features) {
-    const g = f.geometry
-    if (g.type === 'Polygon') g.coordinates = g.coordinates.map(unwrap)
-    else if (g.type === 'MultiPolygon') g.coordinates = g.coordinates.map(p => p.map(unwrap))
-  }
-  return fc
-})
+// Грузим при первой карте; неудачную загрузку не кешируем, следующая карта попробует снова.
+let russia: Promise<FeatureCollection> | undefined
+const loadRussia = () => russia ??= fetch('/russia-regions.geojson')
+  .then(r => { if (!r.ok) throw new Error(`russia-regions: ${r.status}`); return r.json() as Promise<FeatureCollection> })
+  .then(fc => {
+    for (const f of fc.features) {
+      const g = f.geometry
+      if (g.type === 'Polygon') g.coordinates = g.coordinates.map(unwrap)
+      else if (g.type === 'MultiPolygon') g.coordinates = g.coordinates.map(p => p.map(unwrap))
+    }
+    return fc
+  })
+  .catch(err => { russia = undefined; throw err })
 
 const RUSSIA_BOUNDS: [number, number, number, number] = [19, 41, 191, 82]
 const PICK_PIN = `<svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="${GOLD}" stroke-width="2.8" style="display:block">`
@@ -135,6 +140,8 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   const pickRef = useRef<maplibregl.Marker>()
   const onPickRef = useRef(onPick)
   onPickRef.current = onPick
+  const labelsRef = useRef(labels)
+  labelsRef.current = labels
   const baseZoom = useRef(0)
   const [tick, setTick] = useState(0)
   const [hover, setHover] = useState<number | null>(null)
@@ -152,7 +159,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     map.on('move', redraw)
     map.on('resize', redraw)
     map.on('click', e => onPickRef.current?.(e.lngLat.lat, e.lngLat.wrap().lng))
-    map.on('load', () => russia.then(fc => {
+    map.on('load', () => loadRussia().then(fc => {
       if (!map.getStyle()) return
       map.addSource('russia', { type: 'geojson', data: fc })
       map.addLayer({ id: 'russia', type: 'fill', source: 'russia', paint: { 'fill-color': '#101A48' } }, 'water')
@@ -166,8 +173,9 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
 
   useEffect(() => {
     const map = mapRef.current!
-    const apply = () => LABEL_LAYERS.forEach(id => map.setLayoutProperty(id, 'visibility', labels ? 'visible' : 'none'))
-    if (map.isStyleLoaded()) apply()
+    const apply = () => LABEL_LAYERS.forEach(id => map.setLayoutProperty(id, 'visibility', labelsRef.current ? 'visible' : 'none'))
+    // isStyleLoaded() ложно, пока грузятся тайлы, поэтому проверяем сами слои.
+    if (map.getLayer(LABEL_LAYERS[0])) apply()
     else map.once('styledata', apply)
   }, [labels])
 
@@ -194,7 +202,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   // Точки в экранных координатах; кластеризуем только активные, по сетке CELL.
   // ponytail: сеточная кластеризация O(n), на десятках тысяч меток понадобится supercluster.
   const view = useMemo(() => {
-    type P = { e: HistEvent; x: number; y: number }
+    type P = { e: HistEvent; x: number; y: number; lng: number }
     const map = mapRef.current
     const inactive: P[] = [], singles: P[] = [], clusters: { x: number; y: number; members: P[] }[] = []
     if (!map) return { singles, clusters, inactive, k: 1 }
@@ -203,9 +211,10 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     const cells = new Map<string, P[]>()
     for (const e of events) {
       // Берём копию мира, ближайшую к центру, иначе метки у 180-го меридиана уезжают за экран.
-      const { x, y } = map.project([e.longitude + 360 * Math.round((center - e.longitude) / 360), e.latitude])
+      const lng = e.longitude + 360 * Math.round((center - e.longitude) / 360)
+      const { x, y } = map.project([lng, e.latitude])
       if (x < -CELL || y < -CELL || x > width + CELL || y > height + CELL) continue
-      const pt = { e, x, y }
+      const pt = { e, x, y, lng }
       if (!isActive(e)) { inactive.push(pt); continue }
       const key = e.id === selectedId ? 'sel' : `${Math.floor(x / CELL)}:${Math.floor(y / CELL)}`
       cells.set(key, [...(cells.get(key) ?? []), pt])
@@ -219,12 +228,17 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, isActive, tick, selectedId])
 
-  const zoomToCluster = (members: { e: HistEvent }[]) => {
+  // Долготы уже подогнаны к видимой копии мира, иначе группа через 180-й меридиан растянется на весь мир.
+  const zoomToCluster = (members: { e: HistEvent; lng: number }[]) => {
     const b = new maplibregl.LngLatBounds()
-    members.forEach(({ e }) => b.extend([e.longitude, e.latitude]))
+    members.forEach(({ e, lng }) => b.extend([lng, e.latitude]))
     mapRef.current?.fitBounds(b, { padding: 80, maxZoom: 12, duration: 600 })
   }
 
+  const button = (run: () => void) => ({
+    className: 'pm-hit', role: 'button', tabIndex: 0, onClick: run,
+    onKeyDown: (ev: React.KeyboardEvent) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); run() } },
+  })
   const hovered = view.singles.find(p => p.e.id === hover && p.e.id !== selectedId)
   const pin = pinSize(view.k)
 
@@ -238,15 +252,16 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
           </g>
         ))}
         {view.clusters.map(c => (
-          <g key={c.members[0].e.id} transform={`translate(${c.x},${c.y})`} className="pm-hit"
-            role="button" aria-label={`${c.members.length} событий, приблизить`} onClick={() => zoomToCluster(c.members)}>
+          <g key={c.members[0].e.id} transform={`translate(${c.x},${c.y})`} {...button(() => zoomToCluster(c.members))}
+            aria-label={`${c.members.length} событий, приблизить`}>
             <circle r={16.5} fill={alpha(GOLD, 0.12)} stroke={GOLD} strokeWidth={1.6} />
             <text textAnchor="middle" dy={4.5} className="pm-cluster-n">{c.members.length}</text>
           </g>
         ))}
         {view.singles.map(p => (
-          <g key={p.e.id} transform={`translate(${p.x},${p.y})`} className="pm-hit" role="button" aria-label={p.e.title}
-            onMouseEnter={() => setHover(p.e.id)} onMouseLeave={() => setHover(null)} onClick={() => onSelect(p.e.id)}>
+          <g key={p.e.id} transform={`translate(${p.x},${p.y})`} {...button(() => onSelect(p.e.id))} aria-label={p.e.title}
+            onMouseEnter={() => setHover(p.e.id)} onMouseLeave={() => setHover(null)}
+            onFocus={() => setHover(p.e.id)} onBlur={() => setHover(null)}>
             <Marker type={p.e.eventType} size={pin} state={p.e.id === selectedId ? 'selected' : p.e.id === hover ? 'hover' : 'normal'} />
           </g>
         ))}

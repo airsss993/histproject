@@ -161,17 +161,8 @@ export const PublicMap: React.FC = () => {
 
   // Окно всегда вторым в фрагменте: при смене ветки React сохраняет черновик заявки.
   const modal = <ProposeModal open={proposeOpen} mobile={mobile} onClose={closePropose} />
-  if (mobile && layer === 'filters') return <><div className="pm-root">{filtersPanel}</div>{modal}</>
-  if (mobile && layer === 'feed') {
-    return (
-      <>
-        <div className="pm-root">
-          <Feed mobile events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />
-        </div>
-        {modal}
-      </>
-    )
-  }
+  // На телефоне фильтры и лента - экраны поверх карты: карта остаётся смонтированной и не теряет вид.
+  const screen = mobile && (layer === 'filters' || layer === 'feed')
 
   return (
     <>
@@ -179,87 +170,94 @@ export const PublicMap: React.FC = () => {
       <MapView ref={mapRef} events={events} isActive={isActive} selectedId={showCard ? selectedId : null}
         onSelect={select} pad={mobile ? 16 : 48} labels={!mobile} />
 
-      <div role="banner" className="pm-header">
-        <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
-        <div className="pm-grow" />
-        {!mobile && <button type="button" className={`pm-btn-ghost pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}
-      </div>
+      {screen ? (layer === 'filters'
+        ? filtersPanel
+        : <Feed mobile events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />
+      ) : (
+      <>
+        <div role="banner" className="pm-header">
+          <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
+          <div className="pm-grow" />
+          {!mobile && <button type="button" className={`pm-btn-ghost pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}
+        </div>
 
-      {!mobile && layer !== 'filters' && layer !== 'feed' && (
-        <nav className="pm-rail pm-glass" aria-label="Управление картой">
-          <button type="button" onClick={() => openLayer('filters')} title="Фильтры" className={filterBadge(applied) ? 'on' : ''}>Ф</button>
-          <button type="button" onClick={() => openLayer('feed')} title="Лента событий">Л</button>
-          <button type="button" onClick={() => mapRef.current?.zoomBy(1.6)} title="Приблизить">+</button>
-          <button type="button" onClick={() => mapRef.current?.zoomBy(1 / 1.6)} title="Отдалить">-</button>
-          <button type="button" title="Колесо мыши - масштаб, перетаскивание - сдвиг, клик по метке - карточка события, клик по кругу с числом - приблизить группу">?</button>
-        </nav>
-      )}
+        {!mobile && layer !== 'filters' && layer !== 'feed' && (
+          <nav className="pm-rail pm-glass" aria-label="Управление картой">
+            <button type="button" onClick={() => openLayer('filters')} title="Фильтры" className={filterBadge(applied) ? 'on' : ''}>Ф</button>
+            <button type="button" onClick={() => openLayer('feed')} title="Лента событий">Л</button>
+            <button type="button" onClick={() => mapRef.current?.zoomBy(1.6)} title="Приблизить">+</button>
+            <button type="button" onClick={() => mapRef.current?.zoomBy(1 / 1.6)} title="Отдалить">-</button>
+            <button type="button" title="Колесо мыши - масштаб, перетаскивание - сдвиг, клик по метке - карточка события, клик по кругу с числом - приблизить группу">?</button>
+          </nav>
+        )}
 
-      <div className={`pm-search-wrap${layer === 'filters' || layer === 'feed' ? ' pm-muted' : ''}`}>
-        <label className="pm-search pm-glass">
-          <input value={q} placeholder="Найти событие" aria-label="Найти событие"
-            onChange={e => { patch({ q: e.target.value }); setLayer('search') }}
-            onFocus={() => q && setLayer('search')}
-            onKeyDown={e => { if (e.key === 'Escape') setLayer('none'); if (e.key === 'Enter' && found[0]) select(found[0].id) }} />
-          {showCard && q
-            ? <button type="button" className="pm-link" onClick={() => setLayer('search')}>Показать список ↓</button>
-            : load.status === 'ready' && <span className="pm-counter">{q ? `${found.length} из ${filtered.length}` : filtered.length}</span>}
-        </label>
-        {layer === 'search' && q && (
-          <div className="pm-results pm-glass">
-            {found.length === 0 && <div className="pm-results-empty">Ничего не нашлось</div>}
-            {found.slice(0, 8).map(e => (
-              <button type="button" key={e.id} className="pm-result" onClick={() => select(e.id)}>
-                <Thumb e={e} size={40} />
-                <span className="pm-year">{yearOf(e)}</span>
-                <span className="pm-result-title">{e.title}</span>
-                <span className="pm-grow" />
-                <span className="pm-dim-text">{TYPE_LABEL[e.eventType]}</span>
-              </button>
+        <div className={`pm-search-wrap${layer === 'filters' || layer === 'feed' ? ' pm-muted' : ''}`}>
+          <label className="pm-search pm-glass">
+            <input value={q} maxLength={100} placeholder="Найти событие" aria-label="Найти событие"
+              onChange={e => { patch({ q: e.target.value }); setLayer('search') }}
+              onFocus={() => q && setLayer('search')}
+              onKeyDown={e => { if (e.key === 'Escape') setLayer('none'); if (e.key === 'Enter' && found[0]) select(found[0].id) }} />
+            {showCard && q
+              ? <button type="button" className="pm-link" onClick={() => setLayer('search')}>Показать список ↓</button>
+              : load.status === 'ready' && <span className="pm-counter">{q ? `${found.length} из ${filtered.length}` : filtered.length}</span>}
+          </label>
+          {layer === 'search' && q && (
+            <div className="pm-results pm-glass">
+              {found.length === 0 && <div className="pm-results-empty">Ничего не нашлось</div>}
+              {found.slice(0, 8).map(e => (
+                <button type="button" key={e.id} className="pm-result" onClick={() => select(e.id)}>
+                  <Thumb e={e} size={40} />
+                  <span className="pm-year">{yearOf(e)}</span>
+                  <span className="pm-result-title">{e.title}</span>
+                  <span className="pm-grow" />
+                  <span className="pm-dim-text">{TYPE_LABEL[e.eventType]}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {!mobile && layer === 'filters' && filtersPanel}
+        {!mobile && layer === 'feed' && <Feed events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />}
+
+        {!mobile && load.status === 'ready' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
+          <div className="pm-legend pm-glass">
+            {TYPES.map(t => (
+              <span key={t}><i style={{ background: TYPE_COLOR[t] }} />{TYPE_PLURAL[t]} · {counts[t]}</span>
             ))}
           </div>
         )}
-      </div>
 
-      {!mobile && layer === 'filters' && filtersPanel}
-      {!mobile && layer === 'feed' && <Feed events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />}
-
-      {!mobile && load.status === 'ready' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
-        <div className="pm-legend pm-glass">
-          {TYPES.map(t => (
-            <span key={t}><i style={{ background: TYPE_COLOR[t] }} />{TYPE_PLURAL[t]} · {counts[t]}</span>
+        <div className="pm-centuries" aria-label="Шкала веков">
+          {ROMAN.map((n, i) => (
+            <button type="button" key={n} className={highlight(i) ? 'on' : ''} onClick={() => pickCentury(i)} title={`${n} век`}>
+              {n}<i />
+            </button>
           ))}
         </div>
-      )}
 
-      <div className="pm-centuries" aria-label="Шкала веков">
-        {ROMAN.map((n, i) => (
-          <button type="button" key={n} className={highlight(i) ? 'on' : ''} onClick={() => pickCentury(i)} title={`${n} век`}>
-            {n}<i />
-          </button>
-        ))}
-      </div>
+        {mobile && (
+          <div className="pm-bottombar">
+            <button type="button" className="pm-glass pm-grow" onClick={() => openLayer('filters')}>
+              Фильтры {filterBadge(applied) > 0 && <span className="pm-badge">{filterBadge(applied)}</span>}
+            </button>
+            <button type="button" className="pm-glass pm-round" onClick={() => openLayer('feed')} aria-label="Лента событий">☰</button>
+          </div>
+        )}
 
-      {mobile && (
-        <div className="pm-bottombar">
-          <button type="button" className="pm-glass pm-grow" onClick={() => openLayer('filters')}>
-            Фильтры {filterBadge(applied) > 0 && <span className="pm-badge">{filterBadge(applied)}</span>}
-          </button>
-          <button type="button" className="pm-glass pm-round" onClick={() => openLayer('feed')} aria-label="Лента событий">☰</button>
-        </div>
-      )}
+        {showCard && (mobile
+          ? <Sheet event={selected ?? undefined} onClose={closeCard} />
+          : <Card event={selected ?? undefined} onClose={closeCard} />)}
 
-      {showCard && (mobile
-        ? <Sheet event={selected ?? undefined} onClose={closeCard} />
-        : <Card event={selected ?? undefined} onClose={closeCard} />)}
-
-      {overlay && (
-        <div className={`pm-state pm-glass pm-state-${overlay.kind}`} role={overlay.kind === 'error' ? 'alert' : 'status'}>
-          <div className="pm-state-icon">{overlay.kind === 'error' ? '!' : overlay.kind === 'empty' ? '0' : ''}</div>
-          <div className="pm-state-title">{overlay.title}</div>
-          <div className="pm-state-text">{overlay.text}</div>
-          <button type="button" className={overlay.kind === 'loading' ? 'pm-btn-ghost' : 'pm-btn'} onClick={overlay.run}>{overlay.action}</button>
-        </div>
+        {overlay && (
+          <div className={`pm-state pm-glass pm-state-${overlay.kind}`} role={overlay.kind === 'error' ? 'alert' : 'status'}>
+            <div className="pm-state-icon">{overlay.kind === 'error' ? '!' : overlay.kind === 'empty' ? '0' : ''}</div>
+            <div className="pm-state-title">{overlay.title}</div>
+            <div className="pm-state-text">{overlay.text}</div>
+            <button type="button" className={overlay.kind === 'loading' ? 'pm-btn-ghost' : 'pm-btn'} onClick={overlay.run}>{overlay.action}</button>
+          </div>
+        )}
+      </>
       )}
     </div>
     {modal}
@@ -377,7 +375,8 @@ const Filters: React.FC<{
   onClose: () => void; onApply: () => void; onReset: () => void
 }> = ({ mobile, draft, setDraft, events, onClose, onApply, onReset }) => {
   const n = events.filter(e => matches(draft, e)).length
-  const pct = (y: number) => ((y - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100
+  // Пока год вводится руками, он может выйти за диапазон: полоса не должна вылезать из трека.
+  const pct = (y: number) => Math.min(100, Math.max(0, ((y - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100))
   const toggle = (t: EventType) => setDraft({ ...draft, types: draft.types.includes(t) ? draft.types.filter(x => x !== t) : [...draft.types, t] })
   const setFrom = (v: number) => setDraft({ ...draft, from: Math.min(clampYear(v, MIN_YEAR), draft.to) })
   const setTo = (v: number) => setDraft({ ...draft, to: Math.max(clampYear(v, MAX_YEAR), draft.from) })
