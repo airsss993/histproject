@@ -40,3 +40,51 @@ export async function fetchEvent(id: number, signal: AbortSignal): Promise<HistE
   if (!res.ok) throw new Error(`event ${id}: HTTP ${res.status}`)
   return (await res.json()).event
 }
+
+export type SubmitResult =
+  | { ok: true; id: number }
+  | { ok: false; status: number; message?: string; fields?: Record<string, string>; retryAfter?: number }
+
+// XHR, а не fetch: нужен прогресс загрузки архива. status 0 - нет связи, -1 - отменено.
+export function submitProposal(body: FormData, onProgress: (loaded: number, total: number) => void) {
+  const xhr = new XMLHttpRequest()
+  const promise = new Promise<SubmitResult>(resolve => {
+    xhr.open('POST', `${API}/submissions`)
+    xhr.responseType = 'json'
+    xhr.upload.onprogress = e => onProgress(e.loaded, e.total)
+    xhr.onerror = () => resolve({ ok: false, status: 0 })
+    xhr.onabort = () => resolve({ ok: false, status: -1 })
+    xhr.onload = () => {
+      const data = xhr.response ?? {}
+      if (xhr.status === 201) return resolve({ ok: true, id: data.submission.id })
+      resolve({
+        ok: false, status: xhr.status, message: data.error?.message, fields: data.error?.fields,
+        retryAfter: Number(xhr.getResponseHeader('Retry-After')) || undefined,
+      })
+    }
+    xhr.send(body)
+  })
+  return { promise, abort: () => xhr.abort() }
+}
+
+// Есть ли index.html в корне ZIP: читаем только центральный каталог, архив не распаковываем.
+// ponytail: ZIP64 не разбираем, для архивов до 50 МБ он не нужен.
+export async function zipHasRootIndex(file: Blob): Promise<boolean> {
+  const tail = new DataView(await file.slice(Math.max(0, file.size - 65557)).arrayBuffer())
+  let eocd = -1
+  for (let i = tail.byteLength - 22; i >= 0; i--) if (tail.getUint32(i, true) === 0x06054b50) { eocd = i; break }
+  if (eocd < 0) throw new Error('not a zip')
+  const count = tail.getUint16(eocd + 10, true)
+  const size = tail.getUint32(eocd + 12, true)
+  const offset = tail.getUint32(eocd + 16, true)
+  const cd = new DataView(await file.slice(offset, offset + size).arrayBuffer())
+  const decoder = new TextDecoder()
+  for (let p = 0, n = 0; n < count; n++) {
+    if (p + 46 > cd.byteLength || cd.getUint32(p, true) !== 0x02014b50) throw new Error('broken central directory')
+    const nameLen = cd.getUint16(p + 28, true)
+    const name = decoder.decode(new Uint8Array(cd.buffer, p + 46, nameLen))
+    if (name.replace(/^\.\//, '') === 'index.html') return true
+    p += 46 + nameLen + cd.getUint16(p + 30, true) + cd.getUint16(p + 32, true)
+  }
+  return false
+}

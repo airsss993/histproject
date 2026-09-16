@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { SuggestEventModal } from '../../features/form/ui/modal.tsx'
 import { fetchAllEvents, fetchEvent, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
+import { ProposeModal } from './Propose.tsx'
 import './public.css'
 
 export const MIN_YEAR = 862
@@ -159,17 +159,22 @@ export const PublicMap: React.FC = () => {
       onReset={resetFilters} />
   )
 
-  if (mobile && layer === 'filters') return <div className="pm-root">{filtersPanel}</div>
+  // Окно всегда вторым в фрагменте: при смене ветки React сохраняет черновик заявки.
+  const modal = <ProposeModal open={proposeOpen} mobile={mobile} onClose={closePropose} />
+  if (mobile && layer === 'filters') return <><div className="pm-root">{filtersPanel}</div>{modal}</>
   if (mobile && layer === 'feed') {
     return (
-      <div className="pm-root">
-        <Feed mobile events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />
-        <SuggestEventModal isOpen={proposeOpen} onClose={closePropose} />
-      </div>
+      <>
+        <div className="pm-root">
+          <Feed mobile events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />
+        </div>
+        {modal}
+      </>
     )
   }
 
   return (
+    <>
     <div className={`pm-root${overlay && overlay.kind !== 'empty' ? ' pm-dim' : ''}`}>
       <MapView ref={mapRef} events={events} isActive={isActive} selectedId={showCard ? selectedId : null}
         onSelect={select} pad={mobile ? 16 : 48} labels={!mobile} />
@@ -177,7 +182,7 @@ export const PublicMap: React.FC = () => {
       <div role="banner" className="pm-header">
         <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
         <div className="pm-grow" />
-        {!mobile && <button type="button" className="pm-btn-ghost pm-pill" onClick={propose}>Предложить событие</button>}
+        {!mobile && <button type="button" className={`pm-btn-ghost pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}
       </div>
 
       {!mobile && layer !== 'filters' && layer !== 'feed' && (
@@ -256,9 +261,9 @@ export const PublicMap: React.FC = () => {
           <button type="button" className={overlay.kind === 'loading' ? 'pm-btn-ghost' : 'pm-btn'} onClick={overlay.run}>{overlay.action}</button>
         </div>
       )}
-
-      <SuggestEventModal isOpen={proposeOpen} onClose={closePropose} />
     </div>
+    {modal}
+    </>
   )
 }
 

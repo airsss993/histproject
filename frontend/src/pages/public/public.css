@@ -79,6 +79,7 @@
 .pm-root .pm-btn-text { color: var(--gold-soft); }
 .pm-root .pm-btn-text:hover { color: var(--gold); }
 .pm-root .pm-pill { border-radius: 999px; padding: 11px 20px; font-size: 14px; }
+.pm-root .pm-pill.on { background: var(--gold-wash); border-color: var(--gold); color: var(--gold); }
 .pm-root .pm-round { width: 48px; height: 48px; padding: 0; border-radius: 999px; font-size: 16px; flex: none; }
 .pm-root .pm-link { color: var(--gold-soft); font: 400 13px var(--ui); white-space: nowrap; }
 .pm-badge {
