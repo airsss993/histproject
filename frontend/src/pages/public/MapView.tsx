@@ -19,8 +19,41 @@ const NEIGHBOURS = new Set(['Kazakhstan', 'China', 'Mongolia', 'Ukraine', 'Belar
 const LABELS: Record<string, string> = { Kazakhstan: 'КАЗАХСТАН', China: 'КИТАЙ', Mongolia: 'МОНГОЛИЯ', Finland: 'ФИНЛЯНДИЯ', Ukraine: 'УКРАИНА', Japan: 'ЯПОНИЯ' }
 const OTHERS = COUNTRIES.filter(f => NEIGHBOURS.has(f.properties?.name))
 
-export const TYPE_COLOR: Record<EventType, string> = { political: '#50749F', military: '#F0B62A' }
+export const TYPE_COLOR: Record<EventType, string> = { political: '#8FB4E8', military: '#F0B62A' }
 const CELL = 56
+const INK = '#060D2E'
+const MUTED = '#4E5C86'
+
+// Метка из "Логотип и метки": капля 64x64 с остриём в (32, 58), глиф типа в окне.
+const DROP = 'M32 58C32 58 13 37 13 25A19 19 0 0 1 51 25C51 37 32 58 32 58Z'
+const GLYPH: Record<EventType, string[]> = {
+  military: ['M32 11V19', 'M24.5 19H39.5', 'M28.5 19V29L32 36L35.5 29V19'],
+  political: ['M24 16H40', 'M27 16V32', 'M37 16V32', 'M23 32H41'],
+}
+const alpha = (hex: string, a: number) => hex + Math.round(a * 255).toString(16).padStart(2, '0')
+
+// Размер метки в px по зуму: 16 - залитая капля, 24 - капля с точкой, от 32 - с глифом.
+const pinSize = (k: number) => (k < 1.5 ? 16 : k < 2.5 ? 24 : k < 4 ? 32 : 44)
+
+export type PinState = 'normal' | 'hover' | 'selected' | 'inactive'
+
+/** Капля в координатах viewBox 0 0 64 64. */
+export function PinShape({ type, size, state = 'normal' }: { type: EventType; size: number; state?: PinState }) {
+  const color = state === 'inactive' ? MUTED : TYPE_COLOR[type]
+  if (size < 24) return <path d={DROP} fill={color} />
+  const selected = state === 'selected'
+  const stroke = size < 32 ? 3.4 : size < 44 ? 2.8 : state === 'inactive' ? 2 : 2.4
+  const fill = selected ? color : state === 'hover' ? alpha(color, 0.14) : INK
+  return (
+    <g fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round">
+      {selected && <circle cx={32} cy={28} r={33} stroke={alpha(color, 0.34)} strokeWidth={1.6} />}
+      <path d={DROP} fill={fill} />
+      {size < 32
+        ? <circle cx={32} cy={25} r={4} fill={selected ? INK : color} stroke="none" />
+        : GLYPH[type].map(d => <path key={d} d={d} stroke={selected ? INK : color} />)}
+    </g>
+  )
+}
 
 export interface MapHandle { zoomBy(k: number): void }
 
@@ -35,21 +68,13 @@ interface Props {
   interactive?: boolean
 }
 
-function Marker({ type, state }: { type: EventType; state: 'normal' | 'hover' | 'selected' | 'inactive' }) {
-  const selected = state === 'selected'
-  const r = selected ? 13 : 9
-  const glyph = type === 'military'
-    ? <path d="M -3.2 3.4 L 0 -3.8 L 3.2 3.4" fill="none" stroke="#010011" strokeWidth={1.6} strokeLinejoin="round" />
-    : <rect x={-3} y={-3} width={6} height={6} fill="#010011" transform="rotate(45)" />
+/** Метка на карте: остриё в (0, 0), наведение увеличивает в 1.14 раза. */
+function Marker({ type, state, size }: { type: EventType; state: PinState; size: number }) {
+  const px = state === 'selected' ? Math.max(size, 32) * 1.1 : state === 'hover' ? size * 1.14 : size
   return (
-    <g opacity={state === 'inactive' ? 0.28 : 1}>
-      {(selected || state === 'hover') && (
-        <circle r={selected ? 24 : 18} fill="none" stroke={selected ? '#F0B62A' : 'rgba(240,182,42,0.45)'} strokeDasharray={selected ? '3 4' : undefined} />
-      )}
-      <circle r={r + 12} fill="transparent" />
-      <circle r={r + 3} fill="rgba(1,0,17,0.55)" />
-      <circle r={r} fill={TYPE_COLOR[type]} stroke={selected ? '#FFFFFF' : 'rgba(1,0,17,0.6)'} strokeWidth={1.2} />
-      {glyph}
+    <g transform={`scale(${px / 64}) translate(-32 -58)`}>
+      <circle cx={32} cy={30} r={32 * Math.max(1, 28 / px)} fill="transparent" />
+      <PinShape type={type} size={px} state={state} />
     </g>
   )
 }
@@ -131,6 +156,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   }
 
   const hovered = view.singles.find(p => p.e.id === hover && p.e.id !== selectedId)
+  const pin = pinSize(t.k)
 
   return (
     <div ref={wrap} className="pm-map">
@@ -148,28 +174,27 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
             })}
             {view.inactive.map(p => (
               <g key={p.e.id} transform={`translate(${p.x},${p.y})`} style={{ pointerEvents: 'none' }}>
-                <Marker type={p.e.eventType} state="inactive" />
+                <Marker type={p.e.eventType} state="inactive" size={pin} />
               </g>
             ))}
             {view.clusters.map(c => (
               <g key={c.members[0].e.id} transform={`translate(${c.x},${c.y})`} className="pm-hit"
                 role="button" aria-label={`${c.members.length} событий, приблизить`} onClick={() => zoomToCluster(c.members)}>
-                <circle r={22} fill="rgba(19,28,64,0.55)" stroke="#32406E" />
-                <circle r={15} fill="#131C40" stroke="#8A6A1C" />
-                <text textAnchor="middle" dy={5} className="pm-cluster-n">{c.members.length}</text>
+                <circle r={16.5} fill={alpha(TYPE_COLOR.military, 0.12)} stroke={TYPE_COLOR.military} strokeWidth={1.6} />
+                <text textAnchor="middle" dy={4.5} className="pm-cluster-n">{c.members.length}</text>
               </g>
             ))}
             {view.singles.map(p => (
               <g key={p.e.id} transform={`translate(${p.x},${p.y})`} className="pm-hit" role="button" aria-label={p.e.title}
                 onMouseEnter={() => setHover(p.e.id)} onMouseLeave={() => setHover(null)} onClick={() => onSelect(p.e.id)}>
-                <Marker type={p.e.eventType} state={p.e.id === selectedId ? 'selected' : p.e.id === hover ? 'hover' : 'normal'} />
+                <Marker type={p.e.eventType} size={pin} state={p.e.id === selectedId ? 'selected' : p.e.id === hover ? 'hover' : 'normal'} />
               </g>
             ))}
           </>
         )}
       </svg>
       {hovered && (
-        <div className="pm-popup" style={{ left: hovered.x, top: hovered.y - 26 }}>
+        <div className="pm-popup" style={{ left: hovered.x, top: hovered.y - pin * 1.14 - 8 }}>
           <div className="pm-popup-title">{hovered.e.title}</div>
           <div className="pm-popup-meta">{yearOf(hovered.e)} · {TYPE_LABEL[hovered.e.eventType]}</div>
         </div>

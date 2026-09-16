@@ -45,7 +45,7 @@
 .pm-dim .pm-map { opacity: 0.55; }
 .pm-map-label { fill: var(--muted); font: 500 10px var(--ui); letter-spacing: 0.14em; pointer-events: none; }
 .pm-hit { cursor: pointer; }
-.pm-cluster-n { fill: #F0B62A; font: 600 13px var(--ui); pointer-events: none; }
+.pm-cluster-n { fill: #F0B62A; font: 400 13px var(--ui); pointer-events: none; }
 .pm-popup {
   position: absolute; transform: translate(-50%, -100%); pointer-events: none;
   min-width: 214px; max-width: 320px; padding: 10px 14px; border-radius: 8px;
@@ -63,8 +63,7 @@
 .pm-header > * { pointer-events: auto; }
 .pm-header-plain { background: none; }
 .pm-logo { display: flex; align-items: center; gap: 20px; }
-.pm-logo-mark { width: 34px; height: 34px; border: 1px solid var(--gold-line); border-radius: 999px; display: flex; align-items: center; justify-content: center; }
-.pm-logo-mark span { width: 10px; height: 10px; background: var(--gold); transform: rotate(45deg); }
+.pm-logo-mark { flex: none; }
 .pm-logo-text { font: 500 14px var(--ui); letter-spacing: 0.16em; text-transform: uppercase; }
 
 /* Кнопки */
@@ -191,9 +190,7 @@
 .pm-types.col button { padding: 14px; gap: 12px; font-size: 16px; }
 .pm-types button.on { border-color: var(--gold); background: var(--gold-wash); color: var(--gold); }
 .pm-types .pm-mono { color: var(--muted); }
-.pm-type-dot { width: 20px; height: 20px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; }
-.pm-type-dot i.military { width: 7px; height: 7px; margin-top: 3px; border-top: 1.6px solid var(--ink); border-left: 1.6px solid var(--ink); transform: rotate(45deg); }
-.pm-type-dot i.political { width: 7px; height: 7px; background: var(--ink); transform: rotate(45deg); }
+.pm-type-pin { flex: none; }
 .pm-years { display: flex; align-items: center; gap: 10px; }
 .pm-years input {
   flex: 1; min-width: 0; background: #0B1234; border: 1px solid var(--line); border-radius: 4px;
@@ -303,8 +300,7 @@
 @media (max-width: 640px) {
   .pm-header { height: auto; padding: 14px 16px 0; }
   .pm-logo { gap: 12px; }
-  .pm-logo-mark { width: 30px; height: 30px; }
-  .pm-logo-mark span { width: 9px; height: 9px; }
+  .pm-logo-mark { width: 34px; height: 34px; }
   .pm-logo-text { font-size: 12px; letter-spacing: 0.14em; }
   .pm-search-wrap { left: 16px; right: 16px; width: auto; transform: none; top: 60px; }
   .pm-search { padding: 12px 16px; }

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SuggestEventModal } from '../../features/form/ui/modal.tsx'
 import { fetchAllEvents, fetchEvent, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
-import { MapView, TYPE_COLOR, type MapHandle } from './MapView.tsx'
+import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import './public.css'
 
@@ -45,7 +45,9 @@ function useIsMobile() {
 
 export const Logo: React.FC<{ short?: boolean; onClick?: () => void }> = ({ short, onClick }) => (
   <button type="button" className="pm-logo" onClick={onClick}>
-    <span className="pm-logo-mark"><span /></span>
+    <svg className="pm-logo-mark" width={40} height={40} viewBox="0 0 64 64" fill="none" stroke="#D4AE5C" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx={32} cy={34} r={17} /><path d="M15 34H49" /><path d="M32 3V8" /><path d="M24 12H40" /><path d="M32 12V61" />
+    </svg>
     <span className="pm-logo-text">{short ? 'Страна Героев' : 'Россия - страна Героев'}</span>
   </button>
 )
@@ -222,7 +224,7 @@ export const PublicMap: React.FC = () => {
       {!mobile && load.status === 'ready' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
         <div className="pm-legend pm-glass">
           {TYPES.map(t => (
-            <span key={t}><i style={{ background: t === 'military' ? '#D4AE5C' : TYPE_COLOR.political }} />{TYPE_PLURAL[t]} · {counts[t]}</span>
+            <span key={t}><i style={{ background: TYPE_COLOR[t] }} />{TYPE_PLURAL[t]} · {counts[t]}</span>
           ))}
         </div>
       )}
@@ -364,9 +366,7 @@ const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = (
 }
 
 const TypeGlyph: React.FC<{ t: EventType }> = ({ t }) => (
-  <span className="pm-type-dot" style={{ background: t === 'military' ? '#D4AE5C' : TYPE_COLOR.political }}>
-    <i className={t} />
-  </span>
+  <svg className="pm-type-pin" width={24} height={24} viewBox="0 0 64 64" aria-hidden><PinShape type={t} size={24} /></svg>
 )
 
 const Filters: React.FC<{
