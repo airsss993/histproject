@@ -10,7 +10,7 @@ $button-text-color: #FAFAFA;
 $border-radius: 8px;
 $padding-main: 15px;
 $animation-duration: 0.3s;
-$font-shrift: 'Cruinn', sans-serif;
+$font-shrift: 'Tenor Sans', sans-serif;
 
 .event-tooltip-card {
   position: absolute;
@@ -25,7 +25,7 @@ $font-shrift: 'Cruinn', sans-serif;
   padding: 36px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   color: $text-color-primary;
-  font-family: Arial, sans-serif;
+  font-family: 'Tenor Sans', sans-serif;
   display: flex;
   flex-direction: column;
   gap: 12px;

@@ -31,7 +31,7 @@
   box-shadow: none !important;
   color: white;
   font-weight: 10;
-  font-family: 'Cruinn';
+  font-family: 'Tenor Sans', sans-serif;
   transition: opacity 0.5s ease-out, transform 0.5s ease-out;
 	font-size: 18px;
 	color: #fff;
@@ -287,7 +287,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	}
 
 .leaflet-container {
-	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-family: 'Tenor Sans', sans-serif;
 	font-size: 12px;
 	font-size: 0.75rem;
 	line-height: 1.5;
@@ -509,7 +509,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	text-align: center;
 	width: 24px;
 	height: 24px;
-	font: 16px/24px Tahoma, Verdana, sans-serif;
+	font: 16px/24px 'Tenor Sans', sans-serif;
 	transition: all 0.3s ease;
 	color: #FFFFFF;
 	text-decoration: none;

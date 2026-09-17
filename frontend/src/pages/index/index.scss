@@ -8,24 +8,8 @@ $shadow-color: #d4a244;
 $backgroundOpacity-color: rgba(212, 162, 68, 0.1);
 $mapp-color: #2c4672;
 $transition-ive: all 0.3s ease;
-$font-shrift: 'Cruinn', sans-serif;
+$font-shrift: 'Tenor Sans', sans-serif;
 $font-shrift-weight: 300;
-
-@font-face {
-  font-family: 'Cruinn';
-  src: url('../../assets/FontShrift/Cruinn/Cruinn Medium.ttf') format('truetype'), url('../../assets/FontShrift/Cruinn/Cruinn Regular.ttf') format('truetype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap
-}
-
-@font-face {
-  font-family: 'Cruinn';
-  src: url('../../assets/FontShrift/Cruinn/Cruinn Light.ttf') format('truetype'), url('../../assets/FontShrift/Cruinn/Cruinn Thin.ttf') format('truetype');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap
-}
 
 * {
   margin: 0;
@@ -34,7 +18,7 @@ $font-shrift-weight: 300;
 }
 
 body {
-  font-family: 'Cruinn', sans-serif;
+  font-family: 'Tenor Sans', sans-serif;
   display: flex;
   justify-content: center;
   margin: 0;

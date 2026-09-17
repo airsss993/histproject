@@ -44,7 +44,7 @@ export const ReMarker: React.FC<ReMarkerProps> = ({ eventType = 1, onPositionCha
       {position && (
         <Marker position={position} icon={icon}>
           <Popup className="event-marker-popup">
-            <div style={{ fontFamily: 'Cruinn, sans-serif', color: '#fff' }}>
+            <div style={{ fontFamily: "'Tenor Sans', sans-serif", color: '#fff' }}>
               <div style={{ marginBottom: 6, fontWeight: 600 }}>
                 Маркер
               </div>
@@ -65,7 +65,7 @@ export const ReMarker: React.FC<ReMarkerProps> = ({ eventType = 1, onPositionCha
                   borderRadius: 4,
                   cursor: 'pointer',
                   fontSize: 12,
-                  fontFamily: 'Cruinn, sans-serif',
+                  fontFamily: "'Tenor Sans', sans-serif",
                 }}
               >
                 Удалить

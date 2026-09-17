@@ -9,7 +9,7 @@ $button-text-color: #1a1a1a;
 $close-button-color: rgba(212, 162, 68, 1);
 $glow-shadow: 0px 0px 10px 0px $border-color;
 $drop-zone-bg-color: #2c2c2c;
-$font-family: 'Cruinn'; 
+$font-family: 'Tenor Sans', sans-serif; 
 $font-weight: 100;
 
 .modal-overlay {
@@ -576,7 +576,7 @@ form {
   border-radius: 50%;
   font-weight: 600;
   transition: all 0.3s ease;
-  font-family: "Cruinn";
+  font-family: 'Tenor Sans', sans-serif;
 }
 
 #email, #tg {
