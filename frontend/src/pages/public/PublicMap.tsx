@@ -271,19 +271,9 @@ const Thumb: React.FC<{ e: HistEvent; size: number }> = ({ e, size }) => (
     : <span className="pm-thumb pm-hatch" style={{ width: size, height: size }} />
 )
 
-const Badges: React.FC<{ e: HistEvent }> = ({ e }) => (
-  <div className="pm-badges">
-    <span className="pm-year-badge">{yearOf(e)}</span>
-    <span className={`pm-type-badge ${e.eventType}`}>{TYPE_LABEL[e.eventType]}</span>
-    <span className="pm-grow" />
-    <span className="pm-dim-text">{formatDate(e.eventDate)}</span>
-  </div>
-)
-
-function useShare(e: HistEvent | undefined) {
+function useShare(e: HistEvent) {
   const [copied, setCopied] = useState(false)
   const share = async () => {
-    if (!e) return
     const url = `${location.origin}/map?event=${e.id}`
     if (navigator.share) { navigator.share({ title: e.title, url }).catch(() => {}); return }
     await navigator.clipboard.writeText(url)
@@ -294,7 +284,6 @@ function useShare(e: HistEvent | undefined) {
 }
 
 const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = ({ event: e, onClose }) => {
-  const { share, copied } = useShare(e)
   if (!e) {
     return (
       <div className="pm-card pm-card-loading" aria-busy="true">
@@ -311,29 +300,43 @@ const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = ({
         <button type="button" className="pm-close" onClick={onClose} aria-label="Закрыть">×</button>
       </div>
       <div className="pm-card-body">
-        <div className="pm-card-head">
-          <h2 className="pm-card-title">{e.title}</h2>
-          <span className="pm-year">{yearOf(e)}</span>
-        </div>
-        <div className="pm-card-sub">
-          <span className={`pm-card-type ${e.eventType}`}>{TYPE_LABEL[e.eventType]}</span>
-          <i />
-          <span>{formatDate(e.eventDate)}</span>
-        </div>
-        <ul className="pm-card-info">
-          <li><Icon d={ICON.place} />{coords(e)}</li>
-          {e.description && <li><Icon d={ICON.text} /><p className="pm-card-text">{e.description}</p></li>}
-        </ul>
-        <div className="pm-card-actions">
-          <button type="button" className="pm-card-share" onClick={share}>
-            <Icon d={ICON.share} />{copied ? 'Скопировано' : 'Поделиться'}
-          </button>
-          <a className="pm-card-more" href={e.siteUrl} target="_blank" rel="noreferrer">
-            <Icon d={ICON.open} />Узнать больше
-          </a>
-        </div>
+        <EventInfo e={e} />
+        <EventActions e={e} />
       </div>
     </article>
+  )
+}
+
+/** Общее у карточки и мобильного листа: заголовок, подпись, строки с иконками. */
+const EventInfo: React.FC<{ e: HistEvent }> = ({ e }) => (
+  <>
+    <div className="pm-card-head">
+      <h2 className="pm-card-title">{e.title}</h2>
+      <span className="pm-year">{yearOf(e)}</span>
+    </div>
+    <div className="pm-card-sub">
+      <span className={`pm-card-type ${e.eventType}`}>{TYPE_LABEL[e.eventType]}</span>
+      <i />
+      <span>{formatDate(e.eventDate)}</span>
+    </div>
+    <ul className="pm-card-info">
+      <li><Icon d={ICON.place} />{coords(e)}</li>
+      {e.description && <li><Icon d={ICON.text} /><p className="pm-card-text">{e.description}</p></li>}
+    </ul>
+  </>
+)
+
+const EventActions: React.FC<{ e: HistEvent; className?: string }> = ({ e, className = 'pm-card-actions' }) => {
+  const { share, copied } = useShare(e)
+  return (
+    <div className={className}>
+      <button type="button" className="pm-card-share" onClick={share}>
+        <Icon d={ICON.share} />{copied ? 'Скопировано' : 'Поделиться'}
+      </button>
+      <a className="pm-card-more" href={e.siteUrl} target="_blank" rel="noreferrer">
+        <Icon d={ICON.open} />Узнать больше
+      </a>
+    </div>
   )
 }
 
@@ -353,7 +356,6 @@ const coords = (e: HistEvent) =>
 const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void; className?: string }> = ({ event: e, onClose, className = '' }) => {
   const [open, setOpen] = useState(false)
   const startY = useRef<number | null>(null)
-  const { share } = useShare(e)
   const onUp = (y: number) => {
     if (startY.current === null) return
     const dy = y - startY.current
@@ -376,16 +378,9 @@ const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void; class
               <div className={`pm-sheet-preview${e.previewImageUrl ? '' : ' pm-hatch'}`}>
                 {e.previewImageUrl && <img src={e.previewImageUrl} alt="" />}
               </div>
-              <div className="pm-sheet-body">
-                <Badges e={e} />
-                <h2 className="pm-card-title">{e.title}</h2>
-                <p className="pm-card-text">{e.description}</p>
-              </div>
+              <div className="pm-sheet-body"><EventInfo e={e} /></div>
             </div>
-            <div className="pm-sheet-foot">
-              <a className="pm-btn pm-grow" href={e.siteUrl} target="_blank" rel="noreferrer">Узнать больше</a>
-              <button type="button" className="pm-btn-ghost pm-round" onClick={share} aria-label="Поделиться">↗</button>
-            </div>
+            <EventActions e={e} className="pm-card-actions pm-sheet-foot" />
           </>
         )}
       </section>
