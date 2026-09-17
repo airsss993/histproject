@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Logo, useIsMobile } from './PublicMap.tsx'
 import './public.css'
@@ -52,6 +52,7 @@ const FAQ = [
 export const About: React.FC = () => {
   const navigate = useNavigate()
   const mobile = useIsMobile()
+  const [openFaq, setOpenFaq] = useState<number | null>(0)
   return (
     <div className="pm-root pm-about">
       <div role="banner" className="pm-header pm-about-header">
@@ -106,15 +107,23 @@ export const About: React.FC = () => {
             <p>Как устроена карта, как предложить событие и что происходит с заявкой после отправки.</p>
           </div>
           <div className="pm-about-faq-list">
-            {FAQ.map((item, i) => (
-              <details key={item.q} name="faq" open={i === 0}>
-                <summary>
-                  <span className="pm-grow">{item.q}</span>
-                  <span className="pm-about-faq-toggle" aria-hidden="true" />
-                </summary>
-                <p>{item.a}</p>
-              </details>
-            ))}
+            {FAQ.map((item, i) => {
+              const open = openFaq === i
+              return (
+                <div key={item.q} className={`pm-about-faq-item${open ? ' open' : ''}`}>
+                  <button type="button" id={`faq-q-${i}`} aria-expanded={open} aria-controls={`faq-a-${i}`}
+                    onClick={() => setOpenFaq(open ? null : i)}>
+                    <span className="pm-grow">{item.q}</span>
+                    <span className="pm-about-faq-toggle" aria-hidden="true" />
+                  </button>
+                  {/* Высоту анимирует grid-template-rows 0fr -> 1fr: ответ в DOM всегда, закрытый недоступен через inert.
+                      inert через spread: в @types/react 18 его нет, рантайм React 19 его знает. */}
+                  <div className="pm-about-faq-body" id={`faq-a-${i}`} role="region" aria-labelledby={`faq-q-${i}`} {...{ inert: !open }}>
+                    <div><p>{item.a}</p></div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </section>
       </main>
