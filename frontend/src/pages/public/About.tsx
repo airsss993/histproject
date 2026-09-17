@@ -73,7 +73,7 @@ const Star: React.FC = () => (
 )
 
 // Смена animation-duration в CSS пересчитывает угол и кольцо прыгает; playbackRate сохраняет позицию.
-// Скорость плавно меняется за 240ms ease-out, синхронно с transition логотипа в about.css.
+// Скорость плавно меняется за 400ms ease-in-out, синхронно с transition логотипа в about.css.
 let spinRaf = 0
 const spinRate = (el: HTMLElement, to: number) => {
   const anim = el.querySelector('svg')?.getAnimations()[0]
@@ -82,8 +82,8 @@ const spinRate = (el: HTMLElement, to: number) => {
   const from = anim.playbackRate
   const t0 = performance.now()
   const step = (t: number) => {
-    const k = Math.min((t - t0) / 240, 1)
-    anim.playbackRate = from + (to - from) * (1 - (1 - k) ** 3)
+    const k = Math.min((t - t0) / 400, 1)
+    anim.playbackRate = from + (to - from) * (k < 0.5 ? 4 * k ** 3 : 1 - (2 - 2 * k) ** 3 / 2)
     if (k < 1) spinRaf = requestAnimationFrame(step)
   }
   spinRaf = requestAnimationFrame(step)
