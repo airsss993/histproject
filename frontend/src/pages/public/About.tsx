@@ -72,6 +72,9 @@ const Star: React.FC = () => (
   </svg>
 )
 
+// Смена animation-duration в CSS пересчитывает угол и кольцо прыгает; playbackRate сохраняет позицию.
+const spinRate = (el: HTMLElement, rate: number) => el.querySelector('svg')?.getAnimations()[0]?.updatePlaybackRate(rate)
+
 const BADGE_TEXT = 'Предложить событие · Предложить событие · '
 
 export const About: React.FC = () => {
@@ -210,7 +213,8 @@ export const About: React.FC = () => {
             <Link to="/map" className="pm-about-sticker fill" style={{ '--r': '-4deg', left: '30%', top: '66%' } as React.CSSProperties}>Карта</Link>
           </nav>
           <div className="pm-about-foot-side">
-            <button type="button" className="pm-about-badge" onClick={propose} aria-label="Предложить событие">
+            <button type="button" className="pm-about-badge" onClick={propose} aria-label="Предложить событие"
+              onMouseEnter={e => spinRate(e.currentTarget, 22 / 8)} onMouseLeave={e => spinRate(e.currentTarget, 1)}>
               <svg viewBox="0 0 148 148" aria-hidden="true">
                 <defs><path id="pm-badge-path" d="M74 74m-56 0a56 56 0 1 1 112 0a56 56 0 1 1 -112 0" /></defs>
                 <text><textPath href="#pm-badge-path" textLength={351} lengthAdjust="spacing">{BADGE_TEXT}</textPath></text>
