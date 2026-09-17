@@ -1,42 +1,83 @@
-/* Страница "О проекте". Токены и кнопки - из public.css. */
-.pm-about { overflow-y: auto; background: var(--ink); }
-.pm-about .pm-about-header { position: sticky; background: linear-gradient(var(--ink) 60%, rgba(1, 0, 17, 0)); z-index: 2; }
+/* Страница "О проекте". Композиция по референсу about-страницы студии, токены и кнопки - из public.css. */
+.pm-about { overflow-y: auto; overflow-x: hidden; background: var(--ink); }
 .pm-about h3 { margin: 0; }
+.pm-about a { color: inherit; text-decoration: none; }
 .pm-about .pm-nowrap { white-space: nowrap; }
-.pm-about-main { max-width: 1120px; margin: 0 auto; padding: 32px 28px 64px; display: flex; flex-direction: column; gap: 72px; animation: pm-in 240ms ease-out; }
-
-.pm-about-hero { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 56px; align-items: start; }
-.pm-about-intro { display: flex; flex-direction: column; gap: 20px; }
-.pm-about-intro h1 { font: 400 56px/64px var(--display); letter-spacing: 0.08em; text-transform: uppercase; }
-.pm-about-intro p { font: 400 18px/28px var(--ui); color: var(--text-2); max-width: 560px; text-wrap: pretty; }
-.pm-about-intro .pm-row { flex-wrap: wrap; padding-top: 8px; }
-.pm-about-intro .pm-btn, .pm-about-intro .pm-btn-ghost { padding: 13px 22px; }
-
-.pm-about-team { padding: 24px; border-radius: 22px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); }
-.pm-about-team h2 { font: 400 26px/34px var(--display); margin: 6px 0 4px; }
-.pm-about-person { display: flex; gap: 16px; padding: 18px 0; border-top: 1px dashed var(--line-soft); margin-top: 14px; }
-.pm-about-person + .pm-about-person { margin-top: 0; }
-.pm-about-avatar {
-  flex: none; width: 52px; height: 52px; border-radius: 999px; border: 1px solid var(--gold-line);
-  background: var(--gold-wash); color: var(--gold); font: 400 22px/50px var(--display); text-align: center;
-}
-.pm-about-role { font: 400 13px/20px var(--ui); color: var(--gold); }
-.pm-about-person h3 { font: 400 20px/28px var(--ui); }
-.pm-about-person p { margin-top: 4px; font: 400 15px/24px var(--ui); color: var(--text-2); }
-.pm-about-contacts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; }
-.pm-about .pm-link { text-decoration: none; }
+.pm-about .pm-link { color: var(--gold-soft); }
 .pm-about .pm-link:hover { color: var(--gold); }
+.pm-about-main { max-width: 1180px; margin: 0 auto; padding: 16px 28px 96px; display: flex; flex-direction: column; gap: 112px; }
 
-.pm-about-faq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: start; scroll-margin-top: 96px; }
-.pm-about-faq-side { display: flex; flex-direction: column; gap: 20px; padding-top: 4px; }
-.pm-about-faq-tag { display: flex; align-items: center; gap: 12px; }
-.pm-about-faq-tag span {
+/* Шапка: ссылки слева, логотип по центру, кнопка справа. */
+.pm-about .pm-about-header { position: sticky; z-index: 3; display: grid; grid-template-columns: 1fr auto 1fr; background: linear-gradient(var(--ink) 55%, rgba(1, 0, 17, 0)); }
+.pm-about-nav { display: flex; gap: 28px; }
+.pm-about-nav a { font: 400 14px/20px var(--ui); color: var(--text-2); transition: color 120ms ease-out; }
+.pm-about-nav a:hover { color: var(--gold); }
+.pm-about-header-end { display: flex; justify-content: flex-end; }
+
+/* Метка-пилюля с линией и точкой. */
+.pm-about-tag { display: flex; align-items: center; gap: 12px; }
+.pm-about-tag span {
   padding: 5px 14px; border-radius: 999px; border: 1px solid var(--line); background: #0B1234;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); font: 400 12px/18px var(--ui); letter-spacing: 0.08em; color: var(--text-2);
 }
-/* Линия с точкой: точка у пилюли, линия гаснет вправо. */
-.pm-about-faq-tag i { position: relative; width: 64px; height: 1px; background: linear-gradient(90deg, var(--gold-soft), rgba(212, 174, 92, 0)); }
-.pm-about-faq-tag i::before { content: ''; position: absolute; left: -2px; top: -2px; width: 5px; height: 5px; border-radius: 999px; background: var(--gold-soft); box-shadow: 0 0 6px var(--gold); }
+.pm-about-tag i { position: relative; width: 64px; height: 1px; background: linear-gradient(90deg, var(--gold-soft), rgba(212, 174, 92, 0)); }
+.pm-about-tag i::before { content: ''; position: absolute; left: -2px; top: -2px; width: 5px; height: 5px; border-radius: 999px; background: var(--gold-soft); box-shadow: 0 0 6px var(--gold); }
+.pm-about-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 7px 14px; border-radius: 999px; font: 400 13px/18px var(--ui); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-about-chip b { font-weight: 400; color: var(--gold); }
+
+/* Первый экран */
+.pm-about-hero h1 { font: 400 clamp(56px, 12.5vw, 168px)/0.92 var(--display); letter-spacing: 0.01em; text-transform: uppercase; animation: pm-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.pm-about-hero-grid { display: grid; grid-template-columns: 240px minmax(0, 1fr) 300px; gap: 28px; margin-top: 28px; align-items: start; }
+.pm-about-hero-grid > * { animation: pm-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.pm-about-hero-grid > :nth-child(2) { animation-delay: 80ms; }
+.pm-about-hero-grid > :nth-child(3) { animation-delay: 160ms; }
+.pm-about-hero-lead { display: flex; flex-direction: column; gap: 10px; }
+.pm-about-range { font: 400 58px/1 var(--display); color: var(--gold); letter-spacing: 0.02em; }
+.pm-about-hero-lead p { margin-top: 26px; font: 400 15px/24px var(--ui); color: var(--text-2); text-wrap: pretty; }
+.pm-about-hero-map { position: relative; height: 330px; border-radius: 28px; overflow: hidden; border: 1px solid var(--line-soft); isolation: isolate; }
+.pm-about-hero-map .maplibregl-ctrl-attrib { display: none; }
+.pm-about-hero-map-bar { position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; }
+.pm-about-hero-map-bar > * { pointer-events: auto; }
+.pm-about-hero-idea { display: flex; flex-direction: column; gap: 14px; }
+.pm-about-shot { position: relative; display: block; height: 150px; border-radius: 24px; overflow: hidden; border: 1px solid var(--line-soft); }
+.pm-about-shot-img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 480ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
+.pm-about-shot .pm-about-chip { position: absolute; left: 10px; right: 10px; bottom: 10px; width: fit-content; max-width: calc(100% - 20px); display: block; }
+.pm-about-hero-idea h2 { margin-top: 10px; font: 400 32px/38px var(--display); }
+.pm-about-hero-idea p { font: 400 15px/24px var(--ui); color: var(--text-2); text-wrap: pretty; }
+
+/* Команда: портреты по краям панели, заголовок между ними, имена под панелью. */
+.pm-about-team { scroll-margin-top: 96px; }
+.pm-about-team-panel {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr); grid-template-areas: "a c b"; gap: 28px; align-items: center;
+  padding: 20px; border-radius: 32px; border: 1px solid var(--line-soft);
+  background: radial-gradient(120% 90% at 50% 0%, rgba(40, 54, 110, 0.55), rgba(14, 22, 42, 0.9) 60%);
+}
+.pm-about-portrait-0 { grid-area: a; }
+.pm-about-portrait-1 { grid-area: b; }
+.pm-about-portrait {
+  position: relative; aspect-ratio: 4 / 5; border-radius: 24px; overflow: hidden; display: grid; place-items: center;
+  border: 1px solid var(--line-soft);
+  background: radial-gradient(80% 60% at 50% 40%, rgba(212, 174, 92, 0.16), rgba(212, 174, 92, 0) 70%), repeating-linear-gradient(135deg, #0B1234 0 6px, #080E28 6px 12px);
+}
+.pm-about-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pm-about-portrait-initial { font: 400 clamp(96px, 13vw, 168px)/1 var(--display); color: var(--gold); opacity: 0.85; text-shadow: 0 8px 40px rgba(212, 174, 92, 0.35); }
+.pm-about-team-center { grid-area: c; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; padding: 12px 0; }
+.pm-about-team-center h2 { font: 400 clamp(36px, 4.6vw, 56px)/1.05 var(--display); text-transform: uppercase; letter-spacing: 0.02em; }
+.pm-about-strip { display: flex; width: 100%; max-width: 340px; }
+.pm-about-strip-img { flex: 1; min-width: 0; height: 52px; border-radius: 999px; object-fit: cover; border: 1px solid var(--line); }
+.pm-about-strip-img + .pm-about-strip-img { margin-left: -10px; }
+.pm-about-team-center p { max-width: 340px; font: 400 14px/22px var(--ui); color: var(--text-2); text-wrap: pretty; }
+.pm-about-team-names { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; padding: 22px 20px 0; }
+.pm-about-name-1 { grid-column: 3; text-align: right; }
+.pm-about-name h3 { font: 400 28px/34px var(--display); }
+.pm-about-role { margin-top: 4px; font: 400 13px/20px var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.pm-about-contacts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; font-size: 14px; }
+.pm-about-name-1 .pm-about-contacts { justify-content: flex-end; }
+
+/* FAQ */
+.pm-about-faq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: start; scroll-margin-top: 96px; }
+.pm-about-faq-side { display: flex; flex-direction: column; gap: 20px; padding-top: 4px; }
 .pm-about-faq-side h2 { font: 400 44px/52px var(--display); }
 .pm-about-faq-side p { font: 400 15px/24px var(--ui); color: var(--dim); max-width: 400px; }
 
@@ -83,18 +124,69 @@
 /* Текст проявляется после начала раскрытия, при закрытии гаснет сразу. */
 .pm-about-faq-item.open .pm-about-faq-body p { opacity: 1; transform: none; transition: opacity 240ms 80ms ease-out, transform 280ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 
-@media (max-width: 900px) {
-  .pm-about-hero, .pm-about-faq { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+/* Подвал: наклонные пилюли-ссылки, вращающийся бейдж, гигантская надпись снизу. */
+.pm-about-foot {
+  position: relative; max-width: 1180px; margin: 0 auto; overflow: hidden;
+  border: 1px solid var(--line-soft); border-bottom: 0; border-radius: 36px 36px 0 0;
+  background: radial-gradient(90% 80% at 80% 0%, rgba(40, 54, 110, 0.5), rgba(11, 18, 52, 0.95) 60%);
 }
-@media (max-width: 640px) {
-  .pm-about .pm-about-header { padding-bottom: 14px; }
-  .pm-about-main { padding: 20px 16px 48px; gap: 48px; }
-  .pm-about-intro h1 { font-size: 34px; line-height: 40px; }
-  .pm-about-intro p { font-size: 16px; line-height: 26px; }
-  .pm-about-team { padding: 18px; }
+.pm-about-foot-top { display: flex; justify-content: space-between; gap: 32px; padding: 40px 40px 0; }
+.pm-about-socials { position: relative; width: 420px; height: 210px; flex: none; }
+.pm-about-sticker {
+  --r: 0deg;
+  position: absolute; padding: 12px 30px; border-radius: 999px; border: 1px solid var(--gold-line);
+  font: 400 20px/26px var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-soft); background: var(--ink);
+  transform: rotate(var(--r)); transition: transform 320ms cubic-bezier(0.3, 1.4, 0.5, 1), background 160ms ease-out, border-color 160ms ease-out;
+}
+.pm-about-sticker.fill { background: #1C2550; border-color: var(--line); color: #fff; }
+.pm-about-sticker:hover { transform: rotate(0deg) scale(1.06); border-color: var(--gold); z-index: 1; }
+.pm-about-foot-side { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; font: 400 13px/20px var(--ui); color: var(--dim); text-align: right; }
+.pm-about .pm-about-badge { position: relative; width: 148px; height: 148px; border-radius: 999px; display: grid; place-items: center; }
+.pm-about-badge svg { position: absolute; inset: 0; width: 100%; height: 100%; animation: pm-spin 22s linear infinite; }
+.pm-about-badge text { font: 400 10px var(--ui); letter-spacing: 0.1em; text-transform: uppercase; fill: var(--gold-soft); }
+.pm-about-badge img {
+  width: 76px; height: 76px; padding: 12px; border-radius: 999px; object-fit: contain;
+  background: var(--ink); border: 1px solid var(--gold-line); transition: transform 240ms ease-out, border-color 160ms ease-out;
+}
+.pm-about-badge::before { content: ''; position: absolute; inset: 0; border-radius: 999px; border: 1px solid var(--line); background: rgba(1, 0, 17, 0.5); }
+.pm-about-badge:hover img { transform: scale(1.08) rotate(-8deg); border-color: var(--gold); }
+.pm-about-badge:hover svg { animation-duration: 8s; }
+.pm-about-bigword {
+  display: flex; align-items: center; justify-content: center; gap: 0.12em; margin-top: 12px; margin-bottom: -0.2em;
+  font: 400 clamp(34px, 9.4vw, 118px)/1 var(--display); text-transform: uppercase; white-space: nowrap; color: #fff;
+}
+.pm-about-star { width: 0.42em; height: 0.42em; fill: var(--gold); flex: none; }
+
+@media (max-width: 1000px) {
+  .pm-about-hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pm-about-hero-map { grid-column: 1 / -1; order: -1; }
+  .pm-about-faq { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+}
+@media (max-width: 720px) {
+  .pm-about .pm-about-header { grid-template-columns: 1fr auto; padding-bottom: 14px; }
+  .pm-about-main { padding: 12px 16px 64px; gap: 72px; }
+  .pm-about-hero-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: 20px; }
+  .pm-about-hero-map { height: 260px; border-radius: 22px; }
+  .pm-about-hero-map-bar { left: 10px; right: 10px; bottom: 10px; }
+  .pm-about-range { font-size: 48px; }
+  .pm-about-hero-lead p { margin-top: 12px; }
+  .pm-about-team-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "c c" "a b"; gap: 12px; padding: 12px; border-radius: 26px; }
+  .pm-about-portrait { border-radius: 18px; }
+  .pm-about-team-names { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 16px 4px 0; }
+  .pm-about-name-1 { grid-column: 2; }
+  .pm-about-name h3 { font-size: 20px; line-height: 26px; }
+  .pm-about-role { font-size: 11px; letter-spacing: 0.08em; }
+  .pm-about-contacts { flex-direction: column; font-size: 13px; }
+  .pm-about-name-1 .pm-about-contacts { align-items: flex-end; }
   .pm-about-faq-side h2 { font-size: 32px; line-height: 40px; }
   .pm-about .pm-about-faq-item > button { min-height: 64px; padding: 12px 12px 12px 16px; font-size: 16px; line-height: 24px; gap: 12px; }
   .pm-about-faq-toggle { width: 36px; height: 36px; }
   .pm-about-faq-body p { padding: 0 16px 16px; }
-  .pm-about-foot { padding: 20px 16px 28px; }
+  .pm-about-foot { border-radius: 28px 28px 0 0; margin: 0 8px; }
+  .pm-about-foot-top { flex-direction: column; align-items: stretch; padding: 24px 16px 0; }
+  .pm-about-socials { width: 100%; max-width: 340px; height: 190px; margin: 0 auto; }
+  .pm-about-sticker { font-size: 16px; padding: 10px 22px; }
+  .pm-about-foot-side { flex-direction: row; align-items: center; justify-content: space-between; text-align: right; }
+  .pm-about .pm-about-badge { width: 120px; height: 120px; }
+  .pm-about-badge img { width: 60px; height: 60px; padding: 10px; }
 }

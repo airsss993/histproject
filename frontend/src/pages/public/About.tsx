@@ -1,16 +1,18 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Logo, useIsMobile } from './PublicMap.tsx'
+import { MapView } from './MapView.tsx'
+import { fetchAllEvents, yearOf, type HistEvent } from './api.ts'
 import './public.css'
 import './about.css'
 
 // Команда и контакты - со страницы "О нас" trudovaya-slava.
-const TEAM = [
+// photo - путь от public/, например '/team/sklyarova.jpg'. Без него в портрете буква.
+const TEAM: { initial: string; role: string; name: string; photo?: string; contacts: { label: string; href: string }[] }[] = [
   {
     initial: 'Д',
     role: 'Менеджер проекта',
     name: 'Дарья Склярова',
-    bio: 'Отвечает за развитие проекта, координацию команды и работу с сообществом.',
     contacts: [
       { label: '@dsxwwx_z', href: 'https://t.me/dsxwwx_z' },
       { label: 'doctorin7@gmail.com', href: 'mailto:doctorin7@gmail.com' },
@@ -20,7 +22,6 @@ const TEAM = [
     initial: 'А',
     role: 'Разработчик',
     name: 'Артём Джапаридзе',
-    bio: 'Проектирует и разрабатывает платформу.',
     contacts: [],
   },
 ]
@@ -49,60 +50,136 @@ const FAQ = [
   },
 ]
 
+const MAIL = TEAM[0].contacts[1].href
+const TELEGRAM = TEAM[0].contacts[0].href
+
+const plural = (n: number) => {
+  const d = n % 10, h = n % 100
+  return d === 1 && h !== 11 ? 'событие' : d >= 2 && d <= 4 && (h < 12 || h > 14) ? 'события' : 'событий'
+}
+const always = () => true
+
+const Tag: React.FC<{ children: string }> = ({ children }) => (
+  <div className="pm-about-tag"><span>{children}</span><i /></div>
+)
+
+// Превью события, пока его нет - штриховка.
+const Preview: React.FC<{ e?: HistEvent; className: string }> = ({ e, className }) => (
+  e?.previewImageUrl
+    ? <img className={className} src={e.previewImageUrl} alt="" loading="lazy" />
+    : <span className={`${className} pm-hatch`} />
+)
+
+const Star: React.FC = () => (
+  <svg className="pm-about-star" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 0C12.6 7.2 16.8 11.4 24 12C16.8 12.6 12.6 16.8 12 24C11.4 16.8 7.2 12.6 0 12C7.2 11.4 11.4 7.2 12 0Z" />
+  </svg>
+)
+
+const BADGE_TEXT = 'Предложить событие · Предложить событие · '
+
 export const About: React.FC = () => {
   const navigate = useNavigate()
   const mobile = useIsMobile()
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [events, setEvents] = useState<HistEvent[]>([])
+  useEffect(() => {
+    const ac = new AbortController()
+    fetchAllEvents(ac.signal).then(setEvents).catch(() => {}) // без событий страница остаётся со штриховкой
+    return () => ac.abort()
+  }, [])
+  const previews = events.filter(e => e.previewImageUrl).sort((a, b) => b.id - a.id)
+  const latest = previews[0]
+  const propose = () => navigate('/map?propose=1')
+
   return (
     <div className="pm-root pm-about">
       <div role="banner" className="pm-header pm-about-header">
+        {!mobile && (
+          <nav className="pm-about-nav">
+            <Link to="/map">Карта</Link>
+            <a href="#team">Команда</a>
+            <a href="#faq">Вопросы</a>
+          </nav>
+        )}
         <Logo short={mobile} onClick={() => navigate('/map')} />
-        <div className="pm-grow" />
-        <Link to="/map" className="pm-btn-ghost pm-pill pm-nowrap">К карте</Link>
+        <div className="pm-about-header-end">
+          {mobile
+            ? <Link to="/map" className="pm-btn-ghost pm-pill pm-nowrap">К карте</Link>
+            : <button type="button" className="pm-btn pm-pill pm-nowrap" onClick={propose}>Предложить событие</button>}
+        </div>
       </div>
 
       <main className="pm-about-main">
         <section className="pm-about-hero">
-          <div className="pm-about-intro">
-            <div className="pm-label">Открытый исторический проект · 2026</div>
-            <h1>О проекте</h1>
-            <p>
-              "Россия - страна Героев" - интерактивная карта событий истории России. Карту ведёт
-              независимая команда из двух человек, события присылают читатели.
-            </p>
-            <p>
-              Если знаете событие, которого нет на карте, - предложите его. Нашли ошибку - напишите нам.
-            </p>
-            <div className="pm-row">
-              <button type="button" className="pm-btn" onClick={() => navigate('/map?propose=1')}>Предложить событие</button>
-              <a href="#faq" className="pm-btn-ghost">Частые вопросы</a>
+          <h1>О проекте</h1>
+          <div className="pm-about-hero-grid">
+            <div className="pm-about-hero-lead">
+              <div className="pm-about-range">IX-XXI</div>
+              <div className="pm-label">века на карте</div>
+              <p>Интерактивная карта истории России: военные и политические события, у каждого есть место, дата и своя страница.</p>
+            </div>
+
+            <div className="pm-about-hero-map">
+              <MapView events={events} isActive={always} selectedId={null} onSelect={id => navigate(`/map?event=${id}`)}
+                pad={24} labels={false} interactive={false} />
+              <div className="pm-about-hero-map-bar">
+                <span className="pm-about-chip pm-glass">{events.length} {plural(events.length)} на карте</span>
+                <Link to="/map" className="pm-btn pm-pill pm-nowrap">Открыть карту</Link>
+              </div>
+            </div>
+
+            <div className="pm-about-hero-idea">
+              {latest
+                ? (
+                  <Link to={`/map?event=${latest.id}`} className="pm-about-shot">
+                    <Preview e={latest} className="pm-about-shot-img" />
+                    <span className="pm-about-chip pm-glass"><b>{yearOf(latest)}</b> {latest.title}</span>
+                  </Link>
+                )
+                : <div className="pm-about-shot"><Preview className="pm-about-shot-img" /></div>}
+              <h2>Наша идея</h2>
+              <p>Показать историю страны через места, где она происходила. События присылают читатели, модератор проверяет каждое перед публикацией.</p>
             </div>
           </div>
+        </section>
 
-          <aside className="pm-about-team">
-            <div className="pm-label">Над проектом работают</div>
-            <h2>Команда проекта</h2>
-            {TEAM.map(p => (
-              <div key={p.name} className="pm-about-person">
-                <div className="pm-about-avatar" aria-hidden="true">{p.initial}</div>
-                <div className="pm-grow">
-                  <div className="pm-about-role">{p.role}</div>
-                  <h3>{p.name}</h3>
-                  <p>{p.bio}</p>
-                  {p.contacts.length > 0 && (
-                    <div className="pm-about-contacts">
-                      {p.contacts.map(c => <a key={c.href} className="pm-link" href={c.href}>{c.label}</a>)}
-                    </div>
-                  )}
-                </div>
+        <section className="pm-about-team" id="team">
+          <div className="pm-about-team-panel">
+            {TEAM.map((p, i) => (
+              <div key={p.name} className={`pm-about-portrait pm-about-portrait-${i}`}>
+                {p.photo
+                  ? <img src={p.photo} alt={p.name} />
+                  : <span className="pm-about-portrait-initial" aria-hidden="true">{p.initial}</span>}
               </div>
             ))}
-          </aside>
+            <div className="pm-about-team-center">
+              <Tag>Команда</Tag>
+              <h2>Люди<br />за картой</h2>
+              <div className="pm-about-strip" aria-hidden="true">
+                {[0, 1, 2].map(i => <Preview key={i} e={previews[i]} className="pm-about-strip-img" />)}
+              </div>
+              <p>Карту делают два человека. Менеджер ведёт проект и общается с сообществом, разработчик строит платформу.</p>
+            </div>
+          </div>
+          <div className="pm-about-team-names">
+            {TEAM.map((p, i) => (
+              <div key={p.name} className={`pm-about-name pm-about-name-${i}`}>
+                <h3>{p.name}</h3>
+                <div className="pm-about-role">{p.role}</div>
+                {p.contacts.length > 0 && (
+                  <div className="pm-about-contacts">
+                    {p.contacts.map(c => <a key={c.href} className="pm-link" href={c.href}>{c.label}</a>)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="pm-about-faq" id="faq">
           <div className="pm-about-faq-side">
-            <div className="pm-about-faq-tag"><span>FAQ</span><i /></div>
+            <Tag>FAQ</Tag>
             <h2>Частые вопросы</h2>
             <p>Как устроена карта, как предложить событие и что происходит с заявкой после отправки.</p>
           </div>
@@ -129,11 +206,24 @@ export const About: React.FC = () => {
       </main>
 
       <footer className="pm-about-foot">
-        <span>© 2026 · Россия - страна Героев</span>
-        <nav>
-          <Link to="/map" className="pm-link">Карта</Link>
-          <Link to="/map?propose=1" className="pm-link">Предложить событие</Link>
-        </nav>
+        <div className="pm-about-foot-top">
+          <nav className="pm-about-socials" aria-label="Связь">
+            <a href={TELEGRAM} className="pm-about-sticker fill" style={{ '--r': '-22deg', left: '44%', top: '6%' } as React.CSSProperties}>Telegram</a>
+            <a href={MAIL} className="pm-about-sticker" style={{ '--r': '5deg', left: '4%', top: '38%' } as React.CSSProperties}>Почта</a>
+            <Link to="/map" className="pm-about-sticker fill" style={{ '--r': '-4deg', left: '30%', top: '66%' } as React.CSSProperties}>Карта</Link>
+          </nav>
+          <div className="pm-about-foot-side">
+            <button type="button" className="pm-about-badge" onClick={propose} aria-label="Предложить событие">
+              <svg viewBox="0 0 148 148" aria-hidden="true">
+                <defs><path id="pm-badge-path" d="M74 74m-56 0a56 56 0 1 1 112 0a56 56 0 1 1 -112 0" /></defs>
+                <text><textPath href="#pm-badge-path" textLength={351} lengthAdjust="spacing">{BADGE_TEXT}</textPath></text>
+              </svg>
+              <img src="/logo.svg" alt="" />
+            </button>
+            <span>© 2026<br />Россия - страна Героев</span>
+          </div>
+        </div>
+        <div className="pm-about-bigword" aria-hidden="true">Страна<Star />Героев</div>
       </footer>
     </div>
   )
