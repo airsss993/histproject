@@ -13,6 +13,7 @@
 .pm-about-nav a { font: 400 14px/20px var(--ui); color: var(--text-2); transition: color 120ms ease-out; }
 .pm-about-nav a:hover { color: var(--gold); }
 .pm-about-header-end { display: flex; justify-content: flex-end; }
+.pm-about .pm-about-header .pm-logo-text { white-space: nowrap; }
 
 /* Метка-пилюля с линией и точкой. */
 .pm-about-tag { display: flex; align-items: center; gap: 12px; }
@@ -158,12 +159,15 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
 .pm-about-star { width: 0.42em; height: 0.42em; fill: var(--gold); flex: none; }
 
 @media (max-width: 1000px) {
+  .pm-about-nav { display: none; }
+  .pm-about .pm-about-header .pm-logo { grid-column: 2; }
   .pm-about-hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .pm-about-hero-map { grid-column: 1 / -1; order: -1; }
   .pm-about-faq { grid-template-columns: minmax(0, 1fr); gap: 32px; }
 }
 @media (max-width: 720px) {
   .pm-about .pm-about-header { grid-template-columns: 1fr auto; padding-bottom: 14px; }
+  .pm-about .pm-about-header .pm-logo { grid-column: 1; }
   .pm-about-main { padding: 12px 16px 64px; gap: 72px; }
   .pm-about-hero-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: 20px; }
   .pm-about-hero-map { height: 260px; border-radius: 22px; }
