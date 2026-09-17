@@ -306,22 +306,49 @@ const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = ({
   }
   return (
     <article className="pm-card">
-      <div className={e.previewImageUrl ? 'pm-card-preview' : 'pm-card-preview none'}>
+      <div className={`pm-card-preview${e.previewImageUrl ? '' : ' pm-hatch'}`}>
         {e.previewImageUrl && <img src={e.previewImageUrl} alt="" />}
         <button type="button" className="pm-close" onClick={onClose} aria-label="Закрыть">×</button>
       </div>
       <div className="pm-card-body">
-        <Badges e={e} />
-        <h2 className="pm-card-title">{e.title}</h2>
-        <p className="pm-card-text">{e.description}</p>
-        <div className="pm-row">
-          <a className="pm-btn" href={e.siteUrl} target="_blank" rel="noreferrer">Узнать больше</a>
-          <button type="button" className="pm-btn-ghost" onClick={share}>{copied ? 'Ссылка скопирована' : 'Поделиться'}</button>
+        <div className="pm-card-head">
+          <h2 className="pm-card-title">{e.title}</h2>
+          <span className="pm-year">{yearOf(e)}</span>
+        </div>
+        <div className="pm-card-sub">
+          <span className={`pm-card-type ${e.eventType}`}>{TYPE_LABEL[e.eventType]}</span>
+          <i />
+          <span>{formatDate(e.eventDate)}</span>
+        </div>
+        <ul className="pm-card-info">
+          <li><Icon d={ICON.place} />{coords(e)}</li>
+          {e.description && <li><Icon d={ICON.text} /><p className="pm-card-text">{e.description}</p></li>}
+        </ul>
+        <div className="pm-card-actions">
+          <button type="button" className="pm-card-share" onClick={share}>
+            <Icon d={ICON.share} />{copied ? 'Скопировано' : 'Поделиться'}
+          </button>
+          <a className="pm-card-more" href={e.siteUrl} target="_blank" rel="noreferrer">
+            <Icon d={ICON.open} />Узнать больше
+          </a>
         </div>
       </div>
     </article>
   )
 }
+
+const ICON = {
+  place: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z M12 12.2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
+  text: 'M5 6h14 M5 10h14 M5 14h14 M5 18h9',
+  share: 'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M8.6 13.5l6.8 4 M15.4 6.5l-6.8 4',
+  open: 'M14 4h6v6 M20 4l-9 9 M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
+}
+const Icon: React.FC<{ d: string }> = ({ d }) => (
+  <svg className="pm-icon" viewBox="0 0 24 24" width={20} height={20} aria-hidden="true" fill="none"
+    stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>
+)
+const coords = (e: HistEvent) =>
+  `${Math.abs(e.latitude).toFixed(2)}° ${e.latitude >= 0 ? 'с. ш.' : 'ю. ш.'}, ${Math.abs(e.longitude).toFixed(2)}° ${e.longitude >= 0 ? 'в. д.' : 'з. д.'}`
 
 const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void; className?: string }> = ({ event: e, onClose, className = '' }) => {
   const [open, setOpen] = useState(false)

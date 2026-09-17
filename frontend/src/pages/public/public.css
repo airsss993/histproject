@@ -181,12 +181,11 @@
 .pm-callout.left .pm-callout-arrow { right: -7px; border-bottom-color: transparent; border-left-color: transparent; }
 .pm-callout.fixed .pm-callout-arrow { display: none; }
 .pm-card {
-  position: relative; width: 480px; max-height: calc(100dvh - 180px);
-  display: flex; flex-direction: column; border-radius: 16px; overflow: hidden;
+  position: relative; width: 380px; max-height: calc(100dvh - 180px);
+  display: flex; flex-direction: column; border-radius: 22px; overflow: hidden;
   background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
   animation: pm-pop 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-/* Карточка вырастает из метки. */
 .pm-callout.right .pm-card { transform-origin: 0 var(--ay); }
 .pm-callout.left .pm-card { transform-origin: 100% var(--ay); }
 .pm-callout.fixed .pm-card { transform-origin: 0 100%; }
@@ -194,10 +193,11 @@
 .pm-callout.out .pm-card { animation: pm-pop-out 160ms ease-in forwards; }
 .pm-callout.out .pm-callout-arrow { animation: pm-fade-out 160ms ease-in forwards; }
 @keyframes pm-pop-out { to { opacity: 0; transform: scale(0.94); } }
-.pm-card-preview { position: relative; height: 240px; flex: none; border-bottom: 1px dashed var(--line); background: repeating-linear-gradient(135deg, #0B1234 0 6px, #080E28 6px 12px); }
-.pm-card-preview.none { height: 88px; background: #080E28; }
+/* Карточка по образцу карточки места: картинка во внутренней рамке, строки с иконками, две кнопки-пилюли. */
+.pm-card-preview { position: relative; height: 180px; flex: none; margin: 12px 12px 0; border-radius: 14px; overflow: hidden; }
 .pm-card-preview img, .pm-sheet-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.pm-card-body { padding: 24px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.pm-card-preview .pm-close { right: 10px; top: 10px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.pm-card-body { padding: 16px 16px 16px; display: flex; flex-direction: column; overflow-y: auto; }
 .pm-badges { display: flex; align-items: center; gap: 10px; }
 .pm-year-badge { background: #B29453; color: var(--ink); border-radius: 4px; padding: 3px 9px; font: 600 16px/20px var(--display); font-variant-numeric: tabular-nums; }
 .pm-type-badge { border-radius: 4px; padding: 3px 9px; font: 500 12px var(--ui); letter-spacing: 0.1em; text-transform: uppercase; }
@@ -205,7 +205,32 @@
 .pm-type-badge.political { border: 1px solid #45668E; background: #233C5C; }
 .pm-card-title { font: 500 36px/44px var(--display); color: var(--gold); overflow-wrap: anywhere; }
 .pm-card-text { font: 400 18px/28px var(--ui); color: var(--text-2); text-wrap: pretty; overflow-wrap: anywhere; white-space: pre-line; }
-.pm-card .pm-row { padding-top: 4px; }
+.pm-card-head { display: flex; align-items: baseline; gap: 12px; }
+.pm-card .pm-card-title { flex: 1; font: 500 20px/26px var(--ui); color: #fff; }
+.pm-card-head .pm-year { font-size: 20px; line-height: 26px; }
+.pm-card-sub { display: flex; align-items: center; gap: 10px; margin-top: 4px; font: 400 16px/24px var(--ui); color: var(--dim); }
+.pm-card-sub i { width: 6px; height: 6px; border-radius: 999px; background: var(--dim); }
+.pm-card-type.military { color: #F0B62A; }
+.pm-card-type.political { color: #8FB4E8; }
+.pm-card-info { list-style: none; margin: 14px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 12px; }
+.pm-card-info li { display: flex; gap: 14px; font: 400 16px/24px var(--ui); color: #fff; }
+.pm-card-info .pm-icon { margin-top: 2px; color: var(--muted); }
+.pm-icon { flex: none; display: block; }
+.pm-card .pm-card-text {
+  font: 400 15px/24px var(--ui); color: var(--text-2);
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pm-card-actions { display: flex; gap: 10px; margin-top: 18px; }
+.pm-root .pm-card-share, .pm-root .pm-card-more {
+  flex: 1; min-width: 0; height: 48px; padding: 0 14px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  font: 500 16px var(--ui); text-decoration: none; white-space: nowrap;
+  transition: background 120ms ease-out, border-color 120ms ease-out;
+}
+.pm-root .pm-card-share { background: #1C2550; border: 1px solid var(--line); color: #fff; }
+.pm-root .pm-card-share:hover { background: #253063; }
+.pm-root .pm-card-more { background: var(--gold); border: 1px solid var(--gold); color: var(--ink); }
+.pm-root .pm-card-more:hover { background: var(--gold-soft); }
 .pm-card-loading { flex-direction: row; align-items: center; gap: 16px; width: 400px; padding: 20px 64px 20px 20px; }
 .pm-card-loading .pm-close { top: 50%; transform: translateY(-50%); }
 .pm-skel-circle { width: 52px; height: 52px; border-radius: 999px; background: #0B1234; flex: none; }
