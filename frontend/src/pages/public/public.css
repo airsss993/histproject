@@ -168,6 +168,9 @@
 .pm-centuries button i { width: 12px; height: 1px; background: var(--line); }
 .pm-centuries button:hover, .pm-centuries button.on { color: var(--gold); }
 .pm-centuries button.on i { background: var(--gold-line); }
+.pm-centuries button span { transform-origin: right center; transition: transform 160ms ease-out; }
+.pm-centuries button:hover span, .pm-centuries button.on span { transform: scale(1.4); }
+@media (prefers-reduced-motion: reduce) { .pm-centuries button span { transition: none; } }
 
 /* Карточка события: выноска у метки, стрелка на высоте --ay. Выше шапки и поиска, хотя живёт внутри карты. */
 .pm-callout { position: absolute; z-index: 5; }

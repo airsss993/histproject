@@ -231,7 +231,7 @@ export const PublicMap: React.FC = () => {
         <div className="pm-centuries" aria-label="Шкала веков">
           {ROMAN.map((n, i) => (
             <button type="button" key={n} className={highlight(i) ? 'on' : ''} onClick={() => pickCentury(i)} title={`${n} век`}>
-              {n}<i />
+              <span>{n}</span><i />
             </button>
           ))}
         </div>
