@@ -8,21 +8,16 @@ import './about.css'
 
 // Команда и контакты - со страницы "О нас" trudovaya-slava.
 // photo - путь от public/, например '/team/sklyarova.jpg'. Без него в портрете буква.
-const TEAM: { initial: string; role: string; name: string; photo?: string; contacts: { label: string; href: string }[] }[] = [
+const TEAM: { initial: string; role: string; name: string; photo?: string }[] = [
   {
     initial: 'Д',
     role: 'Менеджер проекта',
     name: 'Дарья Склярова',
-    contacts: [
-      { label: '@dsxwwx_z', href: 'https://t.me/dsxwwx_z' },
-      { label: 'doctorin7@gmail.com', href: 'mailto:doctorin7@gmail.com' },
-    ],
   },
   {
     initial: 'А',
     role: 'Разработчик',
     name: 'Артём Джапаридзе',
-    contacts: [],
   },
 ]
 
@@ -46,12 +41,13 @@ const FAQ = [
   },
   {
     q: 'Я нашёл ошибку в событии. Как её поправить?',
-    a: 'Напишите нам в Telegram или на почту из блока "Команда проекта". Укажите событие и приложите источник, если он есть.',
+    a: 'Напишите нам в Telegram или на почту: ссылки внизу страницы. Укажите событие и приложите источник, если он есть.',
   },
 ]
 
-const MAIL = TEAM[0].contacts[1].href
-const TELEGRAM = TEAM[0].contacts[0].href
+// Связь с проектом - контакты менеджера.
+const MAIL = 'mailto:doctorin7@gmail.com'
+const TELEGRAM = 'https://t.me/dsxwwx_z'
 
 const plural = (n: number) => {
   const d = n % 10, h = n % 100
@@ -167,11 +163,6 @@ export const About: React.FC = () => {
               <div key={p.name} className={`pm-about-name pm-about-name-${i}`}>
                 <h3>{p.name}</h3>
                 <div className="pm-about-role">{p.role}</div>
-                {p.contacts.length > 0 && (
-                  <div className="pm-about-contacts">
-                    {p.contacts.map(c => <a key={c.href} className="pm-link" href={c.href}>{c.label}</a>)}
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -208,8 +199,14 @@ export const About: React.FC = () => {
       <footer className="pm-about-foot">
         <div className="pm-about-foot-top">
           <nav className="pm-about-socials" aria-label="Связь">
-            <a href={TELEGRAM} className="pm-about-sticker fill" style={{ '--r': '-22deg', left: '44%', top: '6%' } as React.CSSProperties}>Telegram</a>
-            <a href={MAIL} className="pm-about-sticker" style={{ '--r': '5deg', left: '4%', top: '38%' } as React.CSSProperties}>Почта</a>
+            <a href={TELEGRAM} className="pm-about-sticker fill" style={{ '--r': '-22deg', left: '44%', top: '6%' } as React.CSSProperties}>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.4 3.6 2.9 10.7c-1.3.5-1.2 2.3.1 2.6l4.6 1.3 1.8 5.5c.3 1 1.6 1.3 2.3.5l2.6-2.6 4.6 3.4c.8.6 2 .1 2.2-.9L24 5.2c.3-1.2-1.3-2.2-2.6-1.6ZM9.6 14.4l8.6-7.6-6.9 9.1-.4 2.9-1.3-4.4Z" /></svg>
+              Telegram
+            </a>
+            <a href={MAIL} className="pm-about-sticker" style={{ '--r': '5deg', left: '4%', top: '38%' } as React.CSSProperties}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5" /><path d="m3.5 6.5 8.5 7 8.5-7" /></svg>
+              Почта
+            </a>
             <Link to="/map" className="pm-about-sticker fill" style={{ '--r': '-4deg', left: '30%', top: '66%' } as React.CSSProperties}>Карта</Link>
           </nav>
           <div className="pm-about-foot-side">
