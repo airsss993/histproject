@@ -101,18 +101,16 @@ export const About: React.FC = () => {
 
         <section className="pm-about-faq" id="faq">
           <div className="pm-about-faq-side">
-            <div className="pm-about-faq-mark">FAQ</div>
+            <div className="pm-about-faq-tag"><span>FAQ</span><i /></div>
             <h2>Частые вопросы</h2>
+            <p>Как устроена карта, как предложить событие и что происходит с заявкой после отправки.</p>
           </div>
           <div className="pm-about-faq-list">
             {FAQ.map((item, i) => (
               <details key={item.q} name="faq" open={i === 0}>
                 <summary>
-                  <span className="pm-year">{String(i + 1).padStart(2, '0')}</span>
                   <span className="pm-grow">{item.q}</span>
-                  <svg className="pm-about-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-                    <path d="M3 6l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <span className="pm-about-faq-toggle" aria-hidden="true" />
                 </summary>
                 <p>{item.a}</p>
               </details>

@@ -27,21 +27,51 @@
 .pm-about .pm-link { text-decoration: none; }
 .pm-about .pm-link:hover { color: var(--gold); }
 
-.pm-about-faq { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 56px; scroll-margin-top: 96px; }
-.pm-about-faq-mark { font: 400 64px/72px var(--display); letter-spacing: 0.1em; color: var(--gold); }
-.pm-about-faq-side h2 { font: 400 26px/34px var(--display); margin-top: 8px; }
-.pm-about-faq-list { border-top: 1px dashed var(--line); }
-.pm-about-faq-list details { border-bottom: 1px dashed var(--line); }
+.pm-about-faq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; align-items: start; scroll-margin-top: 96px; }
+.pm-about-faq-side { display: flex; flex-direction: column; gap: 20px; padding-top: 4px; }
+.pm-about-faq-tag { display: flex; align-items: center; gap: 12px; }
+.pm-about-faq-tag span {
+  padding: 5px 14px; border-radius: 999px; border: 1px solid var(--line); background: #0B1234;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); font: 400 12px/18px var(--ui); letter-spacing: 0.08em; color: var(--text-2);
+}
+/* Линия с точкой: точка у пилюли, линия гаснет вправо. */
+.pm-about-faq-tag i { position: relative; width: 64px; height: 1px; background: linear-gradient(90deg, var(--gold-soft), rgba(212, 174, 92, 0)); }
+.pm-about-faq-tag i::before { content: ''; position: absolute; left: -2px; top: -2px; width: 5px; height: 5px; border-radius: 999px; background: var(--gold-soft); box-shadow: 0 0 6px var(--gold); }
+.pm-about-faq-side h2 { font: 400 44px/52px var(--display); }
+.pm-about-faq-side p { font: 400 15px/24px var(--ui); color: var(--dim); max-width: 400px; }
+
+.pm-about-faq-list { display: flex; flex-direction: column; gap: 12px; }
+.pm-about-faq-list details {
+  border-radius: 16px; border: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, rgba(23, 32, 70, 0.9), rgba(12, 18, 40, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 160ms ease-out;
+}
+.pm-about-faq-list details:hover, .pm-about-faq-list details[open] { border-color: var(--line); }
 .pm-about-faq-list summary {
-  display: flex; align-items: baseline; gap: 18px; padding: 20px 4px; cursor: pointer; list-style: none;
-  font: 400 18px/28px var(--ui); transition: color 120ms ease-out;
+  display: flex; align-items: center; gap: 16px; padding: 14px 14px 14px 20px; min-height: 72px;
+  cursor: pointer; list-style: none; font: 400 18px/26px var(--ui);
 }
 .pm-about-faq-list summary::-webkit-details-marker { display: none; }
-.pm-about-faq-list summary:hover { color: var(--gold-soft); }
-.pm-about-faq-list summary .pm-year { flex: none; width: 28px; }
-.pm-about-chev { flex: none; align-self: center; color: var(--muted); transition: transform 160ms ease-out; }
-.pm-about-faq-list details[open] .pm-about-chev { transform: rotate(180deg); color: var(--gold); }
-.pm-about-faq-list details p { padding: 0 32px 22px 50px; font: 400 16px/26px var(--ui); color: var(--text-2); text-wrap: pretty; animation: pm-in 180ms ease-out; }
+.pm-about-faq-list summary:focus-visible { outline-offset: -2px; border-radius: 16px; }
+/* Круглая кнопка: плюс, в открытом - минус (вертикальная черта схлопывается). */
+.pm-about-faq-toggle {
+  position: relative; flex: none; width: 40px; height: 40px; border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, var(--gold-soft), var(--gold) 45%, #8C6F2E);
+  box-shadow: 0 0 0 1px rgba(226, 198, 140, 0.35), 0 4px 16px rgba(212, 174, 92, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+}
+.pm-about-faq-toggle::before, .pm-about-faq-toggle::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 1.5px; margin: -0.75px 0 0 -6px;
+  background: var(--ink); border-radius: 1px; transition: transform 200ms ease-out;
+}
+.pm-about-faq-toggle::after { transform: rotate(90deg); }
+.pm-about-faq-list details[open] .pm-about-faq-toggle::after { transform: rotate(0deg); }
+.pm-about-faq-list summary:hover .pm-about-faq-toggle { transform: scale(1.06); box-shadow: 0 0 0 1px rgba(226, 198, 140, 0.5), 0 4px 22px rgba(212, 174, 92, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+.pm-about-faq-list details p {
+  margin-top: -4px; padding: 0 76px 20px 20px;
+  font: 400 14px/22px var(--ui); color: var(--muted); text-wrap: pretty; animation: pm-in 180ms ease-out;
+}
 
 .pm-about-foot {
   max-width: 1120px; margin: 0 auto; padding: 24px 28px 32px; border-top: 1px dashed var(--line);
@@ -58,8 +88,9 @@
   .pm-about-intro h1 { font-size: 34px; line-height: 40px; }
   .pm-about-intro p { font-size: 16px; line-height: 26px; }
   .pm-about-team { padding: 18px; }
-  .pm-about-faq-mark { font-size: 44px; line-height: 52px; }
-  .pm-about-faq-list summary { font-size: 16px; line-height: 24px; gap: 12px; }
-  .pm-about-faq-list details p { padding: 0 8px 20px 40px; font-size: 15px; line-height: 24px; }
+  .pm-about-faq-side h2 { font-size: 32px; line-height: 40px; }
+  .pm-about-faq-list summary { min-height: 64px; padding: 12px 12px 12px 16px; font-size: 16px; line-height: 24px; gap: 12px; }
+  .pm-about-faq-toggle { width: 36px; height: 36px; }
+  .pm-about-faq-list details p { padding: 0 16px 16px; }
   .pm-about-foot { padding: 20px 16px 28px; }
 }
