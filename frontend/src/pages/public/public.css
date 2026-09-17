@@ -17,6 +17,8 @@
   --shadow: 0 12px 40px rgba(0, 0, 20, 0.6);
   --display: 'Cormorant Garamond', Georgia, serif;
   --ui: 'IBM Plex Sans', system-ui, sans-serif;
+  /* Карточка события. У Tenor Sans одно начертание, жирность не задаём, иначе браузер нарисует поддельную. */
+  --card-font: 'Tenor Sans', 'IBM Plex Sans', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   position: fixed;
@@ -199,23 +201,24 @@
 .pm-card-preview .pm-close { right: 10px; top: 10px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .pm-card-body { padding: 16px 16px 16px; display: flex; flex-direction: column; overflow-y: auto; }
 .pm-card-head { display: flex; align-items: baseline; gap: 12px; }
-.pm-card-title { flex: 1; min-width: 0; font: 500 20px/26px var(--ui); color: #fff; overflow-wrap: anywhere; }
-.pm-card-head .pm-year { font-size: 20px; line-height: 26px; }
-.pm-card-sub { display: flex; align-items: center; gap: 10px; margin-top: 4px; font: 400 16px/24px var(--ui); color: var(--dim); }
+.pm-card, .pm-sheet { font-synthesis: none; font-variant-numeric: lining-nums; }
+.pm-card-title { flex: 1; min-width: 0; font: 400 21px/27px var(--card-font); color: #fff; overflow-wrap: anywhere; }
+.pm-card-head .pm-year { font: 400 21px/27px var(--card-font); font-variant-numeric: lining-nums tabular-nums; }
+.pm-card-sub { display: flex; align-items: center; gap: 10px; margin-top: 4px; font: 400 16px/24px var(--card-font); color: var(--dim); }
 .pm-card-sub i { width: 6px; height: 6px; border-radius: 999px; background: var(--dim); }
 .pm-card-type.military { color: #F0B62A; }
 .pm-card-type.political { color: #8FB4E8; }
 .pm-card-info { list-style: none; margin: 14px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 12px; }
-.pm-card-info li { display: flex; gap: 14px; font: 400 16px/24px var(--ui); color: #fff; }
+.pm-card-info li { display: flex; gap: 14px; font: 400 16px/24px var(--card-font); color: #fff; }
 .pm-card-info .pm-icon { margin-top: 2px; color: var(--muted); }
 .pm-icon { flex: none; display: block; }
-.pm-card-text { font: 400 15px/24px var(--ui); color: var(--text-2); text-wrap: pretty; overflow-wrap: anywhere; white-space: pre-line; }
+.pm-card-text { font: 400 15px/24px var(--card-font); color: var(--text-2); text-wrap: pretty; overflow-wrap: anywhere; white-space: pre-line; }
 .pm-card .pm-card-text { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .pm-card-actions { display: flex; gap: 10px; margin-top: 18px; }
 .pm-root .pm-card-share, .pm-root .pm-card-more {
   flex: 1; min-width: 0; height: 48px; padding: 0 14px; border-radius: 999px;
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  font: 500 16px var(--ui); text-decoration: none; white-space: nowrap;
+  font: 400 16px var(--card-font); text-decoration: none; white-space: nowrap;
   transition: background 120ms ease-out, border-color 120ms ease-out;
 }
 .pm-root .pm-card-share { background: #1C2550; border: 1px solid var(--line); color: #fff; }
