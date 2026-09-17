@@ -123,8 +123,8 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
 
 /* Подвал: наклонные пилюли-ссылки, вращающийся бейдж, гигантская надпись снизу. */
 .pm-about-foot {
-  position: relative; max-width: 1180px; margin: 0 auto; overflow: hidden;
-  border: 1px solid var(--line-soft); border-bottom: 0; border-radius: 36px 36px 0 0;
+  position: relative; max-width: 1180px; margin: 0 auto 24px; overflow: hidden;
+  border: 1px solid var(--line-soft); border-radius: 36px;
   background: radial-gradient(90% 80% at 80% 0%, rgba(40, 54, 110, 0.5), rgba(11, 18, 52, 0.95) 60%);
 }
 .pm-about-foot-top { display: flex; justify-content: space-between; gap: 32px; padding: 40px 40px 0; }
@@ -150,7 +150,7 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
 .pm-about-badge:hover img { transform: scale(1.08) rotate(-8deg); border-color: var(--gold); }
 .pm-about-badge:hover svg { animation-duration: 8s; }
 .pm-about-bigword {
-  display: flex; align-items: center; justify-content: center; gap: 0.12em; margin-top: 12px; margin-bottom: -0.2em;
+  display: flex; align-items: center; justify-content: center; gap: 0.12em; padding: 12px 24px 0.32em;
   font: 400 clamp(34px, 9.4vw, 118px)/1 var(--display); text-transform: uppercase; white-space: nowrap; color: #fff;
 }
 .pm-about-star { width: 0.42em; height: 0.42em; fill: var(--gold); flex: none; }
@@ -181,7 +181,7 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
   .pm-about .pm-about-faq-item > button { min-height: 64px; padding: 12px 12px 12px 16px; font-size: 16px; line-height: 24px; gap: 12px; }
   .pm-about-faq-toggle { width: 36px; height: 36px; }
   .pm-about-faq-body p { padding: 0 16px 16px; }
-  .pm-about-foot { border-radius: 28px 28px 0 0; margin: 0 8px; }
+  .pm-about-foot { border-radius: 28px; margin: 0 8px 8px; }
   .pm-about-foot-top { flex-direction: column; align-items: stretch; padding: 24px 16px 0; }
   .pm-about-socials { width: 100%; max-width: 340px; height: 190px; margin: 0 auto; }
   .pm-about-sticker { font-size: 16px; padding: 10px 22px; }
