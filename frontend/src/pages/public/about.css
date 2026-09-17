@@ -1,0 +1,65 @@
+/* Страница "О проекте". Токены и кнопки - из public.css. */
+.pm-about { overflow-y: auto; background: var(--ink); }
+.pm-about .pm-about-header { position: sticky; background: linear-gradient(var(--ink) 60%, rgba(1, 0, 17, 0)); z-index: 2; }
+.pm-about h3 { margin: 0; }
+.pm-about .pm-nowrap { white-space: nowrap; }
+.pm-about-main { max-width: 1120px; margin: 0 auto; padding: 32px 28px 64px; display: flex; flex-direction: column; gap: 72px; animation: pm-in 240ms ease-out; }
+
+.pm-about-hero { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 56px; align-items: start; }
+.pm-about-intro { display: flex; flex-direction: column; gap: 20px; }
+.pm-about-intro h1 { font: 400 56px/64px var(--display); letter-spacing: 0.08em; text-transform: uppercase; }
+.pm-about-intro p { font: 400 18px/28px var(--ui); color: var(--text-2); max-width: 560px; text-wrap: pretty; }
+.pm-about-intro .pm-row { flex-wrap: wrap; padding-top: 8px; }
+.pm-about-intro .pm-btn, .pm-about-intro .pm-btn-ghost { padding: 13px 22px; }
+
+.pm-about-team { padding: 24px; border-radius: 22px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.pm-about-team h2 { font: 400 26px/34px var(--display); margin: 6px 0 4px; }
+.pm-about-person { display: flex; gap: 16px; padding: 18px 0; border-top: 1px dashed var(--line-soft); margin-top: 14px; }
+.pm-about-person + .pm-about-person { margin-top: 0; }
+.pm-about-avatar {
+  flex: none; width: 52px; height: 52px; border-radius: 999px; border: 1px solid var(--gold-line);
+  background: var(--gold-wash); color: var(--gold); font: 400 22px/50px var(--display); text-align: center;
+}
+.pm-about-role { font: 400 13px/20px var(--ui); color: var(--gold); }
+.pm-about-person h3 { font: 400 20px/28px var(--ui); }
+.pm-about-person p { margin-top: 4px; font: 400 15px/24px var(--ui); color: var(--text-2); }
+.pm-about-contacts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; }
+.pm-about .pm-link { text-decoration: none; }
+.pm-about .pm-link:hover { color: var(--gold); }
+
+.pm-about-faq { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 56px; scroll-margin-top: 96px; }
+.pm-about-faq-mark { font: 400 64px/72px var(--display); letter-spacing: 0.1em; color: var(--gold); }
+.pm-about-faq-side h2 { font: 400 26px/34px var(--display); margin-top: 8px; }
+.pm-about-faq-list { border-top: 1px dashed var(--line); }
+.pm-about-faq-list details { border-bottom: 1px dashed var(--line); }
+.pm-about-faq-list summary {
+  display: flex; align-items: baseline; gap: 18px; padding: 20px 4px; cursor: pointer; list-style: none;
+  font: 400 18px/28px var(--ui); transition: color 120ms ease-out;
+}
+.pm-about-faq-list summary::-webkit-details-marker { display: none; }
+.pm-about-faq-list summary:hover { color: var(--gold-soft); }
+.pm-about-faq-list summary .pm-year { flex: none; width: 28px; }
+.pm-about-chev { flex: none; align-self: center; color: var(--muted); transition: transform 160ms ease-out; }
+.pm-about-faq-list details[open] .pm-about-chev { transform: rotate(180deg); color: var(--gold); }
+.pm-about-faq-list details p { padding: 0 32px 22px 50px; font: 400 16px/26px var(--ui); color: var(--text-2); text-wrap: pretty; animation: pm-in 180ms ease-out; }
+
+.pm-about-foot {
+  max-width: 1120px; margin: 0 auto; padding: 24px 28px 32px; border-top: 1px dashed var(--line);
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; font: 400 13px/20px var(--ui); color: var(--dim);
+}
+.pm-about-foot nav { display: flex; gap: 20px; }
+
+@media (max-width: 900px) {
+  .pm-about-hero, .pm-about-faq { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+}
+@media (max-width: 640px) {
+  .pm-about .pm-about-header { padding-bottom: 14px; }
+  .pm-about-main { padding: 20px 16px 48px; gap: 48px; }
+  .pm-about-intro h1 { font-size: 34px; line-height: 40px; }
+  .pm-about-intro p { font-size: 16px; line-height: 26px; }
+  .pm-about-team { padding: 18px; }
+  .pm-about-faq-mark { font-size: 44px; line-height: 52px; }
+  .pm-about-faq-list summary { font-size: 16px; line-height: 24px; gap: 12px; }
+  .pm-about-faq-list details p { padding: 0 8px 20px 40px; font-size: 15px; line-height: 24px; }
+  .pm-about-foot { padding: 20px 16px 28px; }
+}

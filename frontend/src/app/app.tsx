@@ -11,6 +11,7 @@ import { Madder } from '../pages/admader/madder.tsx'
 
 // Карта (MapLibre) грузится отдельным чанком, админка её не тянет.
 const PublicMap = lazy(() => import('../pages/public/PublicMap.tsx').then(m => ({ default: m.PublicMap })))
+const About = lazy(() => import('../pages/public/About.tsx').then(m => ({ default: m.About })))
 const NotFound = lazy(() => import('../pages/public/NotFound.tsx').then(m => ({ default: m.NotFound })))
 
 const rootElement = document.getElementById('root');
@@ -24,6 +25,7 @@ const rootElement = document.getElementById('root');
               <Route path="/" element={<Navigate to="/map" replace />} />
               <Route path="/app" element={<Navigate to="/map" replace />} />
               <Route path="/map" element={<PublicMap />} />
+              <Route path="/about" element={<About />} />
               <Route path="/log" element={<LogIn />} />
               <Route path="/adm" element={<Admin />} />
               <Route path="/mad" element={<Madder />} />

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchAllEvents, fetchEvent, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
@@ -32,7 +32,7 @@ const filterBadge = (f: Filter) => f.types.length + (f.from !== MIN_YEAR || f.to
 type Layer = 'none' | 'search' | 'filters' | 'feed'
 type Load = { status: 'loading' } | { status: 'error' } | { status: 'ready'; events: HistEvent[] }
 
-function useIsMobile() {
+export function useIsMobile() {
   const q = '(max-width: 640px)'
   const [m, setM] = useState(() => window.matchMedia(q).matches)
   useEffect(() => {
@@ -178,6 +178,7 @@ export const PublicMap: React.FC = () => {
         <div role="banner" className="pm-header">
           <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
           <div className="pm-grow" />
+          <Link to="/about" className="pm-btn-text">О проекте</Link>
           {!mobile && <button type="button" className={`pm-btn-ghost pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}
         </div>
 
