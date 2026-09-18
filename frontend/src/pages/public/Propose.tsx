@@ -100,6 +100,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   const pickerRef = useRef<HTMLInputElement>(null)
   const mapRef = useRef<MapHandle>(null)
   const abortRef = useRef<() => void>()
+  const closeRef = useRef<() => void>(noop) // close объявлен ниже раннего return, а хук должен быть до него
   const chosenRef = useRef('') // выбранное место: его текст в поле не ищем повторно
   const sending = phase.k === 'sending'
   const leaving = useLeaving(open)
@@ -113,10 +114,11 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !sending) onClose() }
+    // Через close, а не onClose: по Escape окно должно сбрасываться так же, как по кнопке.
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !sending) closeRef.current() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, sending, onClose])
+  }, [open, sending])
 
   useEffect(() => {
     if (!toast.length) return
@@ -153,7 +155,14 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   }
 
   const reset = () => { setD(EMPTY); setPhase({ k: 'form' }); setShown(new Set()); setServer({}); setToast([]); setQuery('') }
-  const close = () => { if (phase.k === 'done') resetOnHide.current = true; else setPhase({ k: 'form' }); onClose() }
+  // Защёлку выставляем при каждом закрытии: иначе, если окно успели открыть заново до конца
+  // анимации ухода, она осталась бы взведённой и стёрла следующий черновик.
+  const close = () => {
+    resetOnHide.current = phase.k === 'done'
+    if (phase.k !== 'done') setPhase({ k: 'form' })
+    onClose()
+  }
+  closeRef.current = close
 
   const pickFile = async (file: File | undefined) => {
     if (!file) return
