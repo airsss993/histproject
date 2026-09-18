@@ -37,6 +37,9 @@ const stepOf = (f: Field) => STEPS.findIndex(s => s.fields.includes(f))
 const TYPE_SUB: Record<EventType, string> = { military: 'Сражения, походы, обороны', political: 'Реформы, договоры, решения власти' }
 const RESULT_ICON = { ok: 'M5 12.5l4.5 4.5L19 7.5', bad: 'M12 6.5v7 M12 17.5v.01', warn: 'M12 7v5l3 2 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z' }
 const ARROW = 'M5 12h14 M13 6l6 6-6 6'
+const SEND = 'M4 12 20 4l-4 16-4-7Z M12 13l8-9'
+const PLUS = 'M12 5v14 M5 12h14'
+const CROSS = 'M6 6l12 12 M18 6 6 18'
 const SERVER_FIELD: Record<string, Field> = {
   title: 'title', eventDate: 'date', eventType: 'type', description: 'description', latitude: 'place', longitude: 'place',
   archive: 'archive', email: 'email', telegramUsername: 'telegram',
@@ -252,8 +255,8 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     )
     foot = (
       <>
-        <button type="button" className="pp-nav" onClick={() => { reset(); setCopied(false) }}>Предложить ещё</button>
-        <button type="button" className="pm-btn pp-next" onClick={close}>Вернуться к карте</button>
+        <button type="button" className="pp-nav" onClick={() => { reset(); setCopied(false) }}><Chip d={PLUS} />Предложить ещё</button>
+        <button type="button" className="pp-nav pp-next" onClick={close}>Вернуться к карте<Chip d={ARROW} /></button>
       </>
     )
   } else if (phase.k === 'fail') {
@@ -275,8 +278,8 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     body = <span className="pp-tag" role="alert">Код ответа: {phase.status === 0 ? 'нет сети' : phase.status}</span>
     foot = (
       <>
-        <button type="button" className="pp-nav" onClick={() => setPhase({ k: 'form' })}><Glyph d={ARROW} back />Назад к заявке</button>
-        <button type="button" className="pm-btn pp-next" onClick={pRun}>{pLabel}</button>
+        <button type="button" className="pp-nav" onClick={() => setPhase({ k: 'form' })}><Chip d={ARROW} back />Назад к заявке</button>
+        <button type="button" className="pp-nav pp-next" onClick={pRun}>{pLabel}<Chip d={ARROW} /></button>
       </>
     )
   } else {
@@ -406,20 +409,15 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
             </div>
             <div className="pp-bar"><div style={{ width: `${(phase.loaded / (phase.total || 1)) * 100}%` }} /></div>
           </div>
-          <button type="button" className="pp-nav" onClick={() => abortRef.current?.()}>Отменить</button>
+          <button type="button" className="pp-nav" onClick={() => abortRef.current?.()}><Chip d={CROSS} />Отменить</button>
         </>
       )
       : (
         <>
-          {step > 0
-            ? <button type="button" className="pp-nav" onClick={() => setStep(step - 1)}><Glyph d={ARROW} back />Назад</button>
-            : <span />}
-          {/* На первом шаге выбор типа сам ведёт дальше, "Далее" нужен только после возврата. */}
-          {(step > 0 || d.type) && (
-            <button type="submit" className="pm-btn pp-next">
-              {last ? (mobile ? 'Отправить' : 'Отправить на модерацию') : 'Далее'}{!last && <Glyph d={ARROW} />}
-            </button>
-          )}
+          <button type="button" className="pp-nav" onClick={() => setStep(step - 1)}><Chip d={ARROW} back />Назад</button>
+          <button type="submit" className="pp-nav pp-next">
+            {last ? (mobile ? 'Отправить' : 'Отправить на модерацию') : 'Далее'}<Chip d={last ? SEND : ARROW} />
+          </button>
         </>
       )
   }
@@ -445,11 +443,15 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
           {head.sub && <p className="pp-sub">{head.sub}</p>}
         </div>
         <div className="pp-body">{body}</div>
-        <div className="pp-foot">{foot}</div>
+        {/* На первом шаге вперёд ведёт сам выбор типа: кнопок нет. */}
+        {!(form && !sending && step === 0) && <div className="pp-foot">{foot}</div>}
       </form>
     </div>
   )
 }
+
+// Иконка в плашке внутри кнопки, как в референсе.
+const Chip: React.FC<{ d: string; back?: boolean }> = ({ d, back }) => <span className="pp-chip"><Glyph d={d} back={back} /></span>
 
 const Glyph: React.FC<{ d: string; back?: boolean }> = ({ d, back }) => (
   <svg className={`pp-glyph${back ? ' back' : ''}`} viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor"
