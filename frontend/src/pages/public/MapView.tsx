@@ -241,22 +241,32 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   }), [])
 
   // Ушедшую карточку (закрыли или выбрали другую) держим, пока играет анимация ухода
-  // (LEAVE_MS); новая в это время уже выезжает у своей метки.
+  // (LEAVE_MS); новая в это время уже выезжает у своей метки. Список считаем в рендере, как
+  // useLeaving: в эффекте он обновлялся бы после коммита, и на кадре смены ключа уходящая
+  // карточка получила бы тот же key, что и живая, а сама размонтировалась бы и начала анимацию
+  // заново.
   type Shown = { key: number | null; node: React.ReactNode }
   const liveKey = callout ? selectedId : undefined
   const live = useRef<Shown>()
-  const [leaving, setLeaving] = useState<Shown[]>([])
-  useEffect(() => {
-    const gone = live.current && live.current.key !== liveKey ? live.current : undefined
+  const [leaving, setLeaving] = useState<(Shown & { at: number })[]>([])
+  const shownKey = useRef(liveKey)
+  if (shownKey.current !== liveKey) {
+    const gone = live.current
+    shownKey.current = liveKey
     setLeaving(l => {
+      // Карточку того же события, если её выбрали снова, забираем из уходящих: иначе два одинаковых key.
       const rest = l.filter(x => x.key !== liveKey)
-      return gone ? [...rest, gone] : rest.length === l.length ? l : rest
+      return gone ? [...rest, { ...gone, at: performance.now() }] : rest.length === l.length ? l : rest
     })
-    // Без очистки: таймер должен сработать, даже если карточку успели сменить ещё раз.
-    if (gone) setTimeout(() => setLeaving(l => l.filter(x => x !== gone)), LEAVE_MS)
-  }, [liveKey])
-  // После эффекта выше: он должен видеть карточку прошлого рендера.
-  useEffect(() => { live.current = liveKey === undefined ? undefined : { key: liveKey, node: callout } })
+  }
+  live.current = liveKey === undefined ? undefined : { key: liveKey, node: callout }
+  // Каждой уходящей карточке свой таймер на остаток LEAVE_MS; при изменении списка их заводим
+  // заново, поэтому новая карточка не продлевает жизнь предыдущей.
+  useEffect(() => {
+    const timers = leaving.map(c =>
+      setTimeout(() => setLeaving(l => l.filter(x => x !== c)), Math.max(0, LEAVE_MS - (performance.now() - c.at))))
+    return () => timers.forEach(clearTimeout)
+  }, [leaving])
   const cards = [
     ...leaving.map(c => ({ ...c, out: true })),
     ...(liveKey === undefined ? [] : [{ key: liveKey, node: callout, out: false }]),
@@ -308,6 +318,10 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     // Активные и неактивные одним списком в порядке events: при смене фильтра метка остаётся тем же
     // DOM-узлом и перекрашивается плавно, а не пересоздаётся.
     const pins = pts.filter(p => !grouped.has(p.e.id))
+    // Выбранную метку рисуем последней: в SVG порядок отрисовки задаёт порядок в документе,
+    // иначе соседняя отфильтрованная метка перекрывает её вместе с кольцом.
+    const sel = pins.findIndex(p => p.e.id === selectedId)
+    if (sel >= 0) pins.push(...pins.splice(sel, 1))
     return { pins, clusters, anchors, k: 2 ** (map.getZoom() - baseZoom.current), width, height }
     // tick - перерисовка при движении карты.
     // eslint-disable-next-line react-hooks/exhaustive-deps
