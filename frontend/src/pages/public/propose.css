@@ -1,7 +1,7 @@
 /* Заявка: мастер-карточка поверх карты. Композиция по референсу onboarding-карточки, цвета из публичных экранов. */
 .pm-root.pp-page {
   z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px;
-  background: radial-gradient(50% 60% at 12% 0%, rgba(226, 198, 140, 0.1), transparent 70%), rgba(1, 0, 17, 0.62);
+  background: rgba(1, 0, 17, 0.62);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   animation: pm-fade 180ms ease-out; --ok: #7FA98A; --warn: #D2A85A; --field: #0B1234;
 }
@@ -17,17 +17,10 @@
   animation: pm-in 220ms ease-out; /* без transition ширины: карта на шаге места должна создаваться уже в итоговом размере */
 }
 .pp-card.wide { width: min(760px, 100%); }
-/* Точечная сетка, гаснет к середине карточки. */
+/* Зерно вместо декора: фон карточки не плоский, но и без узора. */
 .pp-card::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: radial-gradient(rgba(147, 168, 208, 0.16) 1px, transparent 1.4px) 0 0 / 16px 16px;
-  -webkit-mask-image: linear-gradient(180deg, #000, transparent 45%); mask-image: linear-gradient(180deg, #000, transparent 45%);
-}
-/* Золотая кромка слева с ореолом внутрь карточки. */
-.pp-card::after {
-  content: ''; position: absolute; left: 0; top: 18%; width: 45%; height: 64%; z-index: -1; pointer-events: none;
-  border-left: 1.5px solid; border-image: linear-gradient(180deg, transparent, var(--gold) 50%, transparent) 1;
-  background: radial-gradient(60% 50% at 0% 50%, rgba(212, 174, 92, 0.13), transparent 70%);
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .pm-root .pp-close { position: absolute; top: 18px; right: 18px; z-index: 2; border-color: transparent; }
 
@@ -40,18 +33,18 @@
 .pp-steps .on i { background: var(--gold); box-shadow: 0 0 10px rgba(212, 174, 92, 0.7); }
 .pm-root .pp-steps button:not(:disabled):not(.on):hover i { background: var(--gold-soft); }
 
+/* Место под иллюстрацию шага. Монохром, цвет несёт только значок результата. */
 .pp-hero {
-  --c: var(--gold); position: relative; width: 76px; height: 76px; margin-bottom: 24px; border-radius: 22px;
+  --c: var(--muted); position: relative; width: 76px; height: 76px; margin-bottom: 24px; border-radius: 22px;
   display: grid; place-items: center; color: var(--c);
-  background: linear-gradient(160deg, color-mix(in srgb, var(--c) 22%, #16204A), #0B1234 70%);
-  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
-  box-shadow: 0 0 36px color-mix(in srgb, var(--c) 28%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: linear-gradient(160deg, #1A2248, #0E1536); border: 1px solid var(--line-soft);
+  box-shadow: 0 12px 30px rgba(0, 0, 20, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   animation: pp-hero-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .pp-hero.ok { --c: var(--ok); }
 .pp-hero.bad { --c: var(--danger); }
 .pp-hero.warn { --c: var(--warn); }
-.pp-hero .pp-glyph { width: 34px; height: 34px; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--c) 60%, transparent)); }
+.pp-hero .pp-glyph { width: 34px; height: 34px; }
 @keyframes pp-hero-in { from { opacity: 0; transform: scale(0.85); } }
 .pp-glyph { width: 18px; height: 18px; flex: none; }
 .pp-glyph.back { transform: scaleX(-1); }
@@ -63,7 +56,7 @@
 .pp-fields { margin: 0; padding: 0; border: 0; min-width: 0; animation: pm-in 220ms ease-out; }
 .pp-stack { display: flex; flex-direction: column; gap: 20px; }
 .pp-foot { flex: none; padding: 24px 40px 32px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-/* Кнопки низа: обводка, иконка в своей плашке. Главная - золотая плашка со свечением. */
+/* Кнопки низа: обводка, иконка в своей плашке. Главная - золотая плашка. */
 .pm-root .pp-nav {
   display: inline-flex; align-items: center; gap: 12px; height: 52px; padding: 0 20px 0 10px; border-radius: 16px;
   border: 1px solid var(--line-soft); background: rgba(11, 18, 52, 0.6); color: var(--text-2); font: 400 16px var(--ui);
@@ -72,42 +65,36 @@
 .pm-root .pp-nav:hover { border-color: var(--gold-line); color: #fff; }
 .pp-chip {
   width: 32px; height: 32px; flex: none; border-radius: 10px; display: grid; place-items: center;
-  background: rgba(147, 168, 208, 0.14); color: var(--muted); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: background 160ms ease-out, color 160ms ease-out, box-shadow 160ms ease-out;
+  background: rgba(147, 168, 208, 0.14); color: var(--muted);
+  transition: background 160ms ease-out, color 160ms ease-out;
 }
 .pp-chip .pp-glyph { width: 16px; height: 16px; }
 .pm-root .pp-nav:hover .pp-chip { color: var(--gold-soft); }
 .pm-root .pp-next { margin-left: auto; padding: 0 10px 0 20px; border-color: var(--gold-line); background: var(--gold-wash); color: var(--gold-soft); }
-.pp-next .pp-chip { background: var(--gold); color: var(--ink); box-shadow: 0 0 16px rgba(212, 174, 92, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+.pp-next .pp-chip { background: var(--gold); color: var(--ink); }
 .pm-root .pp-next:hover { border-color: var(--gold); color: var(--gold); }
-.pm-root .pp-next:hover .pp-chip { background: var(--gold-soft); color: var(--ink); box-shadow: 0 0 24px rgba(212, 174, 92, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+.pm-root .pp-next:hover .pp-chip { background: var(--gold-soft); color: var(--ink); }
 .pm-root .pp-next:hover .pp-chip .pp-glyph { transform: translateX(2px); }
 .pp-chip .pp-glyph { transition: transform 160ms ease-out; }
 .pp-chip .pp-glyph.back { transform: scaleX(-1); }
 .pm-root .pp-nav:not(.pp-next):hover .pp-chip .pp-glyph.back { transform: scaleX(-1) translateX(2px); }
 
-/* Выбор типа: строки с подсвеченной плиткой и стрелкой. */
-.pp-choices { display: flex; flex-direction: column; gap: 8px; }
+/* Выбор типа: цвет типа только у глифа, он же цвет метки на карте. */
+.pp-choices { display: flex; flex-direction: column; gap: 4px; }
 .pm-root .pp-choice {
-  display: flex; align-items: center; gap: 18px; width: 100%; padding: 12px; border-radius: 18px; text-align: left;
+  display: flex; align-items: center; gap: 16px; width: 100%; padding: 14px 12px 14px 16px; border-radius: 16px; text-align: left;
   border: 1px solid transparent; transition: background 160ms ease-out, border-color 160ms ease-out;
 }
-.pm-root .pp-choice:hover, .pm-root .pp-choice.on { background: color-mix(in srgb, var(--c) 6%, transparent); border-color: color-mix(in srgb, var(--c) 22%, transparent); }
-.pp-choice-icon {
-  width: 56px; height: 56px; flex: none; border-radius: 16px; display: grid; place-items: center; color: var(--c);
-  background: color-mix(in srgb, var(--c) 14%, #0B1234); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
-  box-shadow: 0 0 28px color-mix(in srgb, var(--c) 22%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: box-shadow 200ms ease-out;
-}
-.pp-choice:hover .pp-choice-icon, .pp-choice.on .pp-choice-icon { box-shadow: 0 0 40px color-mix(in srgb, var(--c) 40%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
-.pp-choice-icon svg { width: 30px; height: 30px; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--c) 70%, transparent)); }
+.pm-root .pp-choice:hover, .pm-root .pp-choice.on { background: rgba(147, 168, 208, 0.06); border-color: var(--line-soft); }
+.pp-choice-icon { width: 32px; height: 32px; flex: none; display: grid; place-items: center; color: var(--c); }
+.pp-choice-icon svg { width: 28px; height: 28px; }
 .pp-choice-title { display: block; font: 400 18px/26px var(--ui); color: #fff; }
 .pp-choice-sub { display: block; font: 400 14px/22px var(--ui); color: var(--dim); }
 .pp-arrow {
-  width: 48px; height: 48px; flex: none; border-radius: 14px; display: grid; place-items: center;
-  border: 1px solid var(--line-soft); background: rgba(11, 18, 52, 0.7); color: #fff; transition: border-color 160ms ease-out, color 160ms ease-out;
+  width: 44px; height: 44px; flex: none; border-radius: 12px; display: grid; place-items: center;
+  border: 1px solid var(--line-soft); color: var(--muted); transition: border-color 160ms ease-out, color 160ms ease-out;
 }
-.pp-choice:hover .pp-arrow, .pp-choice.on .pp-arrow { border-color: var(--c); color: var(--c); }
+.pp-choice:hover .pp-arrow, .pp-choice.on .pp-arrow { border-color: var(--gold-line); color: var(--gold-soft); }
 
 /* Место */
 .pp-search { position: relative; margin-bottom: 12px; }
@@ -161,8 +148,7 @@
 /* Карточка архива по референсу upload-карточки: документ с плашкой, панель статуса, светящаяся полоса. */
 .pp-upload {
   --c: var(--gold); position: relative; padding: 22px; border-radius: 22px; border: 1px solid var(--line-soft);
-  background: radial-gradient(90% 70% at 50% 100%, color-mix(in srgb, var(--c) 16%, transparent), transparent 70%), rgba(11, 18, 52, 0.7);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -30px 60px -30px color-mix(in srgb, var(--c) 30%, transparent);
+  background: rgba(11, 18, 52, 0.7); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   animation: pm-in 220ms ease-out;
 }
 .pp-upload.ok { --c: var(--ok); }
@@ -173,17 +159,14 @@
 .pp-doc svg { width: 100%; height: 100%; overflow: visible; }
 .pp-doc path { fill: rgba(147, 168, 208, 0.08); stroke: rgba(147, 168, 208, 0.35); stroke-width: 1; }
 .pp-doc path.fold { fill: rgba(147, 168, 208, 0.16); }
-.pp-doc::before { content: ''; position: absolute; inset: 14px 8px 18px 4px; border-radius: 50%; background: color-mix(in srgb, var(--c) 40%, transparent); filter: blur(12px); }
 .pp-doc-tag {
-  position: absolute; left: -12px; bottom: 10px; padding: 3px 9px; border-radius: 8px; border: 1px solid var(--gold-line);
-  background: radial-gradient(circle at 4px 4px, var(--gold-line) 1px, transparent 1.5px), radial-gradient(circle at calc(100% - 4px) 4px, var(--gold-line) 1px, transparent 1.5px),
-    radial-gradient(circle at 4px calc(100% - 4px), var(--gold-line) 1px, transparent 1.5px), radial-gradient(circle at calc(100% - 4px) calc(100% - 4px), var(--gold-line) 1px, transparent 1.5px), #111A42;
-  box-shadow: 0 4px 14px rgba(0, 0, 20, 0.6); font: 500 13px/18px var(--ui); letter-spacing: 0.08em; color: var(--gold-soft);
+  position: absolute; left: -12px; bottom: 10px; padding: 3px 9px; border-radius: 6px; border: 1px solid var(--line);
+  background: #111A42; box-shadow: 0 4px 14px rgba(0, 0, 20, 0.6); font: 500 12px/18px var(--mono); letter-spacing: 0.08em; color: var(--text-2);
 }
 .pp-file-name { display: block; font: 400 19px/26px var(--ui); color: #fff; overflow-wrap: anywhere; }
 .pp-file-size { display: block; margin-top: 2px; font: 400 15px/22px var(--ui); color: var(--dim); }
 
-.pp-upload-panel { margin-top: 20px; padding: 14px 18px 16px; border-radius: 16px; background: rgba(6, 13, 46, 0.75); border: 1px solid color-mix(in srgb, var(--c) 18%, transparent); }
+.pp-upload-panel { margin-top: 20px; padding: 14px 18px 16px; border-radius: 16px; background: rgba(6, 13, 46, 0.75); border: 1px solid var(--line); }
 .pp-upload-row { display: flex; align-items: center; gap: 10px; font: 400 15px/22px var(--ui); color: var(--text-2); }
 .pp-upload.bad .pp-upload-row { color: var(--danger); align-items: flex-start; }
 .pp-upload-row .pp-glyph { color: var(--c); }
@@ -195,7 +178,7 @@
 .pp-track i {
   position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; transition: width 160ms linear;
   background: linear-gradient(90deg, color-mix(in srgb, var(--c) 70%, #fff), #fff);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--c) 90%, transparent), 0 0 20px color-mix(in srgb, var(--c) 60%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 70%, transparent);
 }
 .pp-track.busy i { width: 35%; animation: pp-busy 1.1s ease-in-out infinite alternate; }
 @keyframes pp-busy { from { left: 0; } to { left: 65%; } }

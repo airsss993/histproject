@@ -28,13 +28,13 @@ const STEPS: { fields: Field[]; title: string; sub: string; icon: string }[] = [
     icon: 'M5 6h14 M5 10h14 M5 14h14 M5 18h9' },
   { fields: ['place'], title: 'Где это было', sub: 'Найдите место поиском или нажмите на карту. Метку можно перетащить',
     icon: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z M12 12.2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z' },
-  { fields: ['archive'], title: 'Сайт события', sub: 'Сайт о событии, собранный в один архив',
+  { fields: ['archive'], title: 'Сайт события', sub: 'ZIP-архив, index.html лежит в его корне',
     icon: 'M4 7.5 12 3.5l8 4v9l-8 4-8-4Z M4 7.5l8 4 8-4 M12 11.5v9' },
   { fields: ['email', 'telegram'], title: 'Контакты', sub: 'Не публикуются. На email придёт статус заявки',
     icon: 'M3.5 5.5h17v13h-17Z M3.5 6.5l8.5 7 8.5-7' },
 ]
 const stepOf = (f: Field) => STEPS.findIndex(s => s.fields.includes(f))
-const TYPE_SUB: Record<EventType, string> = { military: 'Сражения, походы, обороны', political: 'Реформы, договоры, решения власти' }
+const TYPE_SUB: Record<EventType, string> = { military: 'Бородино, оборона Севастополя', political: 'Ништадтский мир, Манифест 1861 года' }
 const RESULT_ICON = { ok: 'M5 12.5l4.5 4.5L19 7.5', bad: 'M12 6.5v7 M12 17.5v.01', warn: 'M12 7v5l3 2 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z' }
 const ARROW = 'M5 12h14 M13 6l6 6-6 6'
 const SEND = 'M4 12 20 4l-4 16-4-7Z M12 13l8-9'
@@ -327,7 +327,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
               </div>
             </Text>
             <Text label="Описание" error={visible('description')} count={`${d.description.length} / 450`}>
-              <textarea className="pp-input pp-area" value={d.description} maxLength={450} placeholder="Что произошло и почему это важно"
+              <textarea className="pp-input pp-area" value={d.description} maxLength={450} placeholder="8 сентября 1380 года войско Дмитрия Донского разбило Мамая у слияния Дона и Непрядвы"
                 onChange={e => set('description', e.target.value, 'description')} onBlur={() => d.description && show('description')} />
             </Text>
           </div>
@@ -336,7 +336,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
         {field === 'place' && (
           <>
             <div className="pp-search">
-              <input className="pp-input" value={query} maxLength={200} placeholder="Город, село, урочище" aria-label="Поиск места"
+              <input className="pp-input" value={query} maxLength={200} placeholder="Например, Прохоровка" aria-label="Поиск места"
                 onChange={e => setQuery(e.target.value)} />
               <Presence>{places.length > 0 && (
                 <ul className="pp-places" role="listbox">
