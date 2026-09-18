@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { MapView, type MapHandle } from './MapView.tsx'
+import { GLYPH, MapView, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { Presence, useLeaving } from './presence.tsx'
 import { submitProposal, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType } from './api.ts'
 import './propose.css'
@@ -19,13 +19,24 @@ const EMPTY: Draft = { title: '', date: '', type: '', description: '', lat: null
 type Field = 'type' | 'title' | 'date' | 'description' | 'place' | 'archive' | 'email' | 'telegram'
 type Errors = Partial<Record<Field, string>>
 const FIELDS: Field[] = ['type', 'title', 'date', 'description', 'place', 'archive', 'email', 'telegram']
-const LABEL: Record<Field, string> = {
-  type: 'Тип события', title: 'Название', date: 'Дата', description: 'Описание',
-  place: 'Место на карте', archive: 'ZIP-архив сайта', email: 'Email', telegram: 'Telegram',
-}
-const SECTION: Record<Field, string> = {
-  type: 'type', title: 'about', date: 'about', description: 'about', place: 'place', archive: 'archive', email: 'contacts', telegram: 'contacts',
-}
+
+// Шаги мастера. icon - путь 24x24 для плитки в шапке карточки.
+const STEPS: { fields: Field[]; title: string; sub: string; icon: string }[] = [
+  { fields: ['type'], title: 'Какое это событие?', sub: 'От типа зависят цвет и значок метки на карте',
+    icon: 'M12 2C12.5 8 16 11.5 22 12C16 12.5 12.5 16 12 22C11.5 16 8 12.5 2 12C8 11.5 11.5 8 12 2Z' },
+  { fields: ['title', 'date', 'description'], title: 'О событии', sub: 'Название, дата и пара предложений о том, что произошло',
+    icon: 'M5 6h14 M5 10h14 M5 14h14 M5 18h9' },
+  { fields: ['place'], title: 'Где это было', sub: 'Найдите место поиском или нажмите на карту. Метку можно перетащить',
+    icon: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z M12 12.2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z' },
+  { fields: ['archive'], title: 'Сайт события', sub: 'Сайт о событии, собранный в один архив',
+    icon: 'M4 7.5 12 3.5l8 4v9l-8 4-8-4Z M4 7.5l8 4 8-4 M12 11.5v9' },
+  { fields: ['email', 'telegram'], title: 'Контакты', sub: 'Не публикуются. На email придёт статус заявки',
+    icon: 'M3.5 5.5h17v13h-17Z M3.5 6.5l8.5 7 8.5-7' },
+]
+const stepOf = (f: Field) => STEPS.findIndex(s => s.fields.includes(f))
+const TYPE_SUB: Record<EventType, string> = { military: 'Сражения, походы, обороны', political: 'Реформы, договоры, решения власти' }
+const RESULT_ICON = { ok: 'M5 12.5l4.5 4.5L19 7.5', bad: 'M12 6.5v7 M12 17.5v.01', warn: 'M12 7v5l3 2 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z' }
+const ARROW = 'M5 12h14 M13 6l6 6-6 6'
 const SERVER_FIELD: Record<string, Field> = {
   title: 'title', eventDate: 'date', eventType: 'type', description: 'description', latitude: 'place', longitude: 'place',
   archive: 'archive', email: 'email', telegramUsername: 'telegram',
@@ -91,7 +102,8 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   const [phase, setPhase] = useState<Phase>({ k: 'form' })
   const [shown, setShown] = useState<Set<Field>>(new Set())
   const [server, setServer] = useState<Errors>({})
-  const [toast, setToast] = useState<Field[]>([])
+  const [step, setStep] = useState(0)
+  const [reached, setReached] = useState(0) // дальний открытый шаг: до него можно прыгать по полоскам
   const [drag, setDrag] = useState(false)
   const [copied, setCopied] = useState(false)
   const [query, setQuery] = useState('')
@@ -108,7 +120,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   useEffect(() => {
     if (open || leaving || !resetOnHide.current) return
     resetOnHide.current = false
-    setD(EMPTY); setPhase({ k: 'form' }); setShown(new Set()); setServer({}); setToast([]); setQuery('')
+    setD(EMPTY); setPhase({ k: 'form' }); setShown(new Set()); setServer({}); setStep(0); setReached(0); setQuery('')
   }, [open, leaving])
 
   useEffect(() => {
@@ -117,12 +129,6 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, sending, onClose])
-
-  useEffect(() => {
-    if (!toast.length) return
-    const t = setTimeout(() => setToast([]), 6000)
-    return () => clearTimeout(t)
-  }, [toast])
 
   // Поиск места через Nominatim: не чаще раза в 500 мс, как требуют правила сервиса.
   useEffect(() => {
@@ -152,7 +158,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     show('place')
   }
 
-  const reset = () => { setD(EMPTY); setPhase({ k: 'form' }); setShown(new Set()); setServer({}); setToast([]); setQuery('') }
+  const reset = () => { setD(EMPTY); setPhase({ k: 'form' }); setShown(new Set()); setServer({}); setStep(0); setReached(0); setQuery('') }
   const close = () => { if (phase.k === 'done') resetOnHide.current = true; else setPhase({ k: 'form' }); onClose() }
 
   const pickFile = async (file: File | undefined) => {
@@ -170,16 +176,22 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   }
   const clearFile = () => { set('file', null, 'archive'); set('zip', 'none'); if (fileRef.current) fileRef.current.value = '' }
 
+  const go = (n: number) => { setStep(n); setReached(r => Math.max(r, n)) }
+  // Показать ошибки и вернуть на первый шаг, где они есть.
   const complain = (bad: Field[]) => {
     show(...bad)
-    setToast(bad)
-    document.getElementById(`pp-s-${SECTION[bad[0]]}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setStep(Math.min(...bad.map(stepOf)))
+  }
+  const next = () => {
+    const bad = STEPS[step].fields.filter(f => errors[f])
+    if (bad.length) return show(...bad)
+    if (step < STEPS.length - 1) go(step + 1)
+    else send()
   }
 
   const send = async () => {
     const bad = FIELDS.filter(f => errors[f])
     if (bad.length) return complain(bad)
-    setToast([])
     const body = new FormData()
     body.set('title', d.title.trim())
     body.set('description', d.description.trim())
@@ -223,104 +235,83 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     setPlaces([])
   }
 
-  const section = (id: string, n: number, title: string, fields: Field[], children: React.ReactNode, hint?: string) => {
-    const bad = fields.some(f => visible(f))
-    return (
-      <section id={`pp-s-${id}`} className="pp-section">
-        <div className="pp-section-head">
-          <span className={`pp-section-num${bad ? ' bad' : ''}`}>{pad(n)}</span>
-          <h2 className="pp-section-title">{title}</h2>
-          <span className="pp-badge">{hint ?? 'обязательно'}</span>
-        </div>
-        {children}
-      </section>
-    )
-  }
-
+  let head: { title: string; sub?: string; icon: string; tone?: 'ok' | 'bad' | 'warn' }
   let body: React.ReactNode
   let foot: React.ReactNode
   if (phase.k === 'done') {
+    head = { title: 'Заявка отправлена', icon: RESULT_ICON.ok, tone: 'ok',
+      sub: `Модератор проверит событие, место и архив. Статус придёт на ${d.email.trim()}: опубликовано со ссылкой или отклонено с причиной.` }
     body = (
-      <div className="pp-result">
-        <div className="pp-result-icon ok">✓</div>
-        <h2 className="pp-result-title">Заявка отправлена</h2>
-        <div className="pm-row-tight pp-number">
-          {!mobile && <span className="pm-dim-text">Номер заявки</span>}
-          <span className="pp-code">#{phase.id}</span>
-          {!mobile && (
-            <button type="button" className="pp-copy" onClick={() => navigator.clipboard?.writeText(String(phase.id)).then(() => setCopied(true))}>
-              {copied ? 'Скопировано' : 'Скопировать'}
-            </button>
-          )}
-        </div>
-        <p className="pp-result-text">
-          Модератор проверит событие, место на карте и архив. Статус придёт на {d.email.trim()}: опубликовано со ссылкой или отклонено с причиной.
-        </p>
+      <div className="pm-row-tight pp-number">
+        <span className="pm-dim-text">Номер заявки</span>
+        <span className="pp-code">#{phase.id}</span>
+        <button type="button" className="pp-copy" onClick={() => navigator.clipboard?.writeText(String(phase.id)).then(() => setCopied(true))}>
+          {copied ? 'Скопировано' : 'Скопировать'}
+        </button>
       </div>
     )
     foot = (
       <>
-        <div className="pm-grow" />
-        <button type="button" className="pm-btn-ghost" onClick={() => { reset(); setCopied(false) }}>Предложить ещё</button>
-        <button type="button" className="pm-btn" onClick={close}>Вернуться к карте</button>
+        <button type="button" className="pp-nav" onClick={() => { reset(); setCopied(false) }}>Предложить ещё</button>
+        <button type="button" className="pm-btn pp-next" onClick={close}>Вернуться к карте</button>
       </>
     )
   } else if (phase.k === 'fail') {
     const f = phase.status === 413
-      ? { tone: 'bad', glyph: '!', title: `Архив больше ${MAX_MB} МБ`, code: '413',
+      ? { tone: 'bad' as const, title: `Архив больше ${MAX_MB} МБ`,
           text: `Сервер не принял файл: ${mb(d.file?.size ?? 0)} МБ при лимите ${MAX_MB}. Уберите видео и крупные изображения, соберите ZIP заново - остальные поля заявки сохранены.`,
-          primary: ['Выбрать другой архив', () => { clearFile(); setPhase({ k: 'form' }); fileRef.current?.click() }],
-          secondary: ['Назад к заявке', () => setPhase({ k: 'form' })] }
+          primary: ['Выбрать другой архив', () => { clearFile(); setPhase({ k: 'form' }); setStep(stepOf('archive')); fileRef.current?.click() }] }
       : phase.status === 429
-        ? { tone: 'warn', glyph: '⏲', title: 'Слишком много заявок', code: '429',
+        ? { tone: 'warn' as const, title: 'Слишком много заявок',
             text: `С этого адреса уже отправлено 5 заявок за час. Попробуйте через ${Math.ceil((phase.retryAfter ?? 3600) / 60)} мин - черновик сохранён.`,
-            primary: ['Повторить позже', close], secondary: ['Назад к заявке', () => setPhase({ k: 'form' })] }
-        : { tone: 'bad', glyph: '×', title: phase.status === 0 ? 'Нет связи с сервером' : 'Сервер не принял заявку',
-            code: phase.status === 0 ? 'network' : String(phase.status),
+            primary: ['Повторить позже', close] }
+        : { tone: 'bad' as const, title: phase.status === 0 ? 'Нет связи с сервером' : 'Сервер не принял заявку',
             text: phase.status === 0
               ? 'Заявка не ушла. Проверьте соединение и отправьте снова - поля и архив на месте.'
               : `${phase.message ?? 'Ошибка на сервере'}. Попробуйте отправить ещё раз - поля и архив на месте.`,
-            primary: ['Повторить отправку', send], secondary: ['Назад к заявке', () => setPhase({ k: 'form' })] }
+            primary: ['Повторить отправку', send] }
     const [pLabel, pRun] = f.primary as [string, () => void]
-    const [sLabel, sRun] = f.secondary as [string, () => void]
-    body = (
-      <div className="pp-fail" role="alert">
-        <div className={`pp-result-icon ${f.tone}`}>{f.glyph}</div>
-        <div className="pm-grow">
-          <div className="pm-row-tight"><h2 className={`pp-fail-title ${f.tone}`}>{f.title}</h2><span className="pp-tag">{f.code}</span></div>
-          <p className="pp-fail-text">{f.text}</p>
-        </div>
-      </div>
-    )
+    head = { title: f.title, sub: f.text, icon: RESULT_ICON[f.tone], tone: f.tone }
+    body = <span className="pp-tag" role="alert">Код ответа: {phase.status === 0 ? 'нет сети' : phase.status}</span>
     foot = (
       <>
-        <div className="pm-grow" />
-        <button type="button" className="pm-btn-text" onClick={sRun}>{sLabel}</button>
-        <button type="button" className="pm-btn" onClick={pRun}>{pLabel}</button>
+        <button type="button" className="pp-nav" onClick={() => setPhase({ k: 'form' })}><Glyph d={ARROW} back />Назад к заявке</button>
+        <button type="button" className="pm-btn pp-next" onClick={pRun}>{pLabel}</button>
       </>
     )
   } else {
+    head = STEPS[step]
+    const field = STEPS[step].fields[0]
     body = (
-      <fieldset className="pp-fields" disabled={sending}>
-        {section('type', 1, 'Тип события', ['type'], (
+      <fieldset key={step} className="pp-fields" disabled={sending}>
+        {field === 'type' && (
           <>
-          <div className="pp-types" role="radiogroup" aria-label="Тип события">
-            {TYPES.map(t => (
-              <button key={t} type="button" role="radio" aria-checked={d.type === t}
-                className={`pp-type ${t}${d.type === t ? ' on' : ''}${visible('type') ? ' bad' : ''}`}
-                onClick={() => { set('type', t, 'type'); show('type') }}>
-                <span className="pp-dot" />{TYPE_LABEL[t]}
-              </button>
-            ))}
-          </div>
-          {visible('type') && <span className="pp-error">{visible('type')}</span>}
+            <div className="pp-choices" role="radiogroup" aria-label="Тип события">
+              {TYPES.map(t => (
+                <button key={t} type="button" role="radio" aria-checked={d.type === t}
+                  className={`pp-choice${d.type === t ? ' on' : ''}`} style={{ '--c': TYPE_COLOR[t] } as React.CSSProperties}
+                  onClick={() => { set('type', t, 'type'); go(1) }}>
+                  <span className="pp-choice-icon">
+                    <svg viewBox="18 9.5 28 28" aria-hidden fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+                      {GLYPH[t].map(p => <path key={p} d={p} />)}
+                    </svg>
+                  </span>
+                  <span className="pm-grow">
+                    <span className="pp-choice-title">{TYPE_LABEL[t]}</span>
+                    <span className="pp-choice-sub">{TYPE_SUB[t]}</span>
+                  </span>
+                  <span className="pp-arrow"><Glyph d={ARROW} /></span>
+                </button>
+              ))}
+            </div>
+            {visible('type') && <span className="pp-error">{visible('type')}</span>}
           </>
-        ))}
+        )}
 
-        {section('about', 2, 'О событии', ['title', 'date', 'description'], (
+        {field === 'title' && (
           <div className="pp-stack">
             <Text label="Название" error={visible('title')} count={`${d.title.length} / 100`}>
-              <input className="pp-input" value={d.title} maxLength={100} placeholder="Например, Куликовская битва"
+              <input className="pp-input" value={d.title} maxLength={100} placeholder="Например, Куликовская битва" autoFocus={!mobile}
                 onChange={e => set('title', e.target.value, 'title')} onBlur={() => d.title && show('title')} />
             </Text>
             <Text label="Дата события" error={visible('date')} hint="ДД.ММ.ГГГГ, от 862 года">
@@ -337,11 +328,10 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
                 onChange={e => set('description', e.target.value, 'description')} onBlur={() => d.description && show('description')} />
             </Text>
           </div>
-        ))}
+        )}
 
-        {section('place', 3, 'Место на карте', ['place'], (
+        {field === 'place' && (
           <>
-            <p className="pp-lead">Найдите место через поиск или нажмите на карту. Метку можно перетащить.</p>
             <div className="pp-search">
               <input className="pp-input" value={query} maxLength={200} placeholder="Город, село, урочище" aria-label="Поиск места"
                 onChange={e => setQuery(e.target.value)} />
@@ -363,11 +353,10 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
               ? <div className="pp-coord"><b>{coord(d.lat, 'с.ш.', 'ю.ш.')}</b> / <b>{coord(d.lng, 'в.д.', 'з.д.')}</b></div>
               : visible('place') && <span className="pp-error">{visible('place')}</span>}
           </>
-        ))}
+        )}
 
-        {section('archive', 4, 'Сайт события', ['archive'], (
+        {field === 'archive' && (
           <Text error={d.file ? undefined : visible('archive')}>
-            <input ref={fileRef} type="file" accept=".zip,application/zip" hidden onChange={e => pickFile(e.target.files?.[0])} />
             {d.file ? (
               <div className={`pp-file${d.zip !== 'ok' && d.zip !== 'checking' ? ' bad' : ''}`}>
                 <div className="pp-zip">ZIP</div>
@@ -390,73 +379,82 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
               </button>
             )}
           </Text>
-        ), 'ZIP до 50 МБ')}
+        )}
 
-        {section('contacts', 5, 'Контакты', ['email', 'telegram'], (
-          <div className="pp-pair">
+        {field === 'email' && (
+          <div className="pp-stack">
             <Text label="Email" error={visible('email')} hint="Сюда придёт статус заявки">
-              <input className="pp-input" type="email" autoComplete="email" value={d.email} maxLength={70} placeholder="ivan@example.ru"
+              <input className="pp-input" type="email" autoComplete="email" value={d.email} maxLength={70} placeholder="ivan@example.ru" autoFocus={!mobile}
                 onChange={e => set('email', e.target.value, 'email')} onBlur={() => d.email && show('email')} />
             </Text>
-            <Text label="Telegram" error={visible('telegram')} hint='Для вопросов модератора'>
+            <Text label="Telegram" error={visible('telegram')} hint="Для вопросов модератора">
               <input className="pp-input" value={d.telegram} maxLength={33} placeholder="ivan_petrov" autoCapitalize="none" spellCheck={false}
                 onChange={e => set('telegram', e.target.value.replace(/^@/, ''), 'telegram')} onBlur={() => d.telegram && show('telegram')} />
             </Text>
           </div>
-        ), 'не публикуются')}
+        )}
       </fieldset>
     )
+    const last = step === STEPS.length - 1
     foot = phase.k === 'sending'
       ? (
         <>
           <div className="pp-progress pm-grow" role="status">
             <div className="pp-progress-row">
-              <span className="pm-mono">Загрузка архива</span>
+              <span>Загрузка архива</span>
               <span className="pp-muted">{mb(phase.loaded)} из {mb(phase.total)} МБ · {Math.round((phase.loaded / (phase.total || 1)) * 100)} %</span>
             </div>
             <div className="pp-bar"><div style={{ width: `${(phase.loaded / (phase.total || 1)) * 100}%` }} /></div>
           </div>
-          <button type="button" className="pm-btn-ghost" onClick={() => abortRef.current?.()}>Отменить</button>
+          <button type="button" className="pp-nav" onClick={() => abortRef.current?.()}>Отменить</button>
         </>
       )
       : (
         <>
-          {!mobile && <span className="pm-dim-text pm-grow">Модератор проверит заявку перед публикацией</span>}
-          <button type="button" className="pm-btn-text" onClick={close}>Отмена</button>
-          <button type="button" className="pm-btn" onClick={send}>{mobile ? 'Отправить' : 'Отправить на модерацию'}</button>
+          {step > 0
+            ? <button type="button" className="pp-nav" onClick={() => setStep(step - 1)}><Glyph d={ARROW} back />Назад</button>
+            : <span />}
+          {/* На первом шаге выбор типа сам ведёт дальше, "Далее" нужен только после возврата. */}
+          {(step > 0 || d.type) && (
+            <button type="submit" className="pm-btn pp-next">
+              {last ? (mobile ? 'Отправить' : 'Отправить на модерацию') : 'Далее'}{!last && <Glyph d={ARROW} />}
+            </button>
+          )}
         </>
       )
   }
 
+  const form = phase.k === 'form' || sending
   return (
     <div className={`pm-root pp-page${mobile ? ' mobile' : ''}${open ? '' : ' out'}`} role="dialog" aria-modal="true" aria-labelledby="pp-title">
-      <div className="pp-top">
-        <button type="button" className="pp-back" disabled={sending} onClick={close}>{mobile ? '<' : '<- Карта'}</button>
-        <span className="pp-divider" />
-        <h1 id="pp-title" className="pp-top-title">Предложить событие</h1>
-      </div>
-      <div className="pp-scroll">
-        <div className={`pp-inner${phase.k === 'form' || sending ? '' : ' result'}`}>
-          {phase.k === 'form' || sending
-            ? <p className="pp-intro">Расскажите о событии, отметьте место на карте и приложите сайт. После проверки метка появится на карте.</p>
-            : null}
-          {body}
-        </div>
-      </div>
-      <div className="pp-actbar">{foot}</div>
-      <Presence>{toast.length > 0 && (
-        <div className="pp-toast" role="alert">
-          <div className="pp-toast-head">
-            <span className="pp-banner-icon">!</span>
-            <span className="pm-grow">Не всё заполнено</span>
-            <button type="button" className="pp-x small" aria-label="Скрыть" onClick={() => setToast([])}>×</button>
+      <form className={`pp-card${form && STEPS[step].fields[0] === 'place' ? ' wide' : ''}`} noValidate
+        onSubmit={e => { e.preventDefault(); if (phase.k === 'form') next() }}>
+        <input ref={fileRef} type="file" accept=".zip,application/zip" hidden onChange={e => pickFile(e.target.files?.[0])} />
+        <button type="button" className="pp-x pp-close" aria-label="Закрыть" disabled={sending} onClick={close}>×</button>
+        <div className="pp-head">
+          <div className="pp-steps" aria-label={`Шаг ${step + 1} из ${STEPS.length}`}>
+            {STEPS.map((s, i) => (
+              <button key={s.title} type="button" aria-label={s.title} disabled={!form || sending || i > reached}
+                className={phase.k === 'done' || i < step ? 'done' : i === step ? 'on' : ''} onClick={() => setStep(i)}><i /></button>
+            ))}
           </div>
-          <ul className="pp-toast-list">{toast.map(f => <li key={f}>{LABEL[f]}</li>)}</ul>
+          <div className={`pp-hero${head.tone ? ` ${head.tone}` : ''}`} key={head.icon}>
+            <Glyph d={head.icon} />
+          </div>
+          <h1 id="pp-title" className="pp-title">{head.title}</h1>
+          {head.sub && <p className="pp-sub">{head.sub}</p>}
         </div>
-      )}</Presence>
+        <div className="pp-body">{body}</div>
+        <div className="pp-foot">{foot}</div>
+      </form>
     </div>
   )
 }
+
+const Glyph: React.FC<{ d: string; back?: boolean }> = ({ d, back }) => (
+  <svg className={`pp-glyph${back ? ' back' : ''}`} viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor"
+    strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>
+)
 
 const Text: React.FC<{
   label?: string; error?: string; hint?: string; count?: string; labelBad?: boolean; group?: boolean; children: React.ReactNode

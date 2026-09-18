@@ -1,33 +1,97 @@
-/* Страница заявки. Раскладка по форме создания метки trudovaya-slava, цвета и шрифты из публичных экранов. */
-.pm-root.pp-page { z-index: 50; display: flex; flex-direction: column; background: #070E2A; animation: pm-in 180ms ease-out; --ok: #7FA98A; --warn: #D2A85A; --field: #0B1234; }
-/* Та же специфичность, что у общего .pm-root.out, а файл грузится раньше public.css: уход задаём явно. */
-.pm-root.pp-page.out { animation: pm-out 160ms ease-in forwards; pointer-events: none; }
-
-.pp-top { flex: none; height: 64px; padding: 0 32px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--line-soft); }
-.pm-root .pp-back { padding: 6px 10px; border-radius: 8px; color: var(--muted); font: 400 14px var(--ui); white-space: nowrap; }
-.pm-root .pp-back:hover:not(:disabled) { color: var(--gold-soft); background: var(--gold-wash); }
-.pm-root .pp-back:disabled { opacity: 0.4; cursor: default; }
-.pp-divider { width: 1px; height: 20px; background: var(--line); flex: none; }
-.pp-top-title { flex: 1; min-width: 0; font: 500 26px/1 var(--display); color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.pp-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 40px 32px 80px; }
-.pp-inner { max-width: 680px; margin: 0 auto; }
-.pp-inner.result { padding-top: 40px; }
-.pp-intro { margin-bottom: 36px !important; font: 400 16px/26px var(--ui); color: var(--text-2); }
-.pp-fields { margin: 0; padding: 0; border: 0; min-width: 0; }
-
-.pp-section { margin-bottom: 36px; padding-bottom: 36px; border-bottom: 1px dashed var(--line); scroll-margin-top: 16px; }
-.pp-section:last-child { border-bottom: 0; margin-bottom: 0; }
-.pp-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-.pp-section-num {
-  width: 28px; height: 28px; flex: none; border-radius: 8px; border: 1px solid var(--gold-line); background: var(--gold-wash);
-  color: var(--gold); font: 500 11px/26px var(--mono); text-align: center; letter-spacing: 0.04em;
+/* Заявка: мастер-карточка поверх карты. Композиция по референсу onboarding-карточки, цвета из публичных экранов. */
+.pm-root.pp-page {
+  z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: radial-gradient(50% 60% at 12% 0%, rgba(226, 198, 140, 0.1), transparent 70%), rgba(1, 0, 17, 0.62);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  animation: pm-fade 180ms ease-out; --ok: #7FA98A; --warn: #D2A85A; --field: #0B1234;
 }
-.pp-section-num.bad { border-color: var(--danger); color: var(--danger); background: rgba(196, 111, 98, 0.12); }
-.pp-section-title { flex: 1; min-width: 0; font: 500 26px/32px var(--display); }
-.pp-badge { font: 400 11px/16px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+/* Та же специфичность, что у общего .pm-root.out, а файл грузится раньше public.css: уход задаём явно. */
+.pm-root.pp-page.out { animation: pm-fade-out 160ms ease-in forwards; pointer-events: none; }
+.pp-page.out .pp-card { animation: pm-out 160ms ease-in forwards; }
+
+.pp-card {
+  position: relative; isolation: isolate; width: min(540px, 100%); max-height: 100%; display: flex; flex-direction: column;
+  border-radius: 28px; border: 1px solid var(--line-soft); overflow: hidden;
+  background: linear-gradient(180deg, #0F1739, #0A1030 60%);
+  box-shadow: 0 30px 90px rgba(0, 0, 20, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: pm-in 220ms ease-out; /* без transition ширины: карта на шаге места должна создаваться уже в итоговом размере */
+}
+.pp-card.wide { width: min(760px, 100%); }
+/* Точечная сетка, гаснет к середине карточки. */
+.pp-card::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(rgba(147, 168, 208, 0.16) 1px, transparent 1.4px) 0 0 / 16px 16px;
+  -webkit-mask-image: linear-gradient(180deg, #000, transparent 45%); mask-image: linear-gradient(180deg, #000, transparent 45%);
+}
+/* Золотая кромка слева с ореолом внутрь карточки. */
+.pp-card::after {
+  content: ''; position: absolute; left: 0; top: 18%; width: 45%; height: 64%; z-index: -1; pointer-events: none;
+  border-left: 1.5px solid; border-image: linear-gradient(180deg, transparent, var(--gold) 50%, transparent) 1;
+  background: radial-gradient(60% 50% at 0% 50%, rgba(212, 174, 92, 0.13), transparent 70%);
+}
+.pm-root .pp-close { position: absolute; top: 18px; right: 18px; z-index: 2; border-color: transparent; }
+
+.pp-head { flex: none; padding: 32px 40px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.pp-steps { display: flex; gap: 6px; margin-bottom: 36px; }
+.pm-root .pp-steps button { padding: 6px 0; }
+.pm-root .pp-steps button:disabled { cursor: default; }
+.pp-steps i { display: block; width: 32px; height: 4px; border-radius: 999px; background: var(--line); transition: background 240ms ease-out, box-shadow 240ms ease-out; }
+.pp-steps .done i { background: var(--gold-line); }
+.pp-steps .on i { background: var(--gold); box-shadow: 0 0 10px rgba(212, 174, 92, 0.7); }
+.pm-root .pp-steps button:not(:disabled):not(.on):hover i { background: var(--gold-soft); }
+
+.pp-hero {
+  --c: var(--gold); position: relative; width: 76px; height: 76px; margin-bottom: 24px; border-radius: 22px;
+  display: grid; place-items: center; color: var(--c);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--c) 22%, #16204A), #0B1234 70%);
+  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+  box-shadow: 0 0 36px color-mix(in srgb, var(--c) 28%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  animation: pp-hero-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.pp-hero.ok { --c: var(--ok); }
+.pp-hero.bad { --c: var(--danger); }
+.pp-hero.warn { --c: var(--warn); }
+.pp-hero .pp-glyph { width: 34px; height: 34px; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--c) 60%, transparent)); }
+@keyframes pp-hero-in { from { opacity: 0; transform: scale(0.85); } }
+.pp-glyph { width: 18px; height: 18px; flex: none; }
+.pp-glyph.back { transform: scaleX(-1); }
+.pp-title { font: 500 30px/38px var(--display); }
+.pp-sub { max-width: 400px; margin-top: 8px !important; font: 400 15px/24px var(--ui); color: var(--dim); overflow-wrap: anywhere; }
+
+.pp-body { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 40px 8px; }
+.pp-fields { margin: 0; padding: 0; border: 0; min-width: 0; animation: pm-in 220ms ease-out; }
 .pp-stack { display: flex; flex-direction: column; gap: 20px; }
-.pp-lead { margin-bottom: 12px !important; font: 400 14px/22px var(--ui); color: var(--dim); }
+.pp-foot { flex: none; padding: 24px 40px 32px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pm-root .pp-nav {
+  display: inline-flex; align-items: center; gap: 10px; padding: 11px 18px; border-radius: 14px;
+  border: 1px solid var(--line-soft); background: rgba(11, 18, 52, 0.6); color: var(--text-2); font: 400 15px var(--ui);
+  transition: border-color 120ms ease-out, color 120ms ease-out;
+}
+.pm-root .pp-nav:hover { border-color: var(--gold-line); color: var(--gold-soft); }
+.pm-root .pp-next { border-radius: 14px; box-shadow: 0 6px 24px rgba(212, 174, 92, 0.25); }
+
+/* Выбор типа: строки с подсвеченной плиткой и стрелкой. */
+.pp-choices { display: flex; flex-direction: column; gap: 8px; }
+.pm-root .pp-choice {
+  display: flex; align-items: center; gap: 18px; width: 100%; padding: 12px; border-radius: 18px; text-align: left;
+  border: 1px solid transparent; transition: background 160ms ease-out, border-color 160ms ease-out;
+}
+.pm-root .pp-choice:hover, .pm-root .pp-choice.on { background: color-mix(in srgb, var(--c) 6%, transparent); border-color: color-mix(in srgb, var(--c) 22%, transparent); }
+.pp-choice-icon {
+  width: 56px; height: 56px; flex: none; border-radius: 16px; display: grid; place-items: center; color: var(--c);
+  background: color-mix(in srgb, var(--c) 14%, #0B1234); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--c) 22%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: box-shadow 200ms ease-out;
+}
+.pp-choice:hover .pp-choice-icon, .pp-choice.on .pp-choice-icon { box-shadow: 0 0 40px color-mix(in srgb, var(--c) 40%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+.pp-choice-icon svg { width: 30px; height: 30px; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--c) 70%, transparent)); }
+.pp-choice-title { display: block; font: 400 18px/26px var(--ui); color: #fff; }
+.pp-choice-sub { display: block; font: 400 14px/22px var(--ui); color: var(--dim); }
+.pp-arrow {
+  width: 48px; height: 48px; flex: none; border-radius: 14px; display: grid; place-items: center;
+  border: 1px solid var(--line-soft); background: rgba(11, 18, 52, 0.7); color: #fff; transition: border-color 160ms ease-out, color 160ms ease-out;
+}
+.pp-choice:hover .pp-arrow, .pp-choice.on .pp-arrow { border-color: var(--c); color: var(--c); }
 
 /* Место */
 .pp-search { position: relative; margin-bottom: 12px; }
@@ -38,7 +102,7 @@
 }
 .pm-root .pp-places button { width: 100%; padding: 8px 10px; border-radius: 6px; text-align: left; font: 400 14px/20px var(--ui); color: var(--text-2); overflow-wrap: anywhere; }
 .pm-root .pp-places button:hover { background: var(--gold-wash); color: #fff; }
-.pp-map { position: relative; height: 340px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+.pp-map { position: relative; height: 320px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
 .pp-map.bad { border-color: var(--danger); }
 .pp-coord { margin-top: 10px; font: 400 13px/20px var(--mono); color: var(--dim); }
 .pp-coord b { font-weight: 500; color: var(--gold-soft); }
@@ -47,8 +111,6 @@
 .pp-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .pp-label { font: 500 12px/16px var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .pp-label.bad { color: var(--danger); }
-.pp-pair { display: flex; gap: 16px; }
-.pp-pair > * { flex: 1; }
 .pm-root .pp-input {
   width: 100%; margin: 0; padding: 12px 14px; border-radius: 4px; outline: none;
   background: var(--field); border: 1px solid var(--line); color: #fff; font: 400 15px/22px var(--ui);
@@ -68,18 +130,6 @@
 .pp-picker { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .pp-error { font: 400 13px/20px var(--ui); color: var(--danger); }
 .pp-count { align-self: flex-end; font: 400 13px/20px var(--mono); color: var(--dim); margin-top: -8px; }
-
-.pp-types { display: flex; gap: 10px; }
-.pm-root .pp-type {
-  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px;
-  border: 1px solid var(--line); color: var(--text-2); font: 400 14px/22px var(--ui);
-}
-.pm-root .pp-type:hover { border-color: var(--gold-line); }
-.pm-root .pp-type.bad { border-color: var(--danger); }
-.pp-dot { width: 8px; height: 8px; flex: none; border-radius: 999px; background: var(--c); }
-.pp-type.military { --c: #F0B62A; }
-.pp-type.political { --c: #8FB4E8; }
-.pm-root .pp-type.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 12%, transparent); }
 
 /* Архив */
 .pm-root .pp-drop {
@@ -106,27 +156,6 @@
 .pp-bar { height: 4px; border-radius: 999px; background: #131C40; overflow: hidden; }
 .pp-bar div { height: 100%; background: var(--gold); border-radius: 999px; transition: width 120ms linear; }
 
-/* Результат */
-.pp-result { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
-.pp-result-icon { width: 52px; height: 52px; flex: none; border-radius: 999px; font: 400 20px/50px var(--ui); text-align: center; border: 1px solid; }
-.pp-result-icon.ok { color: var(--ok); border-color: var(--ok); background: rgba(127, 169, 138, 0.16); }
-.pp-result-icon.bad { color: var(--danger); border-color: var(--danger); background: rgba(196, 111, 98, 0.16); width: 44px; height: 44px; font-size: 18px; line-height: 42px; }
-.pp-result-icon.warn { color: var(--warn); border-color: var(--warn); background: rgba(210, 168, 90, 0.16); width: 44px; height: 44px; font-size: 18px; line-height: 42px; }
-.pp-result-title { font: 500 36px/44px var(--display); color: var(--gold); }
-.pp-number { justify-content: center; gap: 10px; }
-.pp-code { padding: 5px 12px; border-radius: 4px; background: var(--field); border: 1px solid var(--line); font: 400 15px var(--mono); }
-.pm-root .pp-copy { padding: 5px 12px; border-radius: 4px; border: 1px solid var(--gold-line); color: var(--gold-soft); font: 500 13px var(--ui); }
-.pm-root .pp-copy:hover { border-color: var(--gold); }
-.pp-result-text { max-width: 460px; overflow-wrap: anywhere; font: 400 18px/28px var(--ui); color: var(--text-2); }
-.pp-fail { display: flex; gap: 18px; align-items: flex-start; }
-.pp-fail-title { font: 500 28px/36px var(--display); }
-.pp-fail-title.bad { color: var(--danger); }
-.pp-fail-title.warn { color: var(--warn); }
-.pp-tag { font: 400 11px var(--mono); color: var(--dim); }
-.pp-fail-text { margin-top: 10px !important; overflow-wrap: anywhere; font: 400 15px/24px var(--ui); color: var(--text-2); }
-
-/* Нижняя панель */
-.pp-actbar { flex: none; min-height: 72px; padding: 14px 32px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--line-soft); background: rgba(7, 14, 42, 0.96); }
 .pm-root .pp-x {
   width: 32px; height: 32px; flex: none; border-radius: 999px; border: 1px solid var(--line);
   color: var(--muted); font: 400 16px/30px var(--ui); text-align: center;
@@ -134,30 +163,31 @@
 .pm-root .pp-x:hover:not(:disabled) { border-color: var(--gold-line); color: var(--gold-soft); }
 .pm-root .pp-x.small { width: 24px; height: 24px; line-height: 22px; font-size: 14px; border: 0; }
 
-/* Тост незаполненных полей */
-.pp-toast {
-  position: absolute; z-index: 4; right: 32px; bottom: 88px; width: 300px; padding: 14px 16px; border-radius: 12px;
-  background: var(--card); border: 1px solid var(--danger); box-shadow: var(--shadow); animation: pm-in 180ms ease-out;
-}
-.pp-toast-head { display: flex; align-items: center; gap: 10px; font: 500 15px/22px var(--ui); color: var(--danger); }
-.pp-banner-icon { width: 22px; height: 22px; flex: none; border-radius: 999px; border: 1px solid var(--danger); font: 500 13px/20px var(--ui); text-align: center; }
-.pp-toast-list { margin: 8px 0 0; padding: 0 0 0 32px; font: 400 14px/22px var(--ui); color: var(--text-2); }
+/* Результат */
+.pp-number { justify-content: center; gap: 10px; }
+.pp-code { padding: 5px 12px; border-radius: 4px; background: var(--field); border: 1px solid var(--line); font: 400 15px var(--mono); }
+.pm-root .pp-copy { padding: 5px 12px; border-radius: 4px; border: 1px solid var(--gold-line); color: var(--gold-soft); font: 500 13px var(--ui); }
+.pm-root .pp-copy:hover { border-color: var(--gold); }
+.pp-tag { display: block; text-align: center; font: 400 13px var(--mono); color: var(--dim); }
 
-/* Мобильный */
-.pp-page.mobile .pp-top { height: 56px; padding: 0 12px; gap: 10px; }
-.pp-page.mobile .pp-top-title { font-size: 22px; }
-.pp-page.mobile .pp-scroll { padding: 20px 16px 40px; }
-.pp-page.mobile .pp-intro { margin-bottom: 28px !important; font-size: 15px; line-height: 24px; }
-.pp-page.mobile .pp-section { margin-bottom: 28px; padding-bottom: 28px; }
-.pp-page.mobile .pp-section-title { font-size: 22px; line-height: 28px; }
-.pp-page.mobile .pp-pair { flex-direction: column; gap: 20px; }
+/* Мобильный: карточка на весь экран. */
+.pm-root.pp-page.mobile { padding: 0; }
+.pp-page.mobile .pp-card { width: 100%; height: 100%; border-radius: 0; border: 0; }
+.pp-page.mobile .pp-head { padding: 20px 16px 16px; }
+.pp-page.mobile .pp-steps { margin-bottom: 24px; }
+.pp-page.mobile .pp-steps i { width: 24px; }
+.pp-page.mobile .pp-hero { width: 60px; height: 60px; border-radius: 18px; margin-bottom: 16px; }
+.pp-page.mobile .pp-hero .pp-glyph { width: 28px; height: 28px; }
+.pp-page.mobile .pp-title { font-size: 24px; line-height: 30px; }
+.pp-page.mobile .pp-body { padding: 8px 16px; }
+.pp-page.mobile .pp-foot { padding: 12px 16px 16px; }
+.pp-page.mobile .pp-foot > * { flex: 1; justify-content: center; height: 48px; }
+.pp-page.mobile .pp-foot > span:empty { display: none; }
 .pp-page.mobile .pp-map { height: 300px; }
 .pm-root.mobile .pp-input { padding: 14px; font-size: 16px; }
 .pm-root.mobile .pp-area { height: 120px; min-height: 120px; }
-.pm-root.mobile .pp-type { justify-content: center; height: 48px; font-size: 15px; }
-.pp-page.mobile .pp-actbar { padding: 12px 16px; }
-.pp-page.mobile .pp-actbar .pm-btn { flex: 1; height: 48px; }
-.pp-page.mobile .pp-toast { left: 16px; right: 16px; width: auto; bottom: 84px; }
-.pp-page.mobile .pp-fail { flex-direction: column; }
-.pp-page.mobile .pp-result-title { font-size: 32px; line-height: 40px; }
-.pp-page.mobile .pp-result-text { font-size: 16px; line-height: 26px; }
+.pp-page.mobile .pp-choice-sub { font-size: 13px; line-height: 20px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-card, .pp-hero, .pp-fields { animation: none; transition: none; }
+}

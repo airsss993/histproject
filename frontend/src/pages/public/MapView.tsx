@@ -14,7 +14,7 @@ const GOLD = '#F0B62A'
 
 // Метка из "Логотип и метки": капля 64x64 с остриём в (32, 58), глиф типа в окне.
 const DROP = 'M32 58C32 58 13 37 13 25A19 19 0 0 1 51 25C51 37 32 58 32 58Z'
-const GLYPH: Record<EventType, string[]> = {
+export const GLYPH: Record<EventType, string[]> = {
   military: ['M32 11V19', 'M24.5 19H39.5', 'M28.5 19V29L32 36L35.5 29V19'],
   political: ['M24 16H40', 'M27 16V32', 'M37 16V32', 'M23 32H41'],
 }
