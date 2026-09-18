@@ -361,16 +361,11 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
         {field === 'archive' && (
           <Text error={d.file ? undefined : visible('archive')}>
             {d.file ? (
-              <div className={`pp-file${d.zip !== 'ok' && d.zip !== 'checking' ? ' bad' : ''}`}>
-                <div className="pp-zip">ZIP</div>
-                <div className="pm-grow">
-                  <div className="pp-file-name">{d.file.name}</div>
-                  <div className={`pp-file-note ${d.zip === 'ok' ? 'ok' : d.zip === 'checking' ? '' : 'bad'}`}>
-                    {d.zip === 'ok' ? `${mb(d.file.size)} МБ · index.html найден` : d.zip === 'checking' ? 'Проверяем архив...' : errors.archive}
-                  </div>
-                </div>
-                <button type="button" className="pp-x" aria-label="Убрать архив" onClick={clearFile}>×</button>
-              </div>
+              <FileCard file={d.file} onRemove={clearFile} {...(d.zip === 'checking'
+                ? { status: 'Проверяем архив...', progress: 'busy' as const }
+                : d.zip === 'ok'
+                  ? { status: 'index.html найден', tone: 'ok' as const, value: 'Готово', progress: 1 }
+                  : { status: errors.archive, tone: 'bad' as const })} />
             ) : (
               <button type="button" className={`pp-drop${drag ? ' over' : ''}${visible('archive') ? ' bad' : ''}`}
                 onClick={() => fileRef.current?.click()}
@@ -399,16 +394,14 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
       </fieldset>
     )
     const last = step === STEPS.length - 1
+    if (phase.k === 'sending') {
+      const part = phase.loaded / (phase.total || 1)
+      head = { title: 'Отправляем заявку', sub: 'Не закрывайте окно, пока архив загружается', icon: STEPS[stepOf('archive')].icon }
+      body = <FileCard file={d.file!} status="Загрузка архива..." value={`${Math.round(part * 100)} %`} progress={part} />
+    }
     foot = phase.k === 'sending'
       ? (
         <>
-          <div className="pp-progress pm-grow" role="status">
-            <div className="pp-progress-row">
-              <span>Загрузка архива</span>
-              <span className="pp-muted">{mb(phase.loaded)} из {mb(phase.total)} МБ · {Math.round((phase.loaded / (phase.total || 1)) * 100)} %</span>
-            </div>
-            <div className="pp-bar"><div style={{ width: `${(phase.loaded / (phase.total || 1)) * 100}%` }} /></div>
-          </div>
           <button type="button" className="pp-nav" onClick={() => abortRef.current?.()}><Chip d={CROSS} />Отменить</button>
         </>
       )
@@ -449,6 +442,37 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     </div>
   )
 }
+
+// Карточка архива: документ с плашкой ZIP и панель статуса с полосой. progress: доля 0..1 или 'busy' без процента.
+const FileCard: React.FC<{
+  file: File; status?: string; tone?: 'ok' | 'bad'; value?: string; progress?: number | 'busy'; onRemove?: () => void
+}> = ({ file, status, tone, value, progress, onRemove }) => (
+  <div className={`pp-upload${tone ? ` ${tone}` : ''}`}>
+    {onRemove && <button type="button" className="pp-x pp-upload-x" aria-label="Убрать архив" onClick={onRemove}>×</button>}
+    <div className="pp-upload-file">
+      <span className="pp-doc" aria-hidden>
+        <svg viewBox="0 0 56 70"><path d="M10 1h26l19 19v39a10 10 0 0 1-10 10H10A10 10 0 0 1 0 59V11A10 10 0 0 1 10 1Z" /><path className="fold" d="M36 1v11a8 8 0 0 0 8 8h11" /></svg>
+        <span className="pp-doc-tag">ZIP</span>
+      </span>
+      <span className="pm-grow">
+        <span className="pp-file-name">{file.name}</span>
+        <span className="pp-file-size">{mb(file.size)} МБ</span>
+      </span>
+    </div>
+    <div className="pp-upload-panel" role="status">
+      <div className="pp-upload-row">
+        {tone ? <Glyph d={RESULT_ICON[tone]} /> : <span className="pp-spin" />}
+        <span className="pm-grow">{status}</span>
+        {value && <span className="pp-upload-value">{value}</span>}
+      </div>
+      {progress !== undefined && (
+        <div className={`pp-track${progress === 'busy' ? ' busy' : ''}`}>
+          <i style={progress === 'busy' ? undefined : { width: `${progress * 100}%` }} />
+        </div>
+      )}
+    </div>
+  </div>
+)
 
 // Иконка в плашке внутри кнопки, как в референсе.
 const Chip: React.FC<{ d: string; back?: boolean }> = ({ d, back }) => <span className="pp-chip"><Glyph d={d} back={back} /></span>
