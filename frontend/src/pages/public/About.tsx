@@ -108,13 +108,6 @@ export const About: React.FC = () => {
   return (
     <div className="pm-root pm-about">
       <div role="banner" className="pm-header pm-about-header">
-        {!mobile && (
-          <nav className="pm-about-nav">
-            <Link to="/map">Карта</Link>
-            <a href="#team">Команда</a>
-            <a href="#faq">Вопросы</a>
-          </nav>
-        )}
         <Logo short={mobile} onClick={() => navigate('/map')} />
         <div className="pm-about-header-end">
           {mobile
@@ -157,7 +150,7 @@ export const About: React.FC = () => {
           </div>
         </section>
 
-        <section className="pm-about-team" id="team">
+        <section className="pm-about-team">
           <div className="pm-about-team-panel">
             {TEAM.map((p, i) => (
               <div key={p.name} className={`pm-about-portrait pm-about-portrait-${i}`}>
@@ -185,7 +178,7 @@ export const About: React.FC = () => {
           </div>
         </section>
 
-        <section className="pm-about-faq" id="faq">
+        <section className="pm-about-faq">
           <div className="pm-about-faq-side">
             <Tag>FAQ</Tag>
             <h2>Частые вопросы</h2>
