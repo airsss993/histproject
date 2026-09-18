@@ -144,10 +144,11 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
 .pm-about-badge text { font: 400 10px var(--ui); letter-spacing: 0.1em; text-transform: uppercase; fill: var(--gold-soft); }
 .pm-about-badge img {
   width: 76px; height: 76px; padding: 12px; border-radius: 999px; object-fit: contain;
-  background: var(--ink); border: 1px solid var(--gold-line); transition: transform 400ms ease-in-out, border-color 400ms ease-in-out;
+  background: var(--ink); border: 1px solid var(--gold-line); transition: transform 400ms ease-in-out, border-color 900ms ease-out;
 }
 .pm-about-badge::before { content: ''; position: absolute; inset: 0; border-radius: 999px; border: 1px solid var(--line); background: rgba(1, 0, 17, 0.5); }
-.pm-about-badge:hover img { transform: scale(1.08) rotate(-8deg); border-color: var(--gold); }
+/* Уход с наведения: обводка гаснет дольше (900ms ease-out), иначе тонкая линия гаснет рывком в середине кривой. */
+.pm-about-badge:hover img { transform: scale(1.08) rotate(-8deg); border-color: var(--gold); transition: transform 400ms ease-in-out, border-color 400ms ease-in-out; }
 .pm-about-bigword {
   display: flex; align-items: center; justify-content: center; gap: 0.12em; padding: 12px 24px 0.32em;
   font: 400 clamp(34px, 9.4vw, 118px)/1 var(--display); text-transform: uppercase; white-space: nowrap; color: #fff;
