@@ -1,20 +1,23 @@
 /* Публичная часть: карта и её слои. Значения из "Публичные экраны.dc.html" (Claude Design). */
 .pm-root {
-  --ink: #010011;
-  --sea: #060D2E;
-  --glass: rgba(17, 24, 56, 0.91);
-  --card: rgba(14, 22, 42, 0.96);
-  --line: #32406E;
-  --line-soft: rgba(50, 64, 110, 0.52);
+  --ink: #08080A;
+  --sea: #0D0E11;
+  --surface: #141519;
+  --surface-2: #1D1E23;
+  --sunk: #0B0B0D;
+  --glass: rgba(24, 25, 30, 0.72);
+  --card: rgba(20, 21, 25, 0.94);
+  --line: rgba(255, 255, 255, 0.13);
+  --line-soft: rgba(255, 255, 255, 0.07);
   --gold: #D4AE5C;
   --gold-soft: #E2C68C;
   --gold-line: #7E6B36;
   --gold-wash: rgba(212, 174, 92, 0.12);
-  --muted: #93A8D0;
-  --dim: #7C8AB4;
+  --muted: #A3A3AB;
+  --dim: #7B7B84;
   --text-2: rgba(255, 255, 255, 0.72);
   --danger: #C46F62;
-  --shadow: 0 12px 40px rgba(0, 0, 20, 0.6);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   --display: 'Tenor Sans', system-ui, sans-serif;
   --ui: 'Tenor Sans', system-ui, sans-serif;
   --mono: 'Tenor Sans', system-ui, sans-serif;
@@ -35,8 +38,8 @@
 .pm-row-tight { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pm-mono { font: 400 13px/20px var(--mono); }
 .pm-dim-text { font: 400 13px/20px var(--ui); color: var(--dim); }
-.pm-glass { background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); }
-.pm-hatch { background: repeating-linear-gradient(135deg, #0B1234 0 6px, #080E28 6px 12px); }
+.pm-glass { background: var(--glass); backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%); border: 1px solid var(--line-soft); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+.pm-hatch { background: repeating-linear-gradient(135deg, var(--surface) 0 6px, var(--sunk) 6px 12px); }
 
 /* Появление и уход слоёв. Класс out ставит Presence (presence.tsx) на LEAVE_MS. */
 @keyframes pm-in { from { opacity: 0; transform: translateY(8px); } }
@@ -53,7 +56,7 @@
 .pm-map { position: absolute; inset: 0; transition: opacity 180ms ease-out; }
 .pm-map-canvas { position: absolute; inset: 0; }
 .pm-map-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
-.pm-map .maplibregl-ctrl-attrib { background: rgba(6, 13, 46, 0.7); color: var(--muted); font: 400 11px var(--ui); }
+.pm-map .maplibregl-ctrl-attrib { background: rgba(12, 12, 14, 0.7); color: var(--muted); font: 400 11px var(--ui); }
 .pm-map .maplibregl-ctrl-attrib a { color: var(--muted); }
 .pm-map .maplibregl-ctrl-attrib-button { filter: invert(1); opacity: 0.5; }
 .pm-pick { cursor: grab; }
@@ -77,7 +80,7 @@
   position: absolute; transform: translate(-50%, -100%); pointer-events: none;
   animation: pm-popup-in 140ms ease-out;
   min-width: 214px; max-width: 320px; padding: 10px 14px; border-radius: 8px;
-  background: rgba(17, 24, 56, 0.94); border: 1px solid var(--line);
+  background: rgba(24, 25, 30, 0.94); border: 1px solid var(--line);
 }
 @keyframes pm-popup-in { from { opacity: 0; transform: translate(-50%, calc(-100% + 6px)); } }
 .pm-popup-title { font: 500 14px/20px var(--ui); overflow-wrap: anywhere; }
@@ -87,7 +90,7 @@
 .pm-header {
   position: absolute; left: 0; right: 0; top: 0; height: 84px; padding: 0 28px;
   display: flex; align-items: center; gap: 20px;
-  background: linear-gradient(var(--ink), rgba(1, 0, 17, 0)); pointer-events: none;
+  background: linear-gradient(var(--ink), rgba(0, 0, 0, 0)); pointer-events: none;
 }
 .pm-header > * { pointer-events: auto; }
 .pm-header-plain { background: none; }
@@ -117,7 +120,7 @@
 }
 .pm-close {
   position: absolute; right: 14px; top: 14px; width: 30px; height: 30px; border-radius: 999px;
-  background: rgba(1, 0, 17, 0.6); border: 1px solid var(--line); font: 400 16px/28px var(--ui);
+  background: rgba(0, 0, 0, 0.6); border: 1px solid var(--line); font: 400 16px/28px var(--ui);
 }
 .pm-close-sm { width: 28px; height: 28px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font: 400 15px/26px var(--ui); }
 
@@ -133,7 +136,7 @@
 
 /* Поиск */
 .pm-search-wrap { position: absolute; left: 50%; transform: translateX(-50%); top: 104px; width: 520px; display: flex; flex-direction: column; gap: 8px; }
-.pm-search-wrap.pm-muted .pm-search { background: rgba(17, 24, 56, 0.7); border-color: rgba(255, 255, 255, 0.14); }
+.pm-search-wrap.pm-muted .pm-search { background: rgba(24, 25, 30, 0.7); border-color: rgba(255, 255, 255, 0.14); }
 .pm-search { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 999px; }
 .pm-search input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: #fff; font: 400 15px var(--ui); }
 .pm-search input:focus-visible { outline: none; }
@@ -221,16 +224,16 @@
   font: 400 16px var(--ui); text-decoration: none; white-space: nowrap;
   transition: background 120ms ease-out, border-color 120ms ease-out;
 }
-.pm-root .pm-card-share { background: #1C2550; border: 1px solid var(--line); color: #fff; }
+.pm-root .pm-card-share { background: var(--surface-2); border: 1px solid var(--line); color: #fff; }
 .pm-root .pm-card-share:hover { background: #253063; }
 .pm-root .pm-card-more { background: var(--gold); border: 1px solid var(--gold); color: var(--ink); }
 .pm-root .pm-card-more:hover { background: var(--gold-soft); }
 .pm-card-loading { flex-direction: row; align-items: center; gap: 16px; width: 400px; padding: 20px 64px 20px 20px; }
 .pm-card-loading .pm-close { top: 50%; transform: translateY(-50%); }
-.pm-skel-circle { width: 52px; height: 52px; border-radius: 999px; background: #0B1234; flex: none; }
+.pm-skel-circle { width: 52px; height: 52px; border-radius: 999px; background: var(--surface); flex: none; }
 .pm-skel-lines { display: flex; flex-direction: column; gap: 10px; }
-.pm-skel-lines i { height: 14px; width: 60%; border-radius: 4px; background: #0B1234; animation: pm-pulse 1.2s ease-in-out infinite; }
-.pm-skel-lines i + i { height: 10px; width: 80%; background: #080E28; }
+.pm-skel-lines i { height: 14px; width: 60%; border-radius: 4px; background: var(--surface); animation: pm-pulse 1.2s ease-in-out infinite; }
+.pm-skel-lines i + i { height: 10px; width: 80%; background: var(--sunk); }
 @keyframes pm-pulse { 50% { opacity: 0.5; } }
 
 /* Панели: фильтры и лента */
@@ -239,7 +242,7 @@
   display: flex; flex-direction: column; border-radius: 16px; box-shadow: var(--shadow);
   animation: pm-in 180ms ease-out;
 }
-.pm-screen { animation: pm-in 180ms ease-out; position: absolute; inset: 0; display: flex; flex-direction: column; background: #070E2A; overflow-y: auto; }
+.pm-screen { animation: pm-in 180ms ease-out; position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--surface); overflow-y: auto; }
 .pm-panel-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px; border-bottom: 1px dashed var(--line); }
 .pm-screen .pm-panel-head { padding: 18px 16px; gap: 12px; }
 .pm-panel-head h2 { font: 600 20px/28px var(--ui); }
@@ -260,7 +263,7 @@
 .pm-type-pin { flex: none; }
 .pm-years { display: flex; align-items: center; gap: 10px; }
 .pm-years input {
-  flex: 1; min-width: 0; background: #0B1234; border: 1px solid var(--line); border-radius: 4px;
+  flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
   padding: 10px 12px; color: #fff; font: 400 13px var(--mono); outline: none; -moz-appearance: textfield;
 }
 .pm-screen .pm-years input { padding: 12px; }
@@ -292,7 +295,7 @@
 .pm-screen .pm-chips button { padding: 9px 14px; font-size: 14px; }
 .pm-chips > .on, .pm-chips button:hover { border-color: var(--gold); background: var(--gold-wash); color: var(--gold); }
 .pm-panel-foot { display: flex; align-items: center; gap: 12px; padding: 18px 22px; }
-.pm-screen .pm-panel-foot { padding: 16px; border-top: 1px dashed var(--line); position: sticky; bottom: 0; background: #070E2A; }
+.pm-screen .pm-panel-foot { padding: 16px; border-top: 1px dashed var(--line); position: sticky; bottom: 0; background: var(--surface); }
 .pm-screen .pm-panel-foot .pm-btn, .pm-screen .pm-panel-foot .pm-btn-text { height: 52px; font-size: 16px; }
 .pm-root .pm-tall { height: 48px; border-radius: 999px; font: 500 15px var(--ui); }
 
@@ -341,13 +344,13 @@
 .pm-bottombar { position: absolute; left: 16px; right: 16px; bottom: 24px; display: flex; gap: 10px; }
 .pm-bottombar button { height: 52px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 10px; font: 500 15px var(--ui); }
 .pm-bottombar .pm-round { width: 52px; color: var(--gold-soft); }
-.pm-sheet-shade { position: absolute; inset: 0; z-index: 5; background: rgba(1, 0, 17, 0.45); animation: pm-fade 180ms ease-out; }
+.pm-sheet-shade { position: absolute; inset: 0; z-index: 5; background: rgba(0, 0, 0, 0.45); animation: pm-fade 180ms ease-out; }
 @keyframes pm-sheet-in { from { transform: translateY(100%); } }
 .pm-sheet {
   animation: pm-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; height: min(620px, 85%);
   display: flex; flex-direction: column; border-radius: 16px 16px 0 0;
-  background: #0E162A; border: 1px solid var(--line); box-shadow: var(--shadow);
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
   transform: translateY(calc(100% - 320px)); transition: transform 180ms ease-out;
 }
 .pm-sheet.open { transform: none; }

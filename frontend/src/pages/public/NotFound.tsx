@@ -13,7 +13,7 @@ export const NotFound: React.FC<{ path?: string; kind?: 'event' | 'page' }> = ({
   return (
     <div className="pm-root pm-404">
       <div className="pm-404-map">
-        <MapView events={[]} isActive={none} selectedId={null} onSelect={noop} pad={48} labels={false} sea="#010011" interactive={false} />
+        <MapView events={[]} isActive={none} selectedId={null} onSelect={noop} pad={48} labels={false} sea="#08080A" interactive={false} />
       </div>
       <div role="banner" className="pm-header pm-header-plain">
         <Logo onClick={() => navigate('/map')} />
