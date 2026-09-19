@@ -23,7 +23,7 @@ const FIELDS: Field[] = ['type', 'title', 'date', 'description', 'place', 'archi
 // Шаги мастера. icon - путь 24x24 для плитки в шапке карточки.
 const STEPS: { fields: Field[]; title: string; sub: string; icon: string }[] = [
   { fields: ['type'], title: 'Какое это событие?', sub: 'От типа зависят цвет и значок метки на карте',
-    icon: 'M12 2C12.5 8 16 11.5 22 12C16 12.5 12.5 16 12 22C11.5 16 8 12.5 2 12C8 11.5 11.5 8 12 2Z' },
+    icon: 'M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8.5 8.5-9 9Z M8 8.5v.01' },
   { fields: ['title', 'date', 'description'], title: 'О событии', sub: 'Название, дата и пара предложений о том, что произошло',
     icon: 'M5 6h14 M5 10h14 M5 14h14 M5 18h9' },
   { fields: ['place'], title: 'Где это было', sub: 'Найдите место поиском или нажмите на карту. Метку можно перетащить',
@@ -430,7 +430,8 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
             ))}
           </div>
           <div className={`pp-hero${head.tone ? ` ${head.tone}` : ''}`} key={head.icon}>
-            <Glyph d={head.icon} />
+            <span className="pp-hero-back" />
+            <span className="pp-hero-glass"><Glyph d={head.icon} /></span>
           </div>
           <h1 id="pp-title" className="pp-title">{head.title}</h1>
           {head.sub && <p className="pp-sub">{head.sub}</p>}
