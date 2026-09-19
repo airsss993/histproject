@@ -14,10 +14,10 @@
 /* Метка-пилюля с линией и точкой. */
 .pm-about-tag { display: flex; align-items: center; gap: 12px; }
 .pm-about-tag span {
-  padding: 5px 14px; border-radius: 999px; border: 1px solid var(--line); background: #0B1234;
+  padding: 5px 14px; border-radius: 999px; border: 1px solid var(--line); background: #0C1023;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); font: 400 12px/18px var(--ui); letter-spacing: 0.08em; color: var(--text-2);
 }
-.pm-about-tag i { position: relative; width: 64px; height: 1px; background: linear-gradient(90deg, var(--gold-soft), rgba(212, 174, 92, 0)); }
+.pm-about-tag i { position: relative; width: 64px; height: 1px; background: linear-gradient(90deg, var(--gold-soft), rgba(199, 174, 127, 0)); }
 .pm-about-tag i::before { content: ''; position: absolute; left: -2px; top: -2px; width: 5px; height: 5px; border-radius: 999px; background: var(--gold-soft); box-shadow: 0 0 6px var(--gold); }
 .pm-about-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 7px 14px; border-radius: 999px; font: 400 13px/18px var(--ui); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pm-about-chip b { font-weight: 400; color: var(--gold); }
@@ -47,17 +47,17 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
 .pm-about-team-panel {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr); grid-template-areas: "a c b"; gap: 28px; align-items: center;
   padding: 20px; border-radius: 32px; border: 1px solid var(--line-soft);
-  background: radial-gradient(120% 90% at 50% 0%, rgba(40, 54, 110, 0.55), rgba(14, 22, 42, 0.9) 60%);
+  background: radial-gradient(120% 90% at 50% 0%, rgba(30, 39, 85, 0.55), rgba(14, 22, 42, 0.9) 60%);
 }
 .pm-about-portrait-0 { grid-area: a; }
 .pm-about-portrait-1 { grid-area: b; }
 .pm-about-portrait {
   position: relative; aspect-ratio: 4 / 5; border-radius: 24px; overflow: hidden; display: grid; place-items: center;
   border: 1px solid var(--line-soft);
-  background: radial-gradient(80% 60% at 50% 40%, rgba(212, 174, 92, 0.16), rgba(212, 174, 92, 0) 70%), repeating-linear-gradient(135deg, #0B1234 0 6px, #080E28 6px 12px);
+  background: radial-gradient(80% 60% at 50% 40%, rgba(199, 174, 127, 0.16), rgba(199, 174, 127, 0) 70%), repeating-linear-gradient(135deg, #0C1023 0 6px, #081835 6px 12px);
 }
 .pm-about-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.pm-about-portrait-initial { font: 400 clamp(96px, 13vw, 168px)/1 var(--display); color: var(--gold); opacity: 0.85; text-shadow: 0 8px 40px rgba(212, 174, 92, 0.35); }
+.pm-about-portrait-initial { font: 400 clamp(96px, 13vw, 168px)/1 var(--display); color: var(--gold); opacity: 0.85; text-shadow: 0 8px 40px rgba(199, 174, 127, 0.35); }
 .pm-about-team-center { grid-area: c; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; padding: 12px 0; }
 .pm-about-team-center h2 { font: 400 clamp(36px, 4.6vw, 56px)/1.05 var(--display); text-transform: uppercase; letter-spacing: 0.02em; }
 .pm-about-strip { display: flex; width: 100%; max-width: 340px; }
@@ -92,8 +92,8 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
 /* Круглая кнопка: плюс поворачивается в минус, вертикальная черта ложится на горизонтальную. */
 .pm-about-faq-toggle {
   position: relative; flex: none; width: 40px; height: 40px; border-radius: 999px;
-  background: radial-gradient(circle at 35% 30%, var(--gold-soft), var(--gold) 45%, #8C6F2E);
-  box-shadow: 0 0 0 1px rgba(226, 198, 140, 0.35), 0 4px 16px rgba(212, 174, 92, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  background: radial-gradient(circle at 35% 30%, var(--gold-soft), var(--gold) 45%, #7D7151);
+  box-shadow: 0 0 0 1px rgba(197, 183, 146, 0.35), 0 4px 16px rgba(199, 174, 127, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 160ms ease-out;
 }
 .pm-about-faq-toggle::before, .pm-about-faq-toggle::after {
@@ -103,7 +103,7 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
 .pm-about-faq-toggle::after { transform: rotate(90deg); }
 .pm-about-faq-item.open .pm-about-faq-toggle { transform: rotate(180deg); }
 .pm-about-faq-item.open .pm-about-faq-toggle::after { transform: rotate(0deg); }
-.pm-about-faq-item > button:hover .pm-about-faq-toggle { box-shadow: 0 0 0 1px rgba(226, 198, 140, 0.5), 0 4px 22px rgba(212, 174, 92, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+.pm-about-faq-item > button:hover .pm-about-faq-toggle { box-shadow: 0 0 0 1px rgba(197, 183, 146, 0.5), 0 4px 22px rgba(199, 174, 127, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
 .pm-about-faq-item > button:active .pm-about-faq-toggle { scale: 0.92; }
 
 .pm-about-faq-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 320ms cubic-bezier(0.2, 0.8, 0.2, 1); }
@@ -122,7 +122,7 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
 .pm-about-foot {
   position: relative; max-width: 1180px; margin: 0 auto 24px; overflow: hidden;
   border: 1px solid var(--line-soft); border-radius: 36px;
-  background: radial-gradient(90% 80% at 80% 0%, rgba(40, 54, 110, 0.5), rgba(11, 18, 52, 0.95) 60%);
+  background: radial-gradient(90% 80% at 80% 0%, rgba(30, 39, 85, 0.5), rgba(12, 16, 35, 0.95) 60%);
 }
 .pm-about-foot-top { display: flex; justify-content: space-between; gap: 32px; padding: 40px 40px 0; }
 .pm-about-socials { position: relative; width: 420px; height: 210px; flex: none; }
@@ -133,7 +133,7 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
   transform: rotate(var(--r)); transition: transform 320ms cubic-bezier(0.3, 1.4, 0.5, 1), background 160ms ease-out, border-color 160ms ease-out;
 }
 .pm-about-sticker svg { width: 22px; height: 22px; flex: none; }
-.pm-about-sticker.fill { background: #1C2550; border-color: var(--line); color: #fff; }
+.pm-about-sticker.fill { background: #1E2755; border-color: var(--line); color: #fff; }
 .pm-about-sticker:hover { transform: rotate(0deg) scale(1.06); border-color: var(--gold); z-index: 1; }
 .pm-about-foot-side { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; font: 400 13px/20px var(--ui); color: var(--dim); text-align: right; }
 .pm-about .pm-about-badge { --logo: 76px; position: relative; width: 148px; height: 148px; border-radius: 999px; display: grid; place-items: center; }
