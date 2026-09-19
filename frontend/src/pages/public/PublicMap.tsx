@@ -196,10 +196,8 @@ export const PublicMap: React.FC = () => {
         <Presence>{!mobile && layer !== 'filters' && layer !== 'feed' && (
           <nav className="pm-rail pm-glass" aria-label="Управление картой">
             <button type="button" onClick={() => openLayer('filters')} title="Фильтры" className={filterBadge(applied) ? 'on' : ''}>Ф</button>
-            <button type="button" onClick={() => openLayer('feed')} title="Лента событий">Л</button>
             <button type="button" onClick={() => mapRef.current?.zoomBy(1.6)} title="Приблизить">+</button>
             <button type="button" onClick={() => mapRef.current?.zoomBy(1 / 1.6)} title="Отдалить">-</button>
-            <button type="button" title="Колесо мыши - масштаб, перетаскивание - сдвиг, клик по метке - карточка события, клик по кругу с числом - приблизить группу">?</button>
           </nav>
         )}</Presence>
 
@@ -230,7 +228,6 @@ export const PublicMap: React.FC = () => {
         </div>
 
         <Presence>{!mobile && layer === 'filters' && filtersPanel}</Presence>
-        <Presence>{!mobile && layer === 'feed' && feed}</Presence>
 
         <Presence>{!mobile && load.status === 'ready' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
           <div className="pm-legend pm-glass">
