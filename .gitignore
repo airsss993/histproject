@@ -17,3 +17,6 @@ dist/
 .env
 .env.local
 .env*.local
+
+# Локальное состояние impeccable
+.impeccable/
