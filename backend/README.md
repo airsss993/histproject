@@ -52,7 +52,7 @@ go run ./cmd/bootstrap-admin --apply
 - `DATABASE_URL`: PostgreSQL DSN.
 - `REDIS_ADDRESS`, `REDIS_PASSWORD`, `REDIS_DB`: параметры Redis.
 - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_ARCHIVE_BUCKET`, `MINIO_SITE_BUCKET`, `MINIO_USE_SSL`: параметры MinIO.
-- `MAX_UPLOAD_BYTES`: предел размера ZIP-архива в байтах, по умолчанию `52428800` в development.
+- `MAX_UPLOAD_BYTES`: предел размера ZIP-архива в байтах, по умолчанию `20971520` (20 МБ) в development.
 - `MAX_EXTRACTED_BYTES`, `MAX_ARCHIVE_FILES`, `MAX_ARCHIVE_FILE_BYTES`: пределы распакованного ZIP, количества записей и одного файла.
 - `CHROME_URL`, `SCREENSHOT_TIMEOUT`: адрес headless Chrome и таймаут скриншота.
 - `SITE_RENDER_BASE_URL`: внутренний URL bucket `sites`, доступный Chrome.
@@ -101,7 +101,7 @@ Login ограничен пятью попытками в минуту для п
 ## Требования к загружаемым сайтам
 
 - Формат архива: `.zip`.
-- Максимальный размер: 50 МБ.
+- Максимальный размер: 20 МБ.
 - В корне архива должен быть `index.html`.
 - Поддерживаются статические сайты без server-side rendering.
 - React Router должен использовать `HashRouter`.

@@ -101,7 +101,7 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 
 	maxUploadBytesValue := strings.TrimSpace(getenv("MAX_UPLOAD_BYTES"))
 	if environment != production && maxUploadBytesValue == "" {
-		maxUploadBytesValue = "52428800"
+		maxUploadBytesValue = "20971520"
 	}
 	if maxUploadBytesValue != "" {
 		maxUploadBytes, err := parsePositiveInt64(maxUploadBytesValue, "MAX_UPLOAD_BYTES")

@@ -5,7 +5,7 @@ import { submitProposal, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType } fr
 import './propose.css'
 
 // Раскладка по форме создания метки из trudovaya-slava, значения из валидации POST /api/v1/submissions.
-const MAX_MB = 50
+const MAX_MB = 20
 const MIN_YEAR = 862
 
 interface Draft {

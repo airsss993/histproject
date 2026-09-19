@@ -107,7 +107,7 @@ export function submitProposal(body: FormData, onProgress: (loaded: number, tota
 }
 
 // Есть ли index.html в корне ZIP: читаем только центральный каталог, архив не распаковываем.
-// ponytail: ZIP64 не разбираем, для архивов до 50 МБ он не нужен.
+// ponytail: ZIP64 не разбираем, для архивов до 20 МБ он не нужен.
 export async function zipHasRootIndex(file: Blob): Promise<boolean> {
   const tail = new DataView(await file.slice(Math.max(0, file.size - 65557)).arrayBuffer())
   let eocd = -1
