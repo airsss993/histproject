@@ -37,7 +37,6 @@
 .pm-dim-text { font: 400 13px/20px var(--ui); color: var(--dim); }
 /* Стекло: карта под панелью размыта и насыщена, свет сверху - светлая верхняя кромка и блик внутри. */
 .pm-glass, .pm-card, .pm-callout-arrow, .pm-sheet, .pm-popup {
-  --rim: rgba(255, 255, 255, 0.17) rgba(129, 148, 174, 0.16) rgba(129, 148, 174, 0.1);
   backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%);
   border: 1px solid; border-color: var(--rim);
 }
@@ -50,7 +49,7 @@
   background: rgba(255, 255, 255, 0.04); border: 1px solid; border-color: var(--rim-in);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
-.pm-root { --rim-in: rgba(255, 255, 255, 0.16) rgba(255, 255, 255, 0.09) rgba(255, 255, 255, 0.06); }
+.pm-root { --rim: rgba(255, 255, 255, 0.17) rgba(129, 148, 174, 0.16) rgba(129, 148, 174, 0.1); --rim-in: rgba(255, 255, 255, 0.16) rgba(255, 255, 255, 0.09) rgba(255, 255, 255, 0.06); }
 .pm-hatch { background: repeating-linear-gradient(135deg, #0C1023 0 6px, #081835 6px 12px); }
 
 /* Появление и уход слоёв. Класс out ставит Presence (presence.tsx) на LEAVE_MS. */
@@ -158,7 +157,7 @@
 .pm-results { animation: pm-in 180ms ease-out; border-radius: 16px; overflow: hidden auto; max-height: 60vh; }
 .pm-result, .pm-feed-item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 20px; text-align: left; border-bottom: 1px dashed var(--line-soft); transition: background 120ms ease-out; }
 .pm-result:last-child { border-bottom: 0; }
-.pm-result:hover, .pm-feed-item:hover { background: rgba(19, 28, 64, 0.6); }
+.pm-result:hover, .pm-feed-item:hover { background: rgba(255, 255, 255, 0.05); }
 .pm-results-empty { padding: 16px 20px; color: var(--dim); font-size: 14px; }
 .pm-thumb { flex: none; border-radius: 999px; border: 1px solid var(--line); object-fit: cover; display: block; background-size: auto; }
 .pm-year { font: 600 16px/20px var(--display); color: var(--gold); font-variant-numeric: tabular-nums; }
@@ -255,7 +254,7 @@
   display: flex; flex-direction: column; border-radius: 16px; box-shadow: var(--shadow);
   animation: pm-in 180ms ease-out;
 }
-.pm-screen { animation: pm-in 180ms ease-out; position: absolute; inset: 0; display: flex; flex-direction: column; background: #0C1023; overflow-y: auto; }
+.pm-screen { animation: pm-in 180ms ease-out; position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; background: #0C1023; overflow-y: auto; }
 .pm-panel-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px; border-bottom: 1px dashed var(--line); }
 .pm-screen .pm-panel-head { padding: 18px 16px; gap: 12px; }
 .pm-panel-head h2 { font: 600 20px/28px var(--ui); }
