@@ -139,6 +139,19 @@ func TestRepositorySubmissionLifecycle(t *testing.T) {
 	if _, err := repository.Get(ctx, 3); !errors.Is(err, ErrSubmissionNotFound) {
 		t.Fatalf("Get() after Delete() error = %v", err)
 	}
+
+	for _, statement := range []string{
+		`UPDATE submissions.audit_log SET comment = 'edited' WHERE submission_id = 1`,
+		`DELETE FROM submissions.audit_log WHERE submission_id = 1`,
+		`TRUNCATE submissions.audit_log`,
+	} {
+		if _, err := db.ExecContext(ctx, statement); err == nil {
+			t.Fatalf("%s succeeded, want append-only audit log", statement)
+		}
+	}
+	if err := repository.Delete(ctx, 1); err == nil {
+		t.Fatal("Delete() of a submission with audit history succeeded")
+	}
 }
 
 func prepareSubmissionsDatabase(t *testing.T, ctx context.Context, databaseURL string) *sql.DB {

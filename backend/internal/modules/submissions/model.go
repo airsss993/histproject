@@ -55,7 +55,9 @@ type Transition struct {
 	Comment       string
 	SiteURL       string
 	ScreenshotURL string
-	Audit         Audit
+	// EventType пуст, если тип не меняется.
+	EventType string
+	Audit     Audit
 }
 
 type EventSnapshot struct {

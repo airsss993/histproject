@@ -240,8 +240,10 @@ func (service *Service) RejectProcessing(ctx context.Context, id int64, reason s
 	return submission, nil
 }
 
-func (service *Service) Publish(ctx context.Context, id int64, actor Actor, latitude, longitude float64) (Submission, error) {
-	if fields := validatePublication(id, latitude, longitude); len(fields) > 0 {
+// Publish takes the coordinates and event type confirmed by the moderator; an empty eventType keeps the author's one.
+func (service *Service) Publish(ctx context.Context, id int64, actor Actor, latitude, longitude float64, eventType string) (Submission, error) {
+	eventType = strings.TrimSpace(eventType)
+	if fields := validatePublication(id, latitude, longitude, eventType); len(fields) > 0 {
 		return Submission{}, &ValidationError{Fields: fields}
 	}
 
@@ -254,9 +256,15 @@ func (service *Service) Publish(ctx context.Context, id int64, actor Actor, lati
 			return Submission{}, ErrInvalidTransition
 		}
 		publicSiteURL := strings.TrimRight(service.publicSiteBaseURL, "/") + "/" + url.PathEscape(submission.Slug) + "/index.html"
+		if eventType == "" {
+			eventType = submission.EventType
+		}
 		submission, err = service.store.Transition(ctx, Transition{
-			ID: id, From: StatusReview, To: StatusPublished, SiteURL: publicSiteURL,
-			Audit: Audit{AdminLogin: actor.Login, AdminRole: actor.Role, Action: "published"},
+			ID: id, From: StatusReview, To: StatusPublished, SiteURL: publicSiteURL, EventType: eventType,
+			Audit: Audit{
+				AdminLogin: actor.Login, AdminRole: actor.Role, Action: "published",
+				Comment: fmt.Sprintf("Точка %.6f, %.6f; тип %s", latitude, longitude, eventType),
+			},
 		})
 		if errors.Is(err, ErrInvalidTransition) {
 			submission, err = service.store.Get(ctx, id)
@@ -294,10 +302,13 @@ func (service *Service) notify(ctx context.Context, submission Submission, actio
 	}
 }
 
-func validatePublication(id int64, latitude, longitude float64) map[string]string {
+func validatePublication(id int64, latitude, longitude float64, eventType string) map[string]string {
 	fields := make(map[string]string)
 	if id <= 0 {
 		fields["id"] = "Ожидается положительный ID"
+	}
+	if eventType != "" && eventType != "political" && eventType != "military" {
+		fields["eventType"] = "Ожидается political или military"
 	}
 	validateCoordinates(fields, latitude, longitude)
 	return fields

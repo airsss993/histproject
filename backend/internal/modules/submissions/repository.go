@@ -97,10 +97,11 @@ func (repository *Repository) Transition(ctx context.Context, transition Transit
 			admin_comment = CASE WHEN $2 = '' THEN admin_comment ELSE $2 END,
 			site_url = CASE WHEN $3 = '' THEN site_url ELSE $3 END,
 			screenshot_url = CASE WHEN $4 = '' THEN screenshot_url ELSE $4 END,
+			event_type_code = CASE WHEN $6 = '' THEN event_type_code ELSE $6 END,
 			updated_at = NOW()
 		WHERE id = $5
 		RETURNING `+submissionColumns+`
-	`, transition.To, transition.Comment, transition.SiteURL, transition.ScreenshotURL, transition.ID))
+	`, transition.To, transition.Comment, transition.SiteURL, transition.ScreenshotURL, transition.ID, transition.EventType))
 	if err != nil {
 		return Submission{}, fmt.Errorf("update submission status: %w", err)
 	}

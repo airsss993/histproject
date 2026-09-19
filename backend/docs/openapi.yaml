@@ -389,7 +389,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Coordinates"
+              $ref: "#/components/schemas/PublishRequest"
       responses:
         "200":
           $ref: "#/components/responses/SubmissionResult"
@@ -799,6 +799,15 @@ components:
           format: double
           minimum: -180
           maximum: 180
+    PublishRequest:
+      allOf:
+        - $ref: "#/components/schemas/Coordinates"
+        - type: object
+          properties:
+            eventType:
+              description: Тип, подтверждённый модератором. Пустой или отсутствует - остаётся тип автора.
+              type: string
+              enum: [political, military]
     Event:
       type: object
       required: [id, title, description, latitude, longitude, eventDate, eventType, siteUrl]

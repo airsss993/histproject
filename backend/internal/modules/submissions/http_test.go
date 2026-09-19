@@ -181,7 +181,7 @@ func TestHTTPModerationPassesActorAndInput(t *testing.T) {
 	}{
 		{method: http.MethodPost, path: "/api/v1/admin/submissions/7/review"},
 		{method: http.MethodPost, path: "/api/v1/admin/submissions/8/reject", body: `{"comment":"duplicate"}`},
-		{method: http.MethodPost, path: "/api/v1/admin/submissions/9/publish", body: `{"latitude":55.5,"longitude":60.5}`},
+		{method: http.MethodPost, path: "/api/v1/admin/submissions/9/publish", body: `{"latitude":55.5,"longitude":60.5,"eventType":"political"}`},
 	}
 	for _, test := range tests {
 		response := httptest.NewRecorder()
@@ -190,7 +190,7 @@ func TestHTTPModerationPassesActorAndInput(t *testing.T) {
 			t.Fatalf("%s status = %d, body = %s", test.path, response.Code, response.Body.String())
 		}
 	}
-	if service.reviewID != 7 || service.rejectID != 8 || service.rejectComment != "duplicate" || service.publishID != 9 {
+	if service.reviewID != 7 || service.rejectID != 8 || service.rejectComment != "duplicate" || service.publishID != 9 || service.eventType != "political" {
 		t.Fatalf("moderation IDs = review:%d reject:%d publish:%d", service.reviewID, service.rejectID, service.publishID)
 	}
 	if service.actor.Login != "editor" || service.actor.Role != "admin" || service.latitude != 55.5 || service.longitude != 60.5 {
@@ -285,6 +285,7 @@ type submissionHTTPServiceStub struct {
 	latitude      float64
 	longitude     float64
 	publishError  error
+	eventType     string
 	actor         Actor
 	auditFilter   AuditFilter
 	auditPage     AuditPage
@@ -321,7 +322,8 @@ func (stub *submissionHTTPServiceStub) Reject(_ context.Context, id int64, actor
 	return Submission{ID: id, Status: StatusRejected}, stub.rejectError
 }
 
-func (stub *submissionHTTPServiceStub) Publish(_ context.Context, id int64, actor Actor, latitude, longitude float64) (Submission, error) {
+func (stub *submissionHTTPServiceStub) Publish(_ context.Context, id int64, actor Actor, latitude, longitude float64, eventType string) (Submission, error) {
+	stub.eventType = eventType
 	stub.publishID = id
 	stub.actor = actor
 	stub.latitude = latitude

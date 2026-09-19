@@ -23,7 +23,7 @@ type HTTPService interface {
 	Get(context.Context, int64) (Submission, error)
 	Review(context.Context, int64, Actor) (Submission, error)
 	Reject(context.Context, int64, Actor, string) (Submission, error)
-	Publish(context.Context, int64, Actor, float64, float64) (Submission, error)
+	Publish(context.Context, int64, Actor, float64, float64, string) (Submission, error)
 	AuditLog(context.Context, AuditFilter) (AuditPage, error)
 }
 
@@ -189,6 +189,7 @@ func (handler *Handler) publish(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		Latitude  *float64 `json:"latitude"`
 		Longitude *float64 `json:"longitude"`
+		EventType string   `json:"eventType"`
 	}
 	if err := httpserver.DecodeJSON(w, r, &request); err != nil {
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "invalid_json", "Некорректный JSON", nil)
@@ -206,7 +207,7 @@ func (handler *Handler) publish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	handler.moderate(w, r, func(ctx context.Context, id int64, actor Actor) (Submission, error) {
-		return handler.service.Publish(ctx, id, actor, *request.Latitude, *request.Longitude)
+		return handler.service.Publish(ctx, id, actor, *request.Latitude, *request.Longitude, request.EventType)
 	})
 }
 

@@ -123,7 +123,7 @@ func TestPublishValidatesCoordinatesBeforeTransition(t *testing.T) {
 	store := &submissionStoreStub{}
 	service := NewService(store, &eventPublisherStub{}, nil, nil, nil, "https://example.test/sites")
 
-	_, err := service.Publish(t.Context(), 1, Actor{Login: "editor", Role: "admin"}, 91, 60)
+	_, err := service.Publish(t.Context(), 1, Actor{Login: "editor", Role: "admin"}, 91, 60, "")
 	var validationError *ValidationError
 	if !errors.As(err, &validationError) || validationError.Fields["latitude"] == "" {
 		t.Fatalf("Publish() error = %v, want latitude validation", err)
@@ -151,7 +151,7 @@ func TestPublishSendsSnapshotAfterTransition(t *testing.T) {
 	notifier := &notifierStub{}
 	service := NewService(store, publisher, nil, nil, notifier, "https://example.test/sites")
 
-	result, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55.5, 60.5)
+	result, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55.5, 60.5, "")
 	if err != nil {
 		t.Fatalf("Publish() error = %v", err)
 	}
@@ -167,6 +167,31 @@ func TestPublishSendsSnapshotAfterTransition(t *testing.T) {
 	if notifier.calls != 1 || notifier.action != "published" {
 		t.Fatalf("notifier calls = %d, action = %q", notifier.calls, notifier.action)
 	}
+	if store.transition.EventType != "military" || store.transition.Audit.Comment != "Точка 55.500000, 60.500000; тип military" {
+		t.Fatalf("transition type = %q, audit comment = %q", store.transition.EventType, store.transition.Audit.Comment)
+	}
+}
+
+func TestPublishAppliesEventTypeConfirmedByModerator(t *testing.T) {
+	date := mustSubmissionDate(t, "2020-01-02")
+	store := &submissionStoreStub{
+		getSubmission: Submission{ID: 9, EventDate: date, EventType: "military", Slug: "event", Status: StatusReview},
+		submission:    Submission{ID: 9, EventDate: date, EventType: "political", Status: StatusPublished},
+	}
+	service := NewService(store, &eventPublisherStub{}, nil, nil, &notifierStub{}, "https://example.test/sites")
+
+	if _, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55, 60, "political"); err != nil {
+		t.Fatalf("Publish() error = %v", err)
+	}
+	if store.transition.EventType != "political" || !strings.Contains(store.transition.Audit.Comment, "тип political") {
+		t.Fatalf("transition = %#v", store.transition)
+	}
+
+	_, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55, 60, "cultural")
+	var validationError *ValidationError
+	if !errors.As(err, &validationError) || validationError.Fields["eventType"] == "" {
+		t.Fatalf("Publish() error = %v, want eventType validation", err)
+	}
 }
 
 func TestPublishDoesNotNotifyBeforeEventPublicationSucceeds(t *testing.T) {
@@ -179,7 +204,7 @@ func TestPublishDoesNotNotifyBeforeEventPublicationSucceeds(t *testing.T) {
 	notifier := &notifierStub{}
 	service := NewService(store, publisher, nil, nil, notifier, "https://example.test/sites")
 
-	result, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55, 60)
+	result, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55, 60, "")
 	if err == nil {
 		t.Fatal("Publish() error = nil")
 	}
@@ -201,7 +226,7 @@ func TestPublishRetriesEventForAlreadyPublishedSubmission(t *testing.T) {
 	notifier := &notifierStub{}
 	service := NewService(store, publisher, nil, nil, notifier, "https://example.test/sites")
 
-	_, err := service.Publish(t.Context(), 10, Actor{Login: "editor", Role: "admin"}, 55, 60)
+	_, err := service.Publish(t.Context(), 10, Actor{Login: "editor", Role: "admin"}, 55, 60, "")
 	if err != nil {
 		t.Fatalf("Publish() retry error = %v", err)
 	}
