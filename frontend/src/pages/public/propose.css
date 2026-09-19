@@ -26,12 +26,12 @@
 }
 /* Свет сбоку: тонкая золотая полоска по левой кромке, ореол гаснет внутрь, маска сужает всё к концам. */
 .pp-card::after {
-  content: ''; position: absolute; left: 0; top: 38%; height: 56%; width: 40px; pointer-events: none;
+  content: ''; position: absolute; left: 0; top: 22%; height: 56%; width: 40px; pointer-events: none;
   background:
     linear-gradient(var(--gold), var(--gold)) left / 1.5px 100% no-repeat,
     linear-gradient(90deg, rgba(199, 174, 127, 0.5), rgba(199, 174, 127, 0.12) 30%, transparent);
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 60%, transparent);
-  mask-image: linear-gradient(180deg, transparent, #000 60%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 50%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 50%, transparent);
 }
 .pm-root .pp-close { position: absolute; top: 18px; right: 18px; z-index: 2; border-color: transparent; }
 
