@@ -211,13 +211,13 @@ export const PublicMap: React.FC = () => {
               onKeyDown={e => { if (e.key === 'Escape') setLayer('none'); if (e.key === 'Enter' && found[0]) select(found[0].id) }} />
             {showCard && q
               ? <button type="button" className="pm-link" onClick={() => setLayer('search')}>Показать список ↓</button>
-              : load.status === 'ready' && <span className="pm-counter">{q ? `${found.length} из ${filtered.length}` : filtered.length}</span>}
+              : load.status === 'ready' && <span className="pm-counter" key={q ? `${found.length}/${filtered.length}` : filtered.length}>{q ? `${found.length} из ${filtered.length}` : filtered.length}</span>}
           </label>
           <Presence>{layer === 'search' && !!q && (
             <div className="pm-results pm-glass">
               {found.length === 0 && <div className="pm-results-empty">Ничего не нашлось</div>}
-              {found.slice(0, 8).map(e => (
-                <button type="button" key={e.id} className="pm-result" onClick={() => select(e.id)}>
+              {found.slice(0, 8).map((e, i) => (
+                <button type="button" key={e.id} className="pm-result" style={{ '--i': i } as React.CSSProperties} onClick={() => select(e.id)}>
                   <Thumb e={e} size={40} />
                   <span className="pm-year">{yearOf(e)}</span>
                   <span className="pm-result-title">{e.title}</span>

@@ -150,15 +150,42 @@
 
 /* Поиск */
 .pm-search-wrap { position: absolute; left: 50%; transform: translateX(-50%); top: 104px; width: 520px; display: flex; flex-direction: column; gap: 8px; }
-.pm-search { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 999px; }
+.pm-search {
+  position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 999px;
+  transition: border-color 240ms ease-out, box-shadow 240ms ease-out;
+}
+/* Фокус как у полей входа: свет изнутри снизу и блик на нижней кромке, расходится от центра. */
+.pm-search::before, .pm-search::after { content: ''; position: absolute; pointer-events: none; opacity: 0; }
+.pm-search::before {
+  inset: 0; border-radius: inherit;
+  background: radial-gradient(60% 120% at 50% 120%, rgba(199, 174, 127, 0.16), transparent 70%);
+  transition: opacity 280ms ease-out;
+}
+.pm-search::after {
+  left: 45%; right: 45%; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, #F3E6C4 50%, transparent);
+  box-shadow: 0 0 10px rgba(199, 174, 127, 0.55), 0 2px 18px rgba(199, 174, 127, 0.2);
+  transition: opacity 280ms ease-out, left 420ms cubic-bezier(0.2, 0.8, 0.2, 1), right 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.pm-search:hover { border-color: rgba(199, 174, 127, 0.35); }
+.pm-search:focus-within::before, .pm-search:focus-within::after { opacity: 1; }
+.pm-search:focus-within::after { left: 12%; right: 12%; }
+.pm-search:focus-within { box-shadow: 0 12px 40px rgba(0, 0, 20, 0.45), 0 0 0 4px rgba(199, 174, 127, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+.pm-search input { transition: color 200ms ease-out; }
+.pm-search input::placeholder { transition: opacity 200ms ease-out, transform 200ms ease-out; }
+.pm-search:focus-within input::placeholder { opacity: 0.55; transform: translateX(4px); }
+/* Счётчик: новое число въезжает снизу. key на span пересоздаёт его при смене текста. */
+.pm-search .pm-counter { animation: pm-tick 220ms ease-out; }
+@keyframes pm-tick { from { opacity: 0; transform: translateY(6px); } }
 .pm-search input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: #fff; font: 400 15px var(--ui); }
 .pm-search input:focus-visible { outline: none; }
-.pm-search:focus-within { border-color: var(--gold); }
+.pm-search:focus-within { border-color: var(--gold-line); }
 .pm-search input::placeholder { color: var(--muted); }
 .pm-counter { font: 400 13px var(--ui); color: var(--dim); white-space: nowrap; }
 .pm-results { animation: pm-in 180ms ease-out; border-radius: 16px; overflow: hidden auto; max-height: 60vh; }
 .pm-result, .pm-feed-item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 20px; text-align: left; border-bottom: 1px dashed var(--line-soft); transition: background 120ms ease-out; }
 .pm-result:last-child { border-bottom: 0; }
+.pm-results .pm-result { animation: pm-in 220ms ease-out backwards; animation-delay: calc(var(--i, 0) * 30ms); }
 .pm-result:hover, .pm-feed-item:hover { background: rgba(255, 255, 255, 0.05); }
 .pm-results-empty { padding: 16px 20px; color: var(--dim); font-size: 14px; }
 .pm-thumb { flex: none; border-radius: 999px; border: 1px solid var(--line); object-fit: cover; display: block; background-size: auto; }
