@@ -26,9 +26,9 @@
 }
 /* Свет сбоку: золотая кромка по левому краю и дымка от неё внутрь. */
 .pp-card::after {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; filter: blur(5px);
   background:
-    linear-gradient(180deg, transparent 22%, var(--gold) 40%, transparent 60%) left / 1.5px 100% no-repeat,
+    linear-gradient(180deg, transparent 22%, var(--gold) 40%, transparent 60%) left / 3px 100% no-repeat,
     radial-gradient(6% 18% at 0% 40%, rgba(199, 174, 127, 0.22), transparent 100%);
 }
 .pm-root .pp-close { position: absolute; top: 18px; right: 18px; z-index: 2; border-color: transparent; }
