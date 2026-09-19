@@ -8,8 +8,8 @@ import { LEAVE_MS, Presence } from './presence.tsx'
 
 export const TYPE_COLOR: Record<EventType, string> = { political: '#8FB4E8', military: '#F0B62A' }
 const CELL = 56
-const INK = '#08080A'
-const MUTED = '#5C5D66'
+const INK = '#060D2E'
+const MUTED = '#4E5C86'
 const GOLD = '#F0B62A'
 
 // Метка из "Логотип и метки": капля 64x64 с остриём в (32, 58), глиф типа в окне.
@@ -58,21 +58,21 @@ const style = (sea: string): StyleSpecification => ({
     },
   },
   layers: [
-    { id: 'land', type: 'background', paint: { 'background-color': '#131418' } },
+    { id: 'land', type: 'background', paint: { 'background-color': '#070C24' } },
     { id: 'water', type: 'fill', source: 'omf', 'source-layer': 'water', paint: { 'fill-color': sea } },
     { id: 'roads', type: 'line', source: 'omf', 'source-layer': 'transportation', minzoom: 6,
       filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary']]],
-      paint: { 'line-color': '#25262C', 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.5, 12, 2] } },
+      paint: { 'line-color': '#1E2A58', 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.5, 12, 2] } },
     { id: 'borders', type: 'line', source: 'omf', 'source-layer': 'boundary',
       filter: ['all', ['==', ['get', 'admin_level'], 2], ['==', ['get', 'maritime'], 0], ['==', ['get', 'disputed'], 0]],
-      paint: { 'line-color': '#3C3D45', 'line-width': 0.8 } },
+      paint: { 'line-color': '#2C4272', 'line-width': 0.8 } },
     { id: 'country-label', type: 'symbol', source: 'omf', 'source-layer': 'place', filter: ['==', ['get', 'class'], 'country'],
       layout: { 'text-field': NAME, 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-transform': 'uppercase', 'text-letter-spacing': 0.14 },
       paint: { 'text-color': MUTED, ...HALO } },
     { id: 'city-label', type: 'symbol', source: 'omf', 'source-layer': 'place', minzoom: 4,
       filter: ['in', ['get', 'class'], ['literal', ['city', 'town']]],
       layout: { 'text-field': NAME, 'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], 4, 10, 10, 14] },
-      paint: { 'text-color': '#A3A3AB', ...HALO } },
+      paint: { 'text-color': '#93A8D0', ...HALO } },
     { id: 'village-label', type: 'symbol', source: 'omf', 'source-layer': 'place', minzoom: 9,
       filter: ['in', ['get', 'class'], ['literal', ['village', 'hamlet']]],
       layout: { 'text-field': NAME, 'text-font': ['Noto Sans Regular'], 'text-size': 11 },
@@ -203,8 +203,8 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     map.on('load', () => loadRussia().then(fc => {
       if (!map.getStyle()) return
       map.addSource('russia', { type: 'geojson', data: fc })
-      map.addLayer({ id: 'russia', type: 'fill', source: 'russia', paint: { 'fill-color': '#1E1F24' } }, 'water')
-      map.addLayer({ id: 'regions', type: 'line', source: 'russia', paint: { 'line-color': '#3A3B43', 'line-width': ['interpolate', ['linear'], ['zoom'], 2, 0.4, 6, 1] } }, 'borders')
+      map.addLayer({ id: 'russia', type: 'fill', source: 'russia', paint: { 'fill-color': '#101A48' } }, 'water')
+      map.addLayer({ id: 'regions', type: 'line', source: 'russia', paint: { 'line-color': '#32406E', 'line-width': ['interpolate', ['linear'], ['zoom'], 2, 0.4, 6, 1] } }, 'borders')
     }).catch(() => undefined))
     redraw()
     return () => { map.remove(); mapRef.current = undefined; pickRef.current = undefined }
