@@ -3,16 +3,12 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { store } from './store.ts'
-import { LogIn } from '../pages/login/login.tsx'
-import { Admin } from '../pages/admin/admin.tsx'
-import { HisLog } from '../pages/hislog/hislog.tsx'
-import { Moder } from '../pages/moder/moder.tsx'
-import { Madder } from '../pages/admader/madder.tsx'
 
-// Карта (MapLibre) грузится отдельным чанком, админка её не тянет.
+// Страницы грузятся отдельными чанками: карта (MapLibre) не попадает в первый экран.
 const PublicMap = lazy(() => import('../pages/public/PublicMap.tsx').then(m => ({ default: m.PublicMap })))
 const About = lazy(() => import('../pages/public/About.tsx').then(m => ({ default: m.About })))
 const AuthPage = lazy(() => import('../pages/public/Auth.tsx').then(m => ({ default: m.AuthPage })))
+const Panel = lazy(() => import('../pages/panel/Panel.tsx').then(m => ({ default: m.Panel })))
 const NotFound = lazy(() => import('../pages/public/NotFound.tsx').then(m => ({ default: m.NotFound })))
 
 const rootElement = document.getElementById('root');
@@ -29,11 +25,8 @@ const rootElement = document.getElementById('root');
               <Route path="/about" element={<About />} />
               <Route path="/login" element={<AuthPage key="login" mode="login" />} />
               <Route path="/register" element={<AuthPage key="register" mode="register" />} />
-              <Route path="/log" element={<LogIn />} />
-              <Route path="/adm" element={<Admin />} />
-              <Route path="/mad" element={<Madder />} />
-              <Route path="/his" element={<HisLog />} />
-              <Route path="/mod" element={<Moder />} />
+              <Route path="/admin" element={<Panel />} />
+              {['/log', '/adm', '/mad', '/his', '/mod'].map(p => <Route key={p} path={p} element={<Navigate to="/admin" replace />} />)}
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>

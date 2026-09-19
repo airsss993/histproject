@@ -1,0 +1,96 @@
+import type { ApiResult, EventType } from '../public/api.ts'
+
+const API = `${import.meta.env.VITE_API_BASE ?? ''}/api/v1`
+
+export type Role = 'admin' | 'super_admin'
+export type Status = 'processing' | 'new' | 'review' | 'rejected' | 'published'
+
+export interface Me { id: number; login: string; role: Role }
+
+export interface Submission {
+  id: number
+  title: string
+  description: string
+  eventDate: string
+  eventType: EventType
+  email: string
+  telegramUsername: string
+  latitude?: number
+  longitude?: number
+  siteUrl?: string
+  screenshotUrl?: string
+  status: Status
+  adminComment?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AuditEntry {
+  id: number
+  submissionId: number
+  submissionTitle: string
+  adminLogin: string
+  adminRole: Role
+  action: 'reviewed' | 'rejected' | 'published'
+  comment?: string
+  createdAt: string
+}
+
+export interface Moderator { id: number; login: string; email: string; role: Role; createdAt: string }
+
+export interface Page<T> { items: T[]; page: number; pageSize: number; total: number }
+
+export const ROLE_LABEL: Record<Role, string> = { admin: 'Модератор', super_admin: 'Супер-админ' }
+
+// status 0 - нет связи. 401 разбирает вызывающий: сессия кончилась, надо на вход.
+async function call<T>(method: string, path: string, body?: unknown): Promise<ApiResult<T>> {
+  let res: Response
+  try {
+    res = await fetch(`${API}${path}`, {
+      method, credentials: 'include',
+      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+  } catch {
+    return { ok: false, status: 0 }
+  }
+  const data = res.status === 204 ? {} : await res.json().catch(() => ({}))
+  if (res.ok) return { ok: true, data }
+  return {
+    ok: false, status: res.status, code: data.error?.code, message: data.error?.message, fields: data.error?.fields,
+    retryAfter: Number(res.headers.get('Retry-After')) || undefined,
+  }
+}
+
+const query = (params: Record<string, string | number | undefined>) =>
+  new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])).toString()
+
+export const getSession = () => call<{ admin: Me }>('GET', '/auth/session')
+export const login = (login: string, password: string) => call<{ admin: Me }>('POST', '/auth/login', { login, password })
+export const logout = () => call('POST', '/auth/logout')
+
+export const listSubmissions = (p: { status?: Status | ''; q?: string; page: number }) =>
+  call<Page<Submission>>('GET', `/admin/submissions?${query({ ...p, pageSize: 20 })}`)
+export const reviewSubmission = (id: number) => call<{ submission: Submission }>('POST', `/admin/submissions/${id}/review`, {})
+export const rejectSubmission = (id: number, comment: string) =>
+  call<{ submission: Submission }>('POST', `/admin/submissions/${id}/reject`, { comment })
+export const publishSubmission = (id: number, latitude: number, longitude: number, eventType: EventType) =>
+  call<{ submission: Submission }>('POST', `/admin/submissions/${id}/publish`, { latitude, longitude, eventType })
+
+export const listAudit = (p: { q?: string; page: number }) => call<Page<AuditEntry>>('GET', `/admin/audit-log?${query({ ...p, pageSize: 30 })}`)
+
+export const listModerators = () => call<{ items: Moderator[] }>('GET', '/admin/admins')
+export const createModerator = (body: { login: string; password: string; email: string; role: Role }) =>
+  call<{ admin: Moderator }>('POST', '/admin/admins', body)
+export const changeRole = (id: number, role: Role) => call<{ admin: Moderator }>('PATCH', `/admin/admins/${id}/role`, { role })
+export const deleteModerator = (id: number) => call('DELETE', `/admin/admins/${id}`)
+
+export function problem(res: Extract<ApiResult, { ok: false }>) {
+  if (res.status === 0) return 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.'
+  if (res.status === 429) return `Слишком много попыток. Попробуйте через ${res.retryAfter ?? 60} с.`
+  if (res.status === 403) return 'Недостаточно прав.'
+  return res.message ?? 'Что-то пошло не так. Попробуйте ещё раз.'
+}
+
+export const dateTime = (iso: string) =>
+  new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
