@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { fetchAllEvents, fetchEvent, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
+import { fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { ProposeModal } from './Propose.tsx'
@@ -87,6 +87,13 @@ export const PublicMap: React.FC = () => {
   const [proposeOpen, setProposeOpen] = useState(false)
   const proposeParam = params.get('propose') === '1'
   useEffect(() => { if (proposeParam) setProposeOpen(true) }, [proposeParam])
+  const [me, setMe] = useState<User | null>(null)
+  useEffect(() => {
+    const ac = new AbortController()
+    fetchMe(ac.signal).then(setMe, () => {})
+    return () => ac.abort()
+  }, [])
+  const logout = () => { logoutUser(); setMe(null) }
 
   useEffect(() => {
     const ac = new AbortController()
@@ -179,6 +186,10 @@ export const PublicMap: React.FC = () => {
           <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
           <div className="pm-grow" />
           <Link to="/about" className="pm-btn-text">О проекте</Link>
+          {me
+            ? <span className="pm-user">{!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
+                <button type="button" className="pm-btn-text" onClick={logout}>Выйти</button></span>
+            : <Link to="/login" className="pm-btn-text">Войти</Link>}
           {!mobile && <button type="button" className={`pm-btn-ghost pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}
         </div>
 

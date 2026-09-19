@@ -41,6 +41,45 @@ export async function fetchEvent(id: number, signal: AbortSignal): Promise<HistE
   return (await res.json()).event
 }
 
+export interface User { id: number; email: string; firstName: string; lastName: string }
+
+export type ApiResult<T = unknown> =
+  | { ok: true; data: T }
+  | { ok: false; status: number; code?: string; message?: string; fields?: Record<string, string>; retryAfter?: number }
+
+// status 0 - нет связи.
+async function postJSON<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+  let res: Response
+  try {
+    res = await fetch(`${API}${path}`, {
+      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+  } catch {
+    return { ok: false, status: 0 }
+  }
+  const data = await res.json().catch(() => ({}))
+  if (res.ok) return { ok: true, data }
+  return {
+    ok: false, status: res.status, code: data.error?.code, message: data.error?.message, fields: data.error?.fields,
+    retryAfter: Number(res.headers.get('Retry-After')) || undefined,
+  }
+}
+
+// Вход посетителя: код на почту, затем verify ставит куку. Регистрация создаёт учётку только после кода.
+export const registerUser = (body: { firstName: string; lastName: string; email: string }) => postJSON('/users/register', body)
+export const requestLoginCode = (email: string) => postJSON('/users/login', { email })
+export const verifyLoginCode = (email: string, code: string, remember: boolean) =>
+  postJSON<{ user: User }>('/users/verify', { email, code, remember })
+export const logoutUser = () => postJSON('/users/logout', {})
+
+// null - не вошёл.
+export async function fetchMe(signal: AbortSignal): Promise<User | null> {
+  const res = await fetch(`${API}/users/me`, { signal, credentials: 'include' })
+  if (res.status === 401) return null
+  if (!res.ok) throw new Error(`me: HTTP ${res.status}`)
+  return (await res.json()).user
+}
+
 export type SubmitResult =
   | { ok: true; id: number }
   | { ok: false; status: number; message?: string; fields?: Record<string, string>; retryAfter?: number }

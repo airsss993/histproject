@@ -1,0 +1,185 @@
+/* Вход и регистрация. Карточка по референсу "Welcome back" (стекло, свет в углу, круглая кнопка в поле),
+   фокус поля - по референсу "Last name": светлая кромка снизу по центру и свет изнутри. Красный заменён золотом. */
+.pm-root.au-page {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  overflow-y: auto; overflow-x: hidden;
+  background:
+    radial-gradient(60% 45% at 30% -8%, rgba(129, 148, 174, 0.14), transparent 70%),
+    var(--ink);
+  --field-rim: rgba(255, 255, 255, 0.09);
+}
+.au-side { position: relative; display: flex; flex-direction: column; min-height: 100%; padding: 0 28px 28px; }
+.au-header { height: 84px; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.au-center { flex: 1; display: grid; place-items: center; padding: 24px 0 48px; }
+
+.au-card {
+  position: relative; isolation: isolate; width: min(460px, 100%); padding: 48px 40px 36px;
+  border-radius: 32px; overflow: hidden;
+  background: linear-gradient(180deg, rgba(129, 148, 174, 0.08), rgba(129, 148, 174, 0.015) 50%), rgba(12, 16, 35, 0.55);
+  box-shadow: 0 30px 90px rgba(0, 0, 20, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  animation: pm-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* Кромка: светлее у верхних углов, почти гаснет к низу. */
+.au-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 30%, rgba(255, 255, 255, 0.04) 70%, rgba(255, 255, 255, 0.12));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* Свет в верхнем левом углу. */
+.au-card::after {
+  content: ''; position: absolute; z-index: -1; left: -18%; top: -26%; width: 72%; height: 58%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(199, 174, 127, 0.42), rgba(199, 174, 127, 0.12) 55%, transparent);
+  filter: blur(12px);
+}
+
+.au-step { display: flex; flex-direction: column; animation: pm-in 220ms ease-out; }
+.au-title { font: 400 34px/42px var(--display); text-align: center; letter-spacing: 0.01em; }
+.au-sub { margin-top: 8px !important; font: 400 15px/22px var(--ui); color: var(--dim); text-align: center; overflow-wrap: anywhere; }
+.au-sub b { font-weight: 400; color: var(--text-2); }
+
+.au-fields { display: flex; flex-direction: column; gap: 14px; margin-top: 36px; }
+.au-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.au-cell-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.au-field {
+  position: relative; display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 9px 10px 9px 20px;
+  border-radius: 20px; border: 1px solid var(--field-rim); cursor: text;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 200ms ease-out, background 200ms ease-out;
+}
+/* Свет снизу изнутри поля. */
+.au-field::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: radial-gradient(70% 100% at 50% 110%, rgba(255, 255, 255, 0.13), transparent 70%);
+  transition: opacity 240ms ease-out;
+}
+/* Блик на нижней кромке: ярче в центре, гаснет к краям, чуть светит наружу. */
+.au-field::after {
+  content: ''; position: absolute; left: 14%; right: 14%; bottom: -1px; height: 1px; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95) 50%, transparent);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.35), 0 2px 16px rgba(255, 255, 255, 0.12);
+  transition: opacity 240ms ease-out, left 240ms ease-out, right 240ms ease-out;
+}
+.au-field:hover { border-color: rgba(255, 255, 255, 0.13); }
+.au-field:focus-within { border-color: rgba(255, 255, 255, 0.16); background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.06)); }
+.au-field:focus-within::before, .au-field:focus-within::after { opacity: 1; }
+.au-field:focus-within::after { left: 8%; right: 8%; }
+.au-field.bad { border-color: color-mix(in srgb, var(--danger) 60%, transparent); }
+.au-field.bad::after { background: linear-gradient(90deg, transparent, var(--danger) 50%, transparent); box-shadow: 0 0 10px color-mix(in srgb, var(--danger) 50%, transparent); }
+.au-field.bad::before { background: radial-gradient(70% 100% at 50% 110%, color-mix(in srgb, var(--danger) 18%, transparent), transparent 70%); }
+
+.au-field-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.au-label { font: 400 12px/16px var(--ui); letter-spacing: 0.04em; color: var(--muted); transition: color 200ms ease-out; }
+.au-field:focus-within .au-label { color: var(--text-2); }
+.pm-root .au-field input {
+  width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; outline: none; background: none;
+  color: #fff; caret-color: #fff; font: 400 16px/24px var(--ui);
+}
+.pm-root .au-field input::placeholder { color: rgba(129, 148, 174, 0.55); }
+/* Автозаполнение Chrome не должно заливать поле белым. */
+.pm-root .au-field input:-webkit-autofill { -webkit-text-fill-color: #fff; transition: background-color 9999s; }
+
+/* Круглая кнопка в поле. */
+.pm-root .au-go {
+  width: 46px; height: 46px; flex: none; border-radius: 999px; display: grid; place-items: center; color: var(--ink);
+  background: radial-gradient(circle at 32% 26%, #F3E6C4, var(--gold) 52%, #9A8157);
+  box-shadow: 0 0 0 6px rgba(199, 174, 127, 0.07), 0 8px 22px rgba(199, 174, 127, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+}
+.pm-root .au-go:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 0 0 7px rgba(199, 174, 127, 0.1), 0 10px 26px rgba(199, 174, 127, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.55); }
+.pm-root .au-go:hover:not(:disabled) svg { transform: translateX(2px); }
+.au-go svg { transition: transform 160ms ease-out; }
+.pm-root .au-go:disabled { cursor: default; }
+.au-spin { width: 18px; height: 18px; border-radius: 999px; border: 2px solid rgba(1, 0, 17, 0.25); border-top-color: var(--ink); animation: pp-spin 0.8s linear infinite; }
+@keyframes pp-spin { to { transform: rotate(360deg); } }
+
+.au-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; min-height: 24px; }
+.au-check { display: inline-flex; align-items: center; gap: 10px; font: 400 14px/20px var(--ui); color: var(--text-2); cursor: pointer; user-select: none; }
+.pm-root .au-check input {
+  appearance: none; -webkit-appearance: none; width: 20px; height: 20px; margin: 0; flex: none; display: grid; place-items: center;
+  border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.03); cursor: pointer;
+  transition: background 160ms ease-out, border-color 160ms ease-out;
+}
+.pm-root .au-check:hover input { border-color: var(--gold-line); }
+.pm-root .au-check input:checked { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 12px rgba(199, 174, 127, 0.35); }
+.pm-root .au-check input:checked::after {
+  content: ''; width: 9px; height: 5px; margin-top: -2px; border: solid var(--ink); border-width: 0 0 2px 2px; transform: rotate(-45deg);
+}
+
+.au-error { min-height: 0; font: 400 13px/18px var(--ui); color: var(--danger); padding-left: 20px; }
+.au-error:empty { display: none; }
+.au-hint { margin-top: 10px !important; padding-left: 20px; font: 400 13px/18px var(--ui); }
+.au-page a { color: var(--gold-soft); text-decoration: none; }
+.au-page .au-hint a, .au-page .au-alt a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--gold-line); }
+.au-page .au-hint a:hover, .au-page .au-alt a:hover { color: var(--gold); text-decoration-color: var(--gold); }
+.au-alt { margin-top: 36px !important; text-align: center; font: 400 14px/20px var(--ui); color: var(--dim); }
+.pm-root .au-small { padding: 0; font-size: 14px; }
+.pm-root .au-small:disabled { opacity: 0.5; cursor: default; }
+.au-muted { font: 400 14px/20px var(--ui); color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* Код: одно поле поверх шести клеток, клетки выглядят как поля формы. */
+.au-code { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 36px 0 10px; }
+.pm-root .au-code input {
+  position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; outline: none;
+  background: none; color: transparent; caret-color: transparent; font-size: 16px; letter-spacing: 3em; cursor: text;
+}
+.pm-root .au-code input::selection { background: transparent; }
+.au-digit {
+  position: relative; height: 64px; border-radius: 16px; display: grid; place-items: center;
+  border: 1px solid var(--field-rim); background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+  font: 400 26px/1 var(--display); color: #fff; transition: border-color 200ms ease-out, background 200ms ease-out;
+}
+.au-digit::before, .au-digit::after { content: ''; position: absolute; pointer-events: none; opacity: 0; transition: opacity 240ms ease-out; }
+.au-digit::before { inset: 0; border-radius: inherit; background: radial-gradient(80% 100% at 50% 115%, rgba(255, 255, 255, 0.14), transparent 70%); }
+.au-digit::after {
+  left: 12%; right: 12%; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95) 50%, transparent); box-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+}
+.au-digit.full { border-color: rgba(255, 255, 255, 0.14); }
+.au-digit.on { border-color: rgba(255, 255, 255, 0.18); }
+.au-digit.on::before, .au-digit.on::after { opacity: 1; }
+/* Мигающий курсор в пустой активной клетке. */
+.au-digit.on:empty { background-image: linear-gradient(#fff, #fff); background-size: 1.5px 26px; background-position: center; background-repeat: no-repeat; animation: au-caret 1s steps(1) infinite; }
+@keyframes au-caret { 50% { background-size: 0 0; } }
+.au-code.bad .au-digit { border-color: color-mix(in srgb, var(--danger) 55%, transparent); }
+.au-code.bad { animation: au-shake 320ms ease-in-out; }
+@keyframes au-shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.au-step .au-error[role='alert'] { padding-left: 0; text-align: center; }
+
+/* Правая половина: место под картинку. Пока - тёмное стекло с логотипом. */
+.au-art {
+  position: sticky; top: 0; height: 100vh; height: 100dvh; padding: 16px 16px 16px 0;
+}
+.au-art > * {
+  width: 100%; height: 100%; border-radius: 28px; border: 1px solid var(--line-soft); overflow: hidden;
+}
+.au-art > img { object-fit: cover; display: block; }
+.au-art-stub {
+  position: relative; display: grid; place-items: center;
+  background:
+    radial-gradient(55% 45% at 70% 28%, rgba(199, 174, 127, 0.22), transparent 70%),
+    radial-gradient(60% 55% at 18% 92%, rgba(49, 53, 92, 0.75), transparent 70%),
+    linear-gradient(160deg, #0B1026, #03031A 60%);
+}
+.au-art-stub::after {
+  content: ''; position: absolute; inset: 0; opacity: 0.5; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.au-art-stub img { width: 38%; max-width: 260px; opacity: 0.16; filter: grayscale(0.3); }
+
+/* Мобильный: одна колонка, картинки нет. */
+.pm-root.au-page.mobile { grid-template-columns: minmax(0, 1fr); }
+.au-page.mobile .au-side { padding: 0 16px 16px; }
+.au-page.mobile .au-header { height: 72px; }
+.au-page.mobile .au-center { place-items: start center; padding: 8px 0 24px; }
+.au-page.mobile .au-card { padding: 36px 20px 28px; border-radius: 28px; }
+.au-page.mobile .au-title { font-size: 28px; line-height: 36px; }
+.au-page.mobile .au-pair { grid-template-columns: 1fr; }
+.au-page.mobile .au-code { gap: 6px; }
+.au-page.mobile .au-digit { height: 56px; border-radius: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .au-card, .au-step, .au-code.bad, .au-digit.on:empty { animation: none; }
+}
