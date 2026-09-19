@@ -263,7 +263,7 @@ func (service *Service) Publish(ctx context.Context, id int64, actor Actor, lati
 			ID: id, From: StatusReview, To: StatusPublished, SiteURL: publicSiteURL, EventType: eventType,
 			Audit: Audit{
 				AdminLogin: actor.Login, AdminRole: actor.Role, Action: "published",
-				Comment: fmt.Sprintf("Точка %.6f, %.6f; тип %s", latitude, longitude, eventType),
+				Comment: fmt.Sprintf("Точка %.6f, %.6f; тип: %s", latitude, longitude, eventTypeLabel[eventType]),
 			},
 		})
 		if errors.Is(err, ErrInvalidTransition) {
@@ -391,3 +391,6 @@ func validStatus(status Status) bool {
 		return false
 	}
 }
+
+// eventTypeLabel - как тип называется в истории модерации.
+var eventTypeLabel = map[string]string{"political": "политическое", "military": "военное"}

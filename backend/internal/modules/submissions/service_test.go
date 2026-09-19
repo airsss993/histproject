@@ -167,7 +167,7 @@ func TestPublishSendsSnapshotAfterTransition(t *testing.T) {
 	if notifier.calls != 1 || notifier.action != "published" {
 		t.Fatalf("notifier calls = %d, action = %q", notifier.calls, notifier.action)
 	}
-	if store.transition.EventType != "military" || store.transition.Audit.Comment != "Точка 55.500000, 60.500000; тип military" {
+	if store.transition.EventType != "military" || store.transition.Audit.Comment != "Точка 55.500000, 60.500000; тип: военное" {
 		t.Fatalf("transition type = %q, audit comment = %q", store.transition.EventType, store.transition.Audit.Comment)
 	}
 }
@@ -183,7 +183,7 @@ func TestPublishAppliesEventTypeConfirmedByModerator(t *testing.T) {
 	if _, err := service.Publish(t.Context(), 9, Actor{Login: "editor", Role: "admin"}, 55, 60, "political"); err != nil {
 		t.Fatalf("Publish() error = %v", err)
 	}
-	if store.transition.EventType != "political" || !strings.Contains(store.transition.Audit.Comment, "тип political") {
+	if store.transition.EventType != "political" || !strings.Contains(store.transition.Audit.Comment, "тип: политическое") {
 		t.Fatalf("transition = %#v", store.transition)
 	}
 
