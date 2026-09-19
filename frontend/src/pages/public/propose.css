@@ -28,9 +28,8 @@
 .pp-card::after {
   content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background:
-    linear-gradient(180deg, transparent 10%, var(--gold) 40%, transparent 78%) left / 1.5px 100% no-repeat,
-    radial-gradient(14% 32% at 0% 40%, rgba(199, 174, 127, 0.3), transparent 100%),
-    radial-gradient(60% 45% at 0% 36%, rgba(199, 174, 127, 0.16), transparent 72%);
+    linear-gradient(180deg, transparent 22%, var(--gold) 40%, transparent 60%) left / 1.5px 100% no-repeat,
+    radial-gradient(6% 18% at 0% 40%, rgba(199, 174, 127, 0.22), transparent 100%);
 }
 .pm-root .pp-close { position: absolute; top: 18px; right: 18px; z-index: 2; border-color: transparent; }
 
