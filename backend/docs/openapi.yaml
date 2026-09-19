@@ -12,6 +12,7 @@ servers:
 tags:
   - name: Health
   - name: Auth
+  - name: Users
   - name: Events
   - name: Submissions
   - name: Admins
@@ -96,6 +97,112 @@ paths:
                 $ref: "#/components/schemas/SessionResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /api/v1/users/register:
+    post:
+      tags: [Users]
+      operationId: registerUser
+      description: Шлёт код на почту. Учётка создаётся только после verify.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegisterInput"
+      responses:
+        "202":
+          description: Код отправлен, действует 10 минут
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /api/v1/users/login:
+    post:
+      tags: [Users]
+      operationId: requestUserCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "202":
+          description: Код отправлен, действует 10 минут
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /api/v1/users/verify:
+    post:
+      tags: [Users]
+      operationId: verifyUserCode
+      description: Проверяет код и ставит куку histproject_user. remember - кука на 30 дней, иначе до закрытия браузера.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+                  pattern: "^[0-9]{6}$"
+                remember:
+                  type: boolean
+      responses:
+        "200":
+          description: Сессия создана
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "410":
+          description: Кода нет, он истёк или кончились 5 попыток
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/users/me:
+    get:
+      tags: [Users]
+      operationId: getCurrentUser
+      security:
+        - userCookie: []
+      responses:
+        "200":
+          description: Текущий пользователь
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/users/logout:
+    post:
+      tags: [Users]
+      operationId: logoutUser
+      responses:
+        "204":
+          description: Сессия удалена
   /api/v1/events:
     get:
       tags: [Events]
@@ -449,6 +556,10 @@ components:
       type: apiKey
       in: cookie
       name: histproject_session
+    userCookie:
+      type: apiKey
+      in: cookie
+      name: histproject_user
   parameters:
     ID:
       name: id
@@ -576,6 +687,40 @@ components:
               type: object
               additionalProperties:
                 type: string
+    UserRegisterInput:
+      type: object
+      required: [firstName, lastName, email]
+      properties:
+        firstName:
+          type: string
+          maxLength: 50
+        lastName:
+          type: string
+          maxLength: 50
+        email:
+          type: string
+          format: email
+          maxLength: 254
+    UserResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          type: object
+          required: [id, email, firstName, lastName, createdAt]
+          properties:
+            id:
+              type: integer
+              format: int64
+            email:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
     LoginInput:
       type: object
       required: [login, password]

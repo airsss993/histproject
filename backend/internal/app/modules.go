@@ -9,6 +9,7 @@ import (
 	"github.com/airsss993/histproject/backend/internal/modules/auth"
 	"github.com/airsss993/histproject/backend/internal/modules/events"
 	"github.com/airsss993/histproject/backend/internal/modules/submissions"
+	"github.com/airsss993/histproject/backend/internal/modules/users"
 	"github.com/airsss993/histproject/backend/internal/platform/config"
 	"github.com/airsss993/histproject/backend/internal/platform/database"
 	"github.com/airsss993/histproject/backend/internal/platform/httpserver"
@@ -22,6 +23,7 @@ type Modules struct {
 	admins      *admins.Handler
 	events      *events.Handler
 	submissions *submissions.Handler
+	users       *users.Handler
 	rateLimit   httpserver.ClientRateLimiter
 }
 
@@ -61,7 +63,12 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		},
 		cfg.MaxUploadBytes,
 	)
-	return Modules{auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, rateLimit: redisClient.Allow}
+	userHandler := users.NewHandler(
+		users.NewService(users.NewRepository(databaseClient.Pool()), users.NewStore(redisClient.Client()), NewCodeMailer(cfg, logger), cfg.SessionTTL),
+		logger,
+		cfg.CookieDomain,
+	)
+	return Modules{auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, users: userHandler, rateLimit: redisClient.Allow}
 }
 
 func (modules Modules) Register(mux *http.ServeMux) {
@@ -78,6 +85,9 @@ func (modules Modules) Register(mux *http.ServeMux) {
 	modules.admins.Register(mux, superAdminOnly)
 	modules.events.Register(mux, adminOnly)
 	modules.submissions.Register(mux, adminOnly, superAdminOnly)
+	if modules.users != nil {
+		modules.users.Register(mux)
+	}
 }
 
 type submissionEventPublisher struct {

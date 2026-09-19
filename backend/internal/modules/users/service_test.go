@@ -1,0 +1,155 @@
+package users
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+)
+
+func TestRegisterVerifyLoginFlow(t *testing.T) {
+	ctx := t.Context()
+	repo := &memoryRepository{}
+	store := &memoryStore{codes: map[string]Pending{}, counts: map[string]int{}, sessions: map[string]int64{}}
+	mailer := &lastCode{}
+	service := NewService(repo, store, mailer, 12*time.Hour)
+
+	var fields ValidationError
+	if err := service.Register(ctx, RegisterInput{FirstName: " ", LastName: "Ivanov1", Email: "bad"}, "ip"); !errors.As(err, &fields) || len(fields) != 3 {
+		t.Fatalf("invalid register error = %v", err)
+	}
+	if err := service.Register(ctx, RegisterInput{FirstName: " Анна  Мария ", LastName: "Петрова-Водкина", Email: " Anna@Example.RU "}, "ip"); err != nil {
+		t.Fatalf("Register() error = %v", err)
+	}
+	if mailer.email != "anna@example.ru" || len(mailer.code) != 6 {
+		t.Fatalf("mail = %q %q", mailer.email, mailer.code)
+	}
+	if err := service.Register(ctx, RegisterInput{FirstName: "А", LastName: "Б", Email: "anna@example.ru"}, "ip"); !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("second code within cooldown error = %v, want rate limited", err)
+	}
+
+	wrong := "000000"
+	if mailer.code == wrong {
+		wrong = "111111"
+	}
+	if _, _, _, err := service.Verify(ctx, "anna@example.ru", wrong, false); !errors.Is(err, ErrInvalidCode) {
+		t.Fatalf("wrong code error = %v", err)
+	}
+	token, user, ttl, err := service.Verify(ctx, "ANNA@example.ru", mailer.code, false)
+	if err != nil {
+		t.Fatalf("Verify() error = %v", err)
+	}
+	if user.FirstName != "Анна Мария" || user.LastName != "Петрова-Водкина" || ttl != 12*time.Hour {
+		t.Fatalf("user = %#v ttl = %s", user, ttl)
+	}
+	if _, _, _, err := service.Verify(ctx, "anna@example.ru", mailer.code, false); !errors.Is(err, ErrCodeExpired) {
+		t.Fatalf("reused code error = %v, want expired", err)
+	}
+	if me, err := service.Authenticate(ctx, token); err != nil || me.ID != user.ID {
+		t.Fatalf("Authenticate() = %#v, %v", me, err)
+	}
+
+	if err := service.Register(ctx, RegisterInput{FirstName: "А", LastName: "Б", Email: "anna@example.ru"}, "ip2"); !errors.Is(err, ErrEmailTaken) {
+		t.Fatalf("register taken error = %v", err)
+	}
+	if err := service.RequestLogin(ctx, "nobody@example.ru", "ip"); !errors.Is(err, ErrUserNotFound) {
+		t.Fatalf("login unknown error = %v", err)
+	}
+	delete(store.counts, "users:cooldown:"+digest("anna@example.ru"))
+	if err := service.RequestLogin(ctx, "anna@example.ru", "ip"); err != nil {
+		t.Fatalf("RequestLogin() error = %v", err)
+	}
+	_, again, ttl, err := service.Verify(ctx, "anna@example.ru", mailer.code, true)
+	if err != nil || again.ID != user.ID || ttl != RememberTTL || len(repo.users) != 1 {
+		t.Fatalf("login verify = %#v ttl %s err %v users %d", again, ttl, err, len(repo.users))
+	}
+
+	if err := service.Logout(ctx, token); err != nil {
+		t.Fatalf("Logout() error = %v", err)
+	}
+	if _, err := service.Authenticate(ctx, token); !errors.Is(err, ErrNoSession) {
+		t.Fatalf("after logout error = %v", err)
+	}
+}
+
+type memoryRepository struct{ users []User }
+
+func (r *memoryRepository) FindByEmail(_ context.Context, email string) (User, error) {
+	for _, u := range r.users {
+		if u.Email == email {
+			return u, nil
+		}
+	}
+	return User{}, ErrUserNotFound
+}
+
+func (r *memoryRepository) FindByID(_ context.Context, id int64) (User, error) {
+	for _, u := range r.users {
+		if u.ID == id {
+			return u, nil
+		}
+	}
+	return User{}, ErrUserNotFound
+}
+
+func (r *memoryRepository) Create(ctx context.Context, user User) (User, error) {
+	if _, err := r.FindByEmail(ctx, user.Email); err == nil {
+		return User{}, ErrEmailTaken
+	}
+	user.ID = int64(len(r.users) + 1)
+	r.users = append(r.users, user)
+	return user, nil
+}
+
+type memoryStore struct {
+	codes    map[string]Pending
+	counts   map[string]int
+	sessions map[string]int64
+}
+
+func (s *memoryStore) SaveCode(_ context.Context, email string, p Pending, _ time.Duration) error {
+	s.codes[email] = p
+	return nil
+}
+
+func (s *memoryStore) CheckCode(_ context.Context, email, hash string, _ int) (Pending, error) {
+	p, ok := s.codes[email]
+	if !ok {
+		return Pending{}, ErrCodeExpired
+	}
+	if p.CodeHash != hash {
+		return Pending{}, ErrInvalidCode
+	}
+	delete(s.codes, email)
+	return p, nil
+}
+
+func (s *memoryStore) Allow(_ context.Context, key string, limit int, _ time.Duration) (bool, error) {
+	s.counts[key]++
+	return s.counts[key] <= limit, nil
+}
+
+func (s *memoryStore) CreateSession(_ context.Context, token string, id int64, _ time.Duration) error {
+	s.sessions[token] = id
+	return nil
+}
+
+func (s *memoryStore) SessionUser(_ context.Context, token string) (int64, error) {
+	id, ok := s.sessions[token]
+	if !ok {
+		return 0, ErrNoSession
+	}
+	return id, nil
+}
+
+func (s *memoryStore) DeleteSession(_ context.Context, token string) error {
+	delete(s.sessions, token)
+	return nil
+}
+
+type lastCode struct{ email, code string }
+
+func (m *lastCode) SendCode(_ context.Context, email, code string) error {
+	m.email, m.code = email, code
+	return nil
+}
