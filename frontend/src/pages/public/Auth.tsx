@@ -209,7 +209,7 @@ const Input: React.FC<InputProps> = ({ label, error, action, ...input }) => {
   const id = React.useId()
   return (
     <div className="au-cell-wrap">
-      <label className={`au-field${error ? ' bad' : ''}`} htmlFor={id}>
+      <label className={`pm-field pm-glow au-field${error ? ' bad' : ''}`} htmlFor={id}>
         <span className="au-field-body">
           <span className="au-label">{label}</span>
           <input id={id} {...input} aria-invalid={!!error} aria-describedby={error ? `${id}-e` : undefined} />
@@ -234,7 +234,7 @@ const CodeInput: React.FC<{ value: string; bad: boolean; disabled: boolean; onCh
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         onChange={e => onChange(e.target.value.replace(/\D/g, '').slice(0, CODE_LEN))} />
       {Array.from({ length: CODE_LEN }, (_, i) => (
-        <span key={i} className={`au-digit${focused && i === active ? ' on' : ''}${value[i] ? ' full' : ''}`}>{value[i]}</span>
+        <span key={i} className={`au-digit pm-glow${focused && i === active ? ' on' : ''}${value[i] ? ' full' : ''}`}>{value[i]}</span>
       ))}
     </div>
   )

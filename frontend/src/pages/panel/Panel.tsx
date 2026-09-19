@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Logo, useIsMobile } from '../public/PublicMap.tsx'
 import { MapView, type MapHandle } from '../public/MapView.tsx'
 import { TYPES, TYPE_LABEL, formatDate, type ApiResult, type EventType } from '../public/api.ts'
+import { Field } from '../../shared/ui/Field.tsx'
 import * as api from './api.ts'
 import type { AuditEntry, Me, Moderator, Page, Role, Status, Submission } from './api.ts'
 import '../public/public.css'
@@ -160,13 +161,13 @@ const Submissions: React.FC<{ mobile: boolean }> = ({ mobile }) => {
   return (
     <div className="ad-split">
       <section className="ad-list">
-        <div className="ad-filters" role="tablist">
+        <div className="pm-chips" role="tablist">
           {FILTERS.map(f => (
             <button key={f.label} type="button" role="tab" aria-selected={f.status === status} className={f.status === status ? 'on' : ''}
               onClick={() => { setParams(f.status === 'new' ? {} : { status: f.status || 'all' }); setSelected(null) }}>{f.label}</button>
           ))}
         </div>
-        <input className="ad-input" type="search" placeholder="Поиск по названию или номеру" value={q} onChange={e => setQ(e.target.value)} />
+        <Field><input type="search" aria-label="Поиск заявок" placeholder="Поиск по названию или номеру" value={q} onChange={e => setQ(e.target.value)} /></Field>
         <Rows state={list} empty="Заявок нет">
           {(data: Page<Submission>) => (
             <>
@@ -300,7 +301,7 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
           {preview}
           {s.status === 'review' && <>
             <button type="button" className="pm-btn" onClick={() => { setMode('approve'); setErrors({}) }}>Одобрить</button>
-            <button type="button" className="pm-btn-ghost ad-danger" onClick={() => { setMode('reject'); setErrors({}) }}>Отклонить</button>
+            <button type="button" className="pm-btn-ghost danger" onClick={() => { setMode('reject'); setErrors({}) }}>Отклонить</button>
           </>}
         </div>
       )}
@@ -315,7 +316,7 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
             <Field label="Широта" error={errors.latitude}><input inputMode="decimal" value={lat} onChange={e => setLat(e.target.value)} placeholder="55.751244" /></Field>
             <Field label="Долгота" error={errors.longitude}><input inputMode="decimal" value={lng} onChange={e => setLng(e.target.value)} placeholder="37.618423" /></Field>
           </div>
-          <div className="ad-label">Тип события</div>
+          <div className="pm-label">Тип события</div>
           <div className="pm-types">
             {TYPES.map(t => <button key={t} type="button" className={t === type ? 'on' : ''} aria-pressed={t === type} onClick={() => setType(t)}>{TYPE_LABEL[t]}</button>)}
           </div>
@@ -337,7 +338,7 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
           <p className="ad-dim">{reason.length} / {MAX_REASON}</p>
           {note && <p className="ad-error" role="alert">{note}</p>}
           <div className="ad-actions">
-            <button className="pm-btn ad-danger-fill" disabled={busy}>{busy ? 'Отклоняем...' : 'Отклонить'}</button>
+            <button className="pm-btn danger" disabled={busy}>{busy ? 'Отклоняем...' : 'Отклонить'}</button>
             <button type="button" className="pm-btn-text" onClick={() => setMode('view')}>Отмена</button>
           </div>
         </form>
@@ -357,7 +358,7 @@ const History: React.FC = () => {
     <section className="ad-narrow">
       <h1 className="ad-title">История действий</h1>
       <p className="ad-dim">Каждое действие модератора. Записи нельзя изменить или удалить.</p>
-      <input className="ad-input" type="search" placeholder="Поиск по заявке, логину или действию" value={q} onChange={e => setQ(e.target.value)} />
+      <Field><input type="search" aria-label="Поиск по истории" placeholder="Поиск по заявке, логину или действию" value={q} onChange={e => setQ(e.target.value)} /></Field>
       <Rows state={list} empty="Действий пока нет">
         {(data: Page<AuditEntry>) => (
           <>
@@ -424,13 +425,13 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
                   <b>{m.login}{m.id === me.id && ' (вы)'}</b>
                   <span className="ad-dim">{m.email || 'почта не указана'} · с {formatDate(m.createdAt)}</span>
                 </span>
-                <select className="ad-input ad-select" value={m.role} disabled={busy || m.id === me.id} aria-label={`Роль ${m.login}`}
+                <Field className="ad-select"><select value={m.role} disabled={busy || m.id === me.id} aria-label={`Роль ${m.login}`}
                   onChange={e => act(() => api.changeRole(m.id, e.target.value as Role))}>
                   <option value="admin">Модератор</option>
                   <option value="super_admin">Супер-админ</option>
-                </select>
+                </select></Field>
                 {m.id !== me.id && (
-                  <button type="button" className="pm-btn-text ad-danger" disabled={busy}
+                  <button type="button" className="pm-btn-text danger" disabled={busy}
                     onClick={() => confirm(`Удалить ${m.login}? Войти он больше не сможет.`) && act(() => api.deleteModerator(m.id))}>Удалить</button>
                 )}
               </li>
@@ -460,15 +461,3 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
   )
 }
 
-const Field: React.FC<{ label: string; error?: string; children: React.ReactElement }> = ({ label, error, children }) => {
-  const id = React.useId()
-  return (
-    <div className="ad-field">
-      <label className="ad-label" htmlFor={id}>{label}</label>
-      {React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
-        id, className: `ad-input${error ? ' bad' : ''}`, 'aria-invalid': !!error, 'aria-describedby': error ? `${id}-e` : undefined,
-      })}
-      {error && <p className="ad-error" id={`${id}-e`}>{error}</p>}
-    </div>
-  )
-}

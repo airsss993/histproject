@@ -141,23 +141,8 @@
 .pp-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .pp-label { font: 500 12px/16px var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .pp-label.bad { color: var(--danger); }
-.pm-root .pp-input {
-  width: 100%; margin: 0; padding: 12px 14px; border-radius: 4px; outline: none;
-  background: var(--field); border: 1px solid var(--line); color: #fff; font: 400 15px/22px var(--ui);
-  transition: border-color 120ms ease-out;
-}
-.pm-root .pp-input::placeholder, .pp-date input::placeholder { color: var(--muted); opacity: 1; }
-.pm-root .pp-input:focus, .pm-root .pp-input:focus-within { border-color: var(--gold); }
-.pm-root .pp-input:focus-visible { outline: none; }
-.pm-root .pp-field.bad .pp-input, .pm-root .pp-input.bad { border-color: var(--danger); }
-.pm-root .pp-input:disabled { opacity: 0.6; }
-.pm-root .pp-area { height: 92px; min-height: 92px; max-height: 320px; resize: vertical; display: block; font-size: 15px; line-height: 24px; }
-.pp-date { display: flex; align-items: center; gap: 10px; position: relative; }
-.pm-root .pp-date input:not(.pp-picker) {
-  flex: 1; min-width: 0; margin: 0; padding: 0; border: 0; outline: none; background: none;
-  color: #fff; font: inherit;
-}
-.pp-picker { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.pm-root .pm-field .pp-area { height: 92px; min-height: 92px; max-height: 320px; }
+.pm-root .pm-field .pp-picker { position: absolute; right: 0; bottom: 0; flex: none; width: 1px; height: 1px; padding: 0; opacity: 0; pointer-events: none; }
 .pp-error { font: 400 13px/20px var(--ui); color: var(--danger); }
 .pp-count { align-self: flex-end; font: 400 13px/20px var(--mono); color: var(--dim); margin-top: -8px; }
 
@@ -236,7 +221,6 @@
 .pp-page.mobile .pp-foot { padding: 12px 16px 16px; }
 .pp-page.mobile .pp-foot > * { flex: 1; justify-content: space-between; }
 .pp-page.mobile .pp-map { height: 300px; }
-.pm-root.mobile .pp-input { padding: 14px; font-size: 16px; }
 .pm-root.mobile .pp-area { height: 120px; min-height: 120px; }
 .pp-page.mobile .pp-choice-sub { font-size: 13px; line-height: 20px; }
 

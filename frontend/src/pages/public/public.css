@@ -1,3 +1,5 @@
+@import '../../shared/ui/ui.css';
+
 /* Публичная часть: карта и её слои. Значения из "Публичные экраны.dc.html" (Claude Design). */
 .pm-root {
   --ink: #010011;
@@ -45,7 +47,7 @@
   box-shadow: 0 12px 40px rgba(0, 0, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 /* Кнопки и поля внутри стекла: светлее фона, та же кромка. */
-.pm-root :is(.pm-types button, .pm-years input, .pm-chips > *, .pm-close, .pm-close-sm, .pm-card-share) {
+.pm-root :is(.pm-types button, .pm-years input, .pm-close, .pm-close-sm, .pm-card-share) {
   background: rgba(255, 255, 255, 0.04); border: 1px solid; border-color: var(--rim-in);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
@@ -111,23 +113,6 @@
 .pm-user { display: flex; align-items: center; gap: 4px; }
 .pm-user-name { font: 400 14px var(--ui); color: var(--text-2); white-space: nowrap; }
 
-/* Кнопки */
-.pm-root .pm-btn, .pm-root .pm-btn-ghost, .pm-root .pm-btn-text {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 11px 18px; border-radius: 8px; font: 500 15px var(--ui); text-decoration: none; white-space: nowrap;
-  transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
-}
-.pm-root .pm-btn, .pm-root .pm-card-more { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 18px rgba(0, 0, 20, 0.35); }
-.pm-root .pm-btn { background: var(--gold); color: var(--ink); border: 1px solid var(--gold); }
-.pm-root .pm-btn:hover { background: var(--gold-soft); }
-.pm-root .pm-btn-ghost { border: 1px solid var(--gold-line); color: var(--gold-soft); background: rgba(12, 16, 35, 0.45); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
-.pm-root .pm-btn-ghost:hover { border-color: var(--gold); background: var(--gold-wash); }
-.pm-root .pm-btn-text { color: var(--gold-soft); }
-.pm-root .pm-btn-text:hover { color: var(--gold); }
-.pm-root .pm-pill { border-radius: 999px; padding: 11px 20px; font-size: 14px; }
-.pm-root .pm-pill.on { background: var(--gold-wash); border-color: var(--gold); color: var(--gold); }
-.pm-root .pm-round { width: 48px; height: 48px; padding: 0; border-radius: 999px; font-size: 16px; flex: none; }
-.pm-root .pm-link { color: var(--gold-soft); font: 400 13px var(--ui); white-space: nowrap; }
 .pm-badge {
   min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px;
   background: var(--gold); color: var(--ink); font: 600 12px/22px var(--ui); text-align: center;
@@ -151,35 +136,14 @@
 /* Поиск */
 .pm-search-wrap { position: absolute; left: 50%; transform: translateX(-50%); top: 104px; width: 520px; display: flex; flex-direction: column; gap: 8px; }
 .pm-search {
-  position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 999px;
-  transition: border-color 240ms ease-out, box-shadow 240ms ease-out;
+  display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 999px;
 }
-/* Фокус как у полей входа: свет изнутри снизу и блик на нижней кромке, расходится от центра. */
-.pm-search::before, .pm-search::after { content: ''; position: absolute; pointer-events: none; opacity: 0; }
-.pm-search::before {
-  inset: 0; border-radius: inherit;
-  background: radial-gradient(60% 120% at 50% 120%, rgba(199, 174, 127, 0.16), transparent 70%);
-  transition: opacity 280ms ease-out;
-}
-.pm-search::after {
-  left: 45%; right: 45%; bottom: -1px; height: 1px;
-  background: linear-gradient(90deg, transparent, #F3E6C4 50%, transparent);
-  box-shadow: 0 0 10px rgba(199, 174, 127, 0.55), 0 2px 18px rgba(199, 174, 127, 0.2);
-  transition: opacity 280ms ease-out, left 420ms cubic-bezier(0.2, 0.8, 0.2, 1), right 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.pm-search:hover { border-color: rgba(199, 174, 127, 0.35); }
-.pm-search:focus-within::before, .pm-search:focus-within::after { opacity: 1; }
-.pm-search:focus-within::after { left: 12%; right: 12%; }
 .pm-search:focus-within { box-shadow: 0 12px 40px rgba(0, 0, 20, 0.45), 0 0 0 4px rgba(199, 174, 127, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
-.pm-search input { transition: color 200ms ease-out; }
-.pm-search input::placeholder { transition: opacity 200ms ease-out, transform 200ms ease-out; }
-.pm-search:focus-within input::placeholder { opacity: 0.55; transform: translateX(4px); }
 /* Счётчик: новое число въезжает снизу. key на span пересоздаёт его при смене текста. */
 .pm-search .pm-counter { animation: pm-tick 220ms ease-out; }
 @keyframes pm-tick { from { opacity: 0; transform: translateY(6px); } }
 .pm-search input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: #fff; font: 400 15px var(--ui); }
 .pm-search input:focus-visible { outline: none; }
-.pm-search:focus-within { border-color: var(--gold-line); }
 .pm-search input::placeholder { color: var(--muted); }
 .pm-counter { font: 400 13px var(--ui); color: var(--dim); white-space: nowrap; }
 .pm-results { animation: pm-in 180ms ease-out; border-radius: 16px; overflow: hidden auto; max-height: 60vh; }
@@ -328,13 +292,7 @@
 .pm-range input[type=range]::-moz-range-track { background: none; }
 .pm-screen .pm-range input[type=range]::-webkit-slider-thumb { width: 22px; height: 22px; }
 .pm-range-ends { display: flex; justify-content: space-between; padding-top: 12px; font: 400 13px/20px var(--mono); color: var(--muted); }
-.pm-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.pm-chips > * {
-  padding: 7px 14px; border-radius: 999px; color: var(--muted);
-  font: 400 13px/20px var(--ui); white-space: nowrap;
-}
 .pm-screen .pm-chips button { padding: 9px 14px; font-size: 14px; }
-.pm-root .pm-chips > .on, .pm-root .pm-chips button:hover { border-color: var(--gold); background: var(--gold-wash); color: var(--gold); }
 .pm-panel-foot { display: flex; align-items: center; gap: 12px; padding: 18px 22px; }
 .pm-screen .pm-panel-foot { padding: 16px; border-top: 1px dashed var(--line); position: sticky; bottom: 0; background: #0C1023; }
 .pm-screen .pm-panel-foot .pm-btn, .pm-screen .pm-panel-foot .pm-btn-text { height: 52px; font-size: 16px; }

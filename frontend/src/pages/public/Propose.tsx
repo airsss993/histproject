@@ -323,20 +323,20 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
         {field === 'title' && (
           <div className="pp-stack">
             <Text label="Название" error={visible('title')} count={`${d.title.length} / 100`}>
-              <input className="pp-input" value={d.title} maxLength={100} placeholder="Например, Куликовская битва" autoFocus={!mobile}
+              <input value={d.title} maxLength={100} placeholder="Например, Куликовская битва" autoFocus={!mobile}
                 onChange={e => set('title', e.target.value, 'title')} onBlur={() => d.title && show('title')} />
             </Text>
             <Text label="Дата события" error={visible('date')} hint="ДД.ММ.ГГГГ, от 862 года">
-              <div className={`pp-input pp-date${visible('date') ? ' bad' : ''}`}>
+              <>
                 <input value={d.date} inputMode="numeric" placeholder="ДД.ММ.ГГГГ" aria-label="Дата события"
                   onChange={e => set('date', maskDate(e.target.value), 'date')} onBlur={() => d.date && show('date')} />
                 <button type="button" className="pm-link" onClick={openCalendar}>Календарь</button>
                 <input ref={pickerRef} type="date" className="pp-picker" tabIndex={-1} aria-hidden min="0862-01-01" max={todayIso()}
                   onChange={e => { if (e.target.value) { set('date', fromIso(e.target.value), 'date'); show('date') } }} />
-              </div>
+              </>
             </Text>
             <Text label="Описание" error={visible('description')} count={`${d.description.length} / 450`}>
-              <textarea className="pp-input pp-area" value={d.description} maxLength={450} placeholder="8 сентября 1380 года войско Дмитрия Донского разбило Мамая у слияния Дона и Непрядвы"
+              <textarea className="pp-area" value={d.description} maxLength={450} placeholder="8 сентября 1380 года войско Дмитрия Донского разбило Мамая у слияния Дона и Непрядвы"
                 onChange={e => set('description', e.target.value, 'description')} onBlur={() => d.description && show('description')} />
             </Text>
           </div>
@@ -345,8 +345,10 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
         {field === 'place' && (
           <>
             <div className="pp-search">
-              <input className="pp-input" value={query} maxLength={200} placeholder="Например, Прохоровка" aria-label="Поиск места"
-                onChange={e => setQuery(e.target.value)} />
+              <div className="pm-field pm-glow">
+                <input value={query} maxLength={200} placeholder="Например, Прохоровка" aria-label="Поиск места"
+                  onChange={e => setQuery(e.target.value)} />
+              </div>
               <Presence>{places.length > 0 && (
                 <ul className="pp-places" role="listbox">
                   {places.map(p => (
@@ -368,7 +370,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
         )}
 
         {field === 'archive' && (
-          <Text error={d.file ? undefined : visible('archive')}>
+          <Text group error={d.file ? undefined : visible('archive')}>
             {d.file ? (
               <FileCard file={d.file} onRemove={clearFile} {...(d.zip === 'checking'
                 ? { status: 'Проверяем архив...', progress: 'busy' as const }
@@ -391,11 +393,11 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
         {field === 'email' && (
           <div className="pp-stack">
             <Text label="Email" error={visible('email')} hint="Сюда придёт статус заявки">
-              <input className="pp-input" type="email" autoComplete="email" value={d.email} maxLength={70} placeholder="ivan@example.ru" autoFocus={!mobile}
+              <input type="email" autoComplete="email" value={d.email} maxLength={70} placeholder="ivan@example.ru" autoFocus={!mobile}
                 onChange={e => set('email', e.target.value, 'email')} onBlur={() => d.email && show('email')} />
             </Text>
             <Text label="Telegram" error={visible('telegram')} hint="Для вопросов модератора">
-              <input className="pp-input" value={d.telegram} maxLength={33} placeholder="ivan_petrov" autoCapitalize="none" spellCheck={false}
+              <input value={d.telegram} maxLength={33} placeholder="ivan_petrov" autoCapitalize="none" spellCheck={false}
                 onChange={e => set('telegram', e.target.value.replace(/^@/, ''), 'telegram')} onBlur={() => d.telegram && show('telegram')} />
             </Text>
           </div>
@@ -499,7 +501,7 @@ const Text: React.FC<{
   return (
   <Tag className={`pp-field${error ? ' bad' : ''}`}>
     {label && <span className={`pp-label${labelBad ? ' bad' : ''}`}>{label}</span>}
-    {children}
+    {group ? children : <div className={`pm-field pm-glow${error ? ' bad' : ''}`}>{children}</div>}
     {error ? <span className="pp-error">{error}</span> : hint ? <span className="pm-dim-text">{hint}</span> : null}
     {count && !error && <span className="pp-count">{count}</span>}
   </Tag>

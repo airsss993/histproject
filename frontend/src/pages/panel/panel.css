@@ -37,23 +37,7 @@
 .ad-login-card > .ad-dim { text-align: center; margin-bottom: 8px; }
 .pm-root .ad-wide { width: 100%; height: 48px; margin-top: 6px; }
 
-/* Поля */
-.ad-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.ad-label { font: 400 12px/16px var(--ui); letter-spacing: 0.04em; color: var(--muted); }
-.pm-root .ad-input {
-  width: 100%; min-width: 0; margin: 0; padding: 11px 14px; border-radius: 12px; outline: none;
-  border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.03); color: #fff;
-  font: 400 15px/22px var(--ui); transition: border-color 160ms, background 160ms;
-}
-.pm-root .ad-input:hover { border-color: rgba(255, 255, 255, 0.16); }
-.pm-root .ad-input:focus { border-color: var(--gold-line); background: rgba(255, 255, 255, 0.05); }
-.pm-root .ad-input.bad { border-color: color-mix(in srgb, var(--danger) 70%, transparent); }
-.pm-root .ad-input::placeholder { color: rgba(129, 148, 174, 0.55); }
-.pm-root textarea.ad-input { resize: vertical; min-height: 100px; }
-.pm-root select.ad-input { appearance: none; padding-right: 34px; cursor: pointer;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238194AE' stroke-width='1.6'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 14px center, rgba(255, 255, 255, 0.03); }
-.pm-root select.ad-input option { background: #0C1023; }
-.pm-root .ad-input:-webkit-autofill { -webkit-text-fill-color: #fff; transition: background-color 9999s; }
+/* Поля и кнопки - из дизайн-системы (shared/ui/ui.css). */
 .ad-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 /* Список и карточка заявки */
@@ -61,13 +45,6 @@
 .ad-list { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .ad-detail-col { position: sticky; top: 100px; max-height: calc(100vh - 124px); overflow-y: auto; border-radius: 20px; }
 .ad-placeholder { display: grid; place-items: center; min-height: 320px; }
-.ad-filters { display: flex; flex-wrap: wrap; gap: 6px; }
-.pm-root .ad-filters button {
-  padding: 7px 14px; border-radius: 999px; font-size: 14px; color: var(--text-2);
-  border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.03); transition: all 160ms;
-}
-.pm-root .ad-filters button:hover { border-color: rgba(255, 255, 255, 0.2); color: #fff; }
-.pm-root .ad-filters button.on { border-color: var(--gold); background: var(--gold-wash); color: var(--gold); }
 
 .ad-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .ad-row {
@@ -88,7 +65,6 @@
 
 .ad-pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 14px; }
 .pm-root .ad-pager button { padding: 8px 16px; }
-.pm-root .ad-pager button:disabled { opacity: 0.4; cursor: default; }
 
 .ad-detail { display: flex; flex-direction: column; gap: 16px; }
 .ad-shot { display: block; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); aspect-ratio: 16 / 9; background: #0C1023; }
@@ -103,11 +79,6 @@
 .ad-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .pm-root .ad-actions :is(.pm-btn, .pm-btn-ghost) { padding: 11px 20px; text-decoration: none; }
 .pm-root .ad-actions .pm-btn-text { padding: 11px 8px; }
-.pm-root :is(.pm-btn, .pm-btn-ghost):disabled { opacity: 0.6; cursor: default; }
-.pm-root .ad-danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, transparent); }
-.pm-root .ad-danger:hover { color: #E08A7D; border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
-.pm-root .ad-danger-fill { background: var(--danger); border-color: var(--danger); color: #fff; }
-.pm-root .ad-danger-fill:hover { background: #D07E71; }
 .pm-root .ad-back { align-self: flex-start; }
 
 .ad-form { display: flex; flex-direction: column; gap: 14px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
@@ -123,7 +94,8 @@
 .ad-mod { flex-direction: row; align-items: center; gap: 14px; }
 .ad-grow-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ad-grow-col b { font-weight: 400; }
-.pm-root .ad-select { width: auto; flex: none; padding-top: 8px; padding-bottom: 8px; font-size: 14px; }
+.ad-select { flex: none; width: auto; }
+.pm-root .ad-select select { padding: 8px 22px 8px 0; font-size: 14px; }
 
 @media (max-width: 960px) {
   .ad-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -143,4 +115,5 @@
 .ad-page.mobile .ad-pair { grid-template-columns: 1fr; }
 .ad-page.mobile .ad-map { height: 280px; }
 .ad-page.mobile .ad-mod { flex-wrap: wrap; }
+.ad-page.mobile .ad-grow-col { flex-basis: 160px; }
 .ad-page.mobile .ad-title { font-size: 22px; line-height: 30px; }

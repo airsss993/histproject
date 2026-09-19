@@ -204,7 +204,7 @@ export const PublicMap: React.FC = () => {
         )}</Presence>
 
         <div className={`pm-search-wrap${layer === 'filters' || layer === 'feed' ? ' pm-muted' : ''}`}>
-          <label className="pm-search pm-glass">
+          <label className="pm-search pm-glass pm-glow">
             <input value={q} maxLength={100} placeholder="Найти событие" aria-label="Найти событие"
               onChange={e => { patch({ q: e.target.value }); setLayer('search') }}
               onFocus={() => q && setLayer('search')}
