@@ -93,6 +93,18 @@ func TestOpenArchiveRejectsSymlink(t *testing.T) {
 	}
 }
 
+func TestOpenArchiveRejectsExecutable(t *testing.T) {
+	data := makeZIP(t,
+		zipEntry{name: "index.html", body: "site"},
+		zipEntry{name: "files/Setup.EXE", body: "MZ"},
+	)
+
+	_, err := OpenArchive(t.Context(), bytes.NewReader(data), int64(len(data)), testLimits())
+	if !errors.Is(err, ErrUnsupportedFile) {
+		t.Fatalf("OpenArchive() error = %v, want ErrUnsupportedFile", err)
+	}
+}
+
 func TestOpenArchiveRejectsDuplicateNormalizedPath(t *testing.T) {
 	data := makeZIP(t,
 		zipEntry{name: "index.html", body: "site"},

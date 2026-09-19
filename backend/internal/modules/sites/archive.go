@@ -26,6 +26,15 @@ var (
 	ErrUnsupportedFile   = errors.New("archive contains an unsupported file type")
 )
 
+// Сайт статический и отдаётся из MinIO под CSP sandbox, серверный код в нём не исполняется.
+// Исполняемые файлы режем, чтобы архив не служил раздачей вредоносов с нашего домена.
+// ponytail: список по расширению, антивирус (ClamAV) подключать, если понадобится проверка содержимого.
+var executableExtensions = map[string]bool{
+	".exe": true, ".dll": true, ".com": true, ".scr": true, ".msi": true, ".bat": true, ".cmd": true,
+	".ps1": true, ".vbs": true, ".jar": true, ".apk": true, ".sh": true, ".php": true, ".phtml": true,
+	".py": true, ".pl": true, ".cgi": true, ".asp": true, ".aspx": true, ".jsp": true, ".htaccess": true,
+}
+
 type Limits struct {
 	MaxArchiveBytes   int64
 	MaxExtractedBytes int64
@@ -94,7 +103,7 @@ func OpenArchive(ctx context.Context, reader io.ReaderAt, size int64, limits Lim
 		if zipFile.FileInfo().IsDir() {
 			continue
 		}
-		if !mode.IsRegular() {
+		if !mode.IsRegular() || executableExtensions[strings.ToLower(path.Ext(cleanPath))] {
 			return nil, fmt.Errorf("%w: %s", ErrUnsupportedFile, cleanPath)
 		}
 		if zipFile.UncompressedSize64 > uint64(limits.MaxFileBytes) {
