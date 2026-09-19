@@ -106,7 +106,7 @@ const PICK_PIN = `<svg width="40" height="40" viewBox="0 0 64 64" fill="none" st
 
 export interface MapHandle {
   zoomBy(k: number): void
-  flyTo(lat: number, lng: number): void
+  flyTo(lat: number, lng: number, zoom?: number): void
 }
 
 interface Props {
@@ -184,6 +184,8 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   const labelsRef = useRef(labels)
   labelsRef.current = labels
   const baseZoom = useRef(0)
+  const pendingFly = useRef<{ center: [number, number]; zoom: number }>()
+  const loadedRef = useRef(false)
   const [tick, setTick] = useState(0)
   const [hover, setHover] = useState<number | null>(null)
 
@@ -200,6 +202,12 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     map.on('move', redraw)
     map.on('resize', redraw)
     map.on('click', e => onPickRef.current?.(e.lngLat.lat, e.lngLat.wrap().lng))
+    // Камере нужен только стиль: load ждал бы ещё и все тайлы.
+    map.once('style.load', () => {
+      if (pendingFly.current) map.flyTo({ ...pendingFly.current, duration: 800 })
+      pendingFly.current = undefined
+      loadedRef.current = true
+    })
     map.on('load', () => loadRussia().then(fc => {
       if (!map.getStyle()) return
       map.addSource('russia', { type: 'geojson', data: fc })
@@ -207,7 +215,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
       map.addLayer({ id: 'regions', type: 'line', source: 'russia', paint: { 'line-color': '#31355C', 'line-width': ['interpolate', ['linear'], ['zoom'], 2, 0.4, 6, 1] } }, 'borders')
     }).catch(() => undefined))
     redraw()
-    return () => { map.remove(); mapRef.current = undefined; pickRef.current = undefined }
+    return () => { map.remove(); mapRef.current = undefined; pickRef.current = undefined; loadedRef.current = false }
     // Карта создаётся один раз; pad и sea на лету не меняются.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -237,7 +245,12 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
 
   useImperativeHandle(ref, () => ({
     zoomBy: k => { const map = mapRef.current; if (map) map.zoomTo(map.getZoom() + Math.log2(k)) },
-    flyTo: (lat, lng) => mapRef.current?.flyTo({ center: [lng, lat], zoom: 10, duration: 800 }),
+    flyTo: (lat, lng, zoom = 10) => {
+      const map = mapRef.current
+      if (map && loadedRef.current) map.flyTo({ center: [lng, lat], zoom, duration: 800 })
+      // До загрузки стиля полёт теряется: в dev StrictMode пересоздаёт карту сразу после первого монтирования.
+      else pendingFly.current = { center: [lng, lat], zoom }
+    },
   }), [])
 
   // Ушедшую карточку (закрыли или выбрали другую) держим, пока играет анимация ухода
