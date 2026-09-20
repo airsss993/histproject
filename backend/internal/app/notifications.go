@@ -13,21 +13,21 @@ import (
 	"github.com/airsss993/histproject/backend/internal/platform/database"
 )
 
-// NewCodeMailer шлёт код входа через Resend. Без RESEND_API_KEY (только dev, прод без него не стартует) код пишется в лог.
+// NewCodeMailer шлёт код входа через Postbox. Без POSTBOX_KEY_ID (только dev, прод без него не стартует) код пишется в лог.
 func NewCodeMailer(cfg config.Config, logger *slog.Logger) users.Mailer {
-	if cfg.ResendAPIKey == "" {
+	if cfg.PostboxKeyID == "" {
 		return logCodeMailer{logger: logger}
 	}
-	sender, err := notifications.NewResendSender(cfg.ResendAPIKey, cfg.EmailFrom, cfg.NotificationTimeout)
-	return resendCodeMailer{sender: sender, err: err}
+	sender, err := notifications.NewPostboxSender(cfg.PostboxAddress, cfg.PostboxKeyID, cfg.PostboxSecret, cfg.EmailFrom, cfg.NotificationTimeout)
+	return postboxCodeMailer{sender: sender, err: err}
 }
 
-type resendCodeMailer struct {
-	sender *notifications.ResendSender
+type postboxCodeMailer struct {
+	sender *notifications.PostboxSender
 	err    error
 }
 
-func (mailer resendCodeMailer) SendCode(ctx context.Context, email, code string) error {
+func (mailer postboxCodeMailer) SendCode(ctx context.Context, email, code string) error {
 	if mailer.err != nil {
 		return mailer.err
 	}
@@ -45,7 +45,7 @@ type logCodeMailer struct {
 }
 
 func (mailer logCodeMailer) SendCode(ctx context.Context, email, code string) error {
-	mailer.logger.WarnContext(ctx, "RESEND_API_KEY не задан, код входа только в логе", "email", email, "code", code)
+	mailer.logger.WarnContext(ctx, "POSTBOX_KEY_ID не задан, код входа только в логе", "email", email, "code", code)
 	return nil
 }
 
@@ -67,8 +67,8 @@ func (notifier *SubmissionNotifier) SubmissionChanged(ctx context.Context, submi
 
 func NewNotificationService(cfg config.Config, databaseClient *database.Database, submissionService *submissions.Service, adminService *admins.Service) (*notifications.Service, error) {
 	var emailSender notifications.EmailSender
-	if cfg.ResendAPIKey != "" {
-		sender, err := notifications.NewResendSender(cfg.ResendAPIKey, cfg.EmailFrom, cfg.NotificationTimeout)
+	if cfg.PostboxKeyID != "" {
+		sender, err := notifications.NewPostboxSender(cfg.PostboxAddress, cfg.PostboxKeyID, cfg.PostboxSecret, cfg.EmailFrom, cfg.NotificationTimeout)
 		if err != nil {
 			return nil, err
 		}

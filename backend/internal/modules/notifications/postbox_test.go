@@ -241,10 +241,10 @@ func TestNewPostboxSenderValidatesConfig(t *testing.T) {
 		timeout time.Duration
 	}{
 		{"адрес без порта", "postbox.cloud.yandex.net", "key-id", "key-secret", "info@russia-heroes.ru", time.Second},
-		{"пустой ключ", DefaultPostboxAddress, "", "key-secret", "info@russia-heroes.ru", time.Second},
-		{"пустой секрет", DefaultPostboxAddress, "key-id", "", "info@russia-heroes.ru", time.Second},
-		{"кривой отправитель", DefaultPostboxAddress, "key-id", "key-secret", "не адрес", time.Second},
-		{"нулевой таймаут", DefaultPostboxAddress, "key-id", "key-secret", "info@russia-heroes.ru", 0},
+		{"пустой ключ", "postbox.cloud.yandex.net:587", "", "key-secret", "info@russia-heroes.ru", time.Second},
+		{"пустой секрет", "postbox.cloud.yandex.net:587", "key-id", "", "info@russia-heroes.ru", time.Second},
+		{"кривой отправитель", "postbox.cloud.yandex.net:587", "key-id", "key-secret", "не адрес", time.Second},
+		{"нулевой таймаут", "postbox.cloud.yandex.net:587", "key-id", "key-secret", "info@russia-heroes.ru", 0},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

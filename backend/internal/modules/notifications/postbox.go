@@ -16,9 +16,6 @@ import (
 	"time"
 )
 
-// DefaultPostboxAddress - SMTP-вход Yandex Cloud Postbox, порт 587 работает через STARTTLS.
-const DefaultPostboxAddress = "postbox.cloud.yandex.net:587"
-
 const base64LineLength = 76
 
 // PostboxSender отправляет письма через Yandex Cloud Postbox по SMTP.
@@ -63,7 +60,7 @@ func (sender *PostboxSender) Send(ctx context.Context, message Email) error {
 
 	connection, err := (&net.Dialer{}).DialContext(ctx, "tcp", sender.address)
 	if err != nil {
-		return errors.New("Postbox: соединение не установлено")
+		return errors.New("postbox: соединение не установлено")
 	}
 	// net/smtp не знает про context, дедлайн на соединении - единственный способ не зависнуть.
 	if deadline, ok := ctx.Deadline(); ok {
@@ -78,7 +75,7 @@ func (sender *PostboxSender) Send(ctx context.Context, message Email) error {
 
 	// Без STARTTLS ключ ушёл бы открытым текстом: отказываемся, а не продолжаем.
 	if ok, _ := client.Extension("STARTTLS"); !ok {
-		return errors.New("Postbox: сервер не предлагает STARTTLS")
+		return errors.New("postbox: сервер не предлагает STARTTLS")
 	}
 	if err := client.StartTLS(&tls.Config{ServerName: sender.host, MinVersion: tls.VersionTLS12}); err != nil {
 		return smtpFailure("STARTTLS", err)
@@ -163,7 +160,7 @@ func buildLetter(from string, message Email) ([]byte, error) {
 func smtpFailure(stage string, err error) error {
 	var protocolError *textproto.Error
 	if errors.As(err, &protocolError) {
-		return fmt.Errorf("Postbox: %s, SMTP %d", stage, protocolError.Code)
+		return fmt.Errorf("postbox: %s, SMTP %d", stage, protocolError.Code)
 	}
-	return fmt.Errorf("Postbox: %s", stage)
+	return fmt.Errorf("postbox: %s", stage)
 }

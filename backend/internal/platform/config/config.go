@@ -12,6 +12,8 @@ import (
 const (
 	development = "development"
 	production  = "production"
+	// defaultPostboxAddress - SMTP-вход Yandex Cloud Postbox, порт 587 работает через STARTTLS.
+	defaultPostboxAddress = "postbox.cloud.yandex.net:587"
 )
 
 type Config struct {
@@ -38,7 +40,9 @@ type Config struct {
 	SiteRenderBaseURL   string
 	SitePreviewBaseURL  string
 	SitePublicBaseURL   string
-	ResendAPIKey        string
+	PostboxAddress      string
+	PostboxKeyID        string
+	PostboxSecret       string
 	EmailFrom           string
 	TelegramBotToken    string
 	TelegramAdminChatID string
@@ -69,7 +73,9 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		SiteRenderBaseURL:   strings.TrimRight(strings.TrimSpace(getenv("SITE_RENDER_BASE_URL")), "/"),
 		SitePreviewBaseURL:  strings.TrimRight(strings.TrimSpace(getenv("SITE_PREVIEW_BASE_URL")), "/"),
 		SitePublicBaseURL:   strings.TrimRight(strings.TrimSpace(getenv("SITE_PUBLIC_BASE_URL")), "/"),
-		ResendAPIKey:        strings.TrimSpace(getenv("RESEND_API_KEY")),
+		PostboxAddress:      valueOrDefault(getenv, "POSTBOX_SMTP_ADDRESS", defaultPostboxAddress),
+		PostboxKeyID:        strings.TrimSpace(getenv("POSTBOX_KEY_ID")),
+		PostboxSecret:       strings.TrimSpace(getenv("POSTBOX_SECRET")),
 		EmailFrom:           strings.TrimSpace(getenv("EMAIL_FROM")),
 		TelegramBotToken:    strings.TrimSpace(getenv("TG_BOT_TOKEN")),
 		TelegramAdminChatID: strings.TrimSpace(getenv("TG_ADMIN_CHAT_ID")),
@@ -167,8 +173,8 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 			return Config{}, err
 		}
 	}
-	if (cfg.ResendAPIKey == "") != (cfg.EmailFrom == "") {
-		return Config{}, errors.New("RESEND_API_KEY и EMAIL_FROM должны быть указаны вместе")
+	if (cfg.PostboxKeyID == "") != (cfg.PostboxSecret == "") || (cfg.PostboxKeyID == "") != (cfg.EmailFrom == "") {
+		return Config{}, errors.New("POSTBOX_KEY_ID, POSTBOX_SECRET и EMAIL_FROM должны быть указаны вместе")
 	}
 	if (cfg.TelegramBotToken == "") != (cfg.TelegramAdminChatID == "") {
 		return Config{}, errors.New("TG_BOT_TOKEN и TG_ADMIN_CHAT_ID должны быть указаны вместе")
@@ -296,7 +302,9 @@ func validateProduction(cfg Config) error {
 		{"SITE_RENDER_BASE_URL", cfg.SiteRenderBaseURL},
 		{"SITE_PREVIEW_BASE_URL", cfg.SitePreviewBaseURL},
 		{"SITE_PUBLIC_BASE_URL", cfg.SitePublicBaseURL},
-		{"RESEND_API_KEY", cfg.ResendAPIKey},
+		{"POSTBOX_SMTP_ADDRESS", cfg.PostboxAddress},
+		{"POSTBOX_KEY_ID", cfg.PostboxKeyID},
+		{"POSTBOX_SECRET", cfg.PostboxSecret},
 		{"EMAIL_FROM", cfg.EmailFrom},
 		{"TG_BOT_TOKEN", cfg.TelegramBotToken},
 		{"TG_ADMIN_CHAT_ID", cfg.TelegramAdminChatID},

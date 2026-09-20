@@ -1,9 +1,7 @@
 package notifications
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,10 +11,7 @@ import (
 	"time"
 )
 
-const (
-	resendAPIURL   = "https://api.resend.com/emails"
-	telegramAPIURL = "https://api.telegram.org"
-)
+const telegramAPIURL = "https://api.telegram.org"
 
 var (
 	ErrInvalidMessage      = errors.New("invalid notification message")
@@ -25,57 +20,6 @@ var (
 
 type httpDoer interface {
 	Do(*http.Request) (*http.Response, error)
-}
-
-type resendRequest struct {
-	From    string   `json:"from"`
-	To      []string `json:"to"`
-	Subject string   `json:"subject"`
-	HTML    string   `json:"html"`
-}
-
-type ResendSender struct {
-	apiKey   string
-	from     string
-	client   httpDoer
-	endpoint string
-}
-
-func NewResendSender(apiKey, from string, timeout time.Duration) (*ResendSender, error) {
-	return newResendSender(apiKey, from, timeout, &http.Client{Timeout: timeout}, resendAPIURL)
-}
-
-func newResendSender(apiKey, from string, timeout time.Duration, client httpDoer, endpoint string) (*ResendSender, error) {
-	if strings.TrimSpace(apiKey) == "" || strings.TrimSpace(from) == "" || timeout <= 0 || !validHTTPEndpoint(endpoint) {
-		return nil, ErrInvalidSenderConfig
-	}
-	return &ResendSender{
-		apiKey: strings.TrimSpace(apiKey), from: strings.TrimSpace(from), client: client,
-		endpoint: strings.TrimRight(endpoint, "/"),
-	}, nil
-}
-
-func (sender *ResendSender) Send(ctx context.Context, message Email) error {
-	if len(message.To) == 0 || strings.TrimSpace(message.Subject) == "" || strings.TrimSpace(message.HTML) == "" {
-		return ErrInvalidMessage
-	}
-	body, err := json.Marshal(resendRequest{
-		From: sender.from, To: message.To, Subject: message.Subject, HTML: message.HTML,
-	})
-	if err != nil {
-		return ErrInvalidMessage
-	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, sender.endpoint, bytes.NewReader(body))
-	if err != nil {
-		return errors.New("create Resend request")
-	}
-	request.Header.Set("Authorization", "Bearer "+sender.apiKey)
-	request.Header.Set("Content-Type", "application/json")
-	response, err := sender.client.Do(request)
-	if err != nil {
-		return errors.New("send Resend request")
-	}
-	return finishResponse(response, "Resend")
 }
 
 type TelegramSenderClient struct {
