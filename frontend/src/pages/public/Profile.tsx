@@ -192,7 +192,7 @@ export const ProfilePage: React.FC = () => {
                 <Avatar seed={me.id} size={32} />
                 {!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
               </Link>
-              <button type="button" className="pm-btn-text" onClick={() => { logoutUser(); setMe(null) }}>Выйти</button>
+              <button type="button" className="pm-btn-text" onClick={() => { void logoutUser().then(() => navigate('/map')) }}>Выйти</button>
             </span>
           : <Link to="/login" className="pm-btn-text">Войти</Link>}
         {!mobile && <Link to="/map?propose=1" className="pm-btn-ghost pm-pill">Предложить событие</Link>}

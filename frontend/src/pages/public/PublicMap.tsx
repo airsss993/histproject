@@ -94,7 +94,8 @@ export const PublicMap: React.FC = () => {
     fetchMe(ac.signal).then(setMe, () => {})
     return () => ac.abort()
   }, [])
-  const logout = () => { logoutUser(); setMe(null) }
+  // Сначала ответ сервера, потом сброс: иначе следующий fetchMe успеет вернуть ещё живую сессию.
+  const logout = async () => { await logoutUser(); setMe(null) }
 
   useEffect(() => {
     const ac = new AbortController()
