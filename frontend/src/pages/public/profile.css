@@ -72,13 +72,13 @@
   transition: transform 160ms ease-out, border-color 160ms ease-out;
 }
 .pf-tile:hover { transform: translateY(-3px); border-color: var(--gold-line); }
-/* Рамка обрезает превью: при наведении оно увеличивается и иначе вылезло бы на подпись. */
 .pf-tile-frame { display: block; overflow: hidden; }
+/* Превью на наведении только светлеет: масштаб внутри обрезающей рамки давал светлую щель по нижнему краю. */
 .pf-tile-shot {
   display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top center;
-  filter: brightness(0.82) saturate(0.85); transition: transform 240ms ease-out, filter 240ms ease-out;
+  filter: brightness(0.82) saturate(0.85); transition: filter 240ms ease-out;
 }
-.pf-tile:hover .pf-tile-shot { transform: scale(1.03); filter: none; }
+.pf-tile:hover .pf-tile-shot { filter: none; }
 .pf-tile-body { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 6px; }
 /* Светлые скриншоты сайтов гасим к низу, иначе на тёмной странице это белые прямоугольники. */
 .pf-tile-body::before {
