@@ -28,6 +28,7 @@ func (handler *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/users/login", handler.login)
 	mux.HandleFunc("POST /api/v1/users/verify", handler.verify)
 	mux.HandleFunc("GET /api/v1/users/me", handler.me)
+	mux.HandleFunc("GET /api/v1/users/{id}", handler.profile)
 	mux.HandleFunc("POST /api/v1/users/logout", handler.logout)
 }
 
@@ -94,6 +95,21 @@ func (handler *Handler) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = httpserver.WriteJSON(w, http.StatusOK, map[string]any{"user": user})
+}
+
+// profile - публичный профиль автора. Заявки в нём режет сервис: гостю только опубликованные.
+func (handler *Handler) profile(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		_ = httpserver.WriteError(w, http.StatusNotFound, "user_not_found", "Аккаунт не найден", nil)
+		return
+	}
+	profile, err := handler.service.Profile(r.Context(), id, sessionToken(r))
+	if err != nil {
+		handler.writeError(w, r, err)
+		return
+	}
+	_ = httpserver.WriteJSON(w, http.StatusOK, profile)
 }
 
 func (handler *Handler) logout(w http.ResponseWriter, r *http.Request) {

@@ -80,12 +80,13 @@ type Service struct {
 	repository Repository
 	store      Store
 	mailer     Mailer
+	works      Works
 	sessionTTL time.Duration
 	newCode    func() (string, error)
 }
 
-func NewService(repository Repository, store Store, mailer Mailer, sessionTTL time.Duration) *Service {
-	return &Service{repository: repository, store: store, mailer: mailer, sessionTTL: sessionTTL, newCode: newCode}
+func NewService(repository Repository, store Store, mailer Mailer, works Works, sessionTTL time.Duration) *Service {
+	return &Service{repository: repository, store: store, mailer: mailer, works: works, sessionTTL: sessionTTL, newCode: newCode}
 }
 
 type RegisterInput struct {

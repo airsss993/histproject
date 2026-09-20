@@ -40,6 +40,7 @@ type Store interface {
 	Get(context.Context, int64) (Submission, error)
 	List(context.Context, ListFilter) (SubmissionPage, error)
 	Transition(context.Context, Transition) (Submission, error)
+	ByAuthor(context.Context, string) ([]Submission, error)
 	Delete(context.Context, int64) error
 	AuditLog(context.Context, AuditFilter) (AuditPage, error)
 }
@@ -134,6 +135,15 @@ func (service *Service) List(ctx context.Context, filter ListFilter) (Submission
 	}
 	filter.Search = strings.TrimSpace(filter.Search)
 	return service.store.List(ctx, filter)
+}
+
+// ByAuthor - заявки автора для профиля. Почту приводим к нижнему регистру: в учётке она такая.
+func (service *Service) ByAuthor(ctx context.Context, email string) ([]Submission, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" {
+		return nil, nil
+	}
+	return service.store.ByAuthor(ctx, email)
 }
 
 func (service *Service) Get(ctx context.Context, id int64) (Submission, error) {
