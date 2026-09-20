@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Logo, useIsMobile } from './PublicMap.tsx'
+import { Logo, ROMAN, useIsMobile } from './PublicMap.tsx'
+import { PinShape } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import {
@@ -47,7 +48,54 @@ const plural = (n: number, one: string, few: string, many: string) => {
   return d === 1 && h !== 11 ? one : d >= 2 && d <= 4 && (h < 12 || h > 14) ? few : many
 }
 
-const WorkCard: React.FC<{ work: Work; owner: boolean }> = ({ work, owner }) => {
+// Шкала веков IX-XXI, та же, что на карте: 801 год - левый край, 2100 - правый.
+const RAIL_FROM = 801, RAIL_TO = 2100
+const yearOfWork = (work: Work) => parseInt(work.eventDate.slice(0, 4), 10)
+const roman = (year: number) => ROMAN[Math.ceil(year / 100) - 9] ?? ''
+
+const span = (works: Work[]) => {
+  if (works.length === 0) return ''
+  const years = works.map(yearOfWork)
+  const from = roman(Math.min(...years)), to = roman(Math.max(...years))
+  return from === to ? `${from} век` : `${from}-${to} век`
+}
+
+// События автора на шкале веков: та же капля, что стоит на карте, на своём годе.
+const Timeline: React.FC<{ works: Work[] }> = ({ works }) => (
+  <div className="pf-rail" aria-hidden="true">
+    <div className="pf-rail-pins">
+      {works.map(work => {
+        const year = Math.min(RAIL_TO, Math.max(RAIL_FROM, yearOfWork(work)))
+        return (
+          <span key={work.id} className="pf-pin" style={{ left: `${((year - RAIL_FROM) / (RAIL_TO - RAIL_FROM)) * 100}%` }}
+            title={`${work.title} · ${formatDate(work.eventDate)}`}>
+            <svg viewBox="0 0 64 64" width="16" height="16"><PinShape type={work.eventType} size={16} /></svg>
+          </span>
+        )
+      })}
+    </div>
+    <div className="pf-rail-scale">{ROMAN.map(n => <span key={n}>{n}</span>)}</div>
+  </div>
+)
+
+// Опубликованная работа - плитка-витрина: главное в ней превью сайта, а не строка с датой.
+const Tile: React.FC<{ work: Work }> = ({ work }) => (
+  <a className="pf-tile pm-glass" href={work.siteUrl} target="_blank" rel="noreferrer">
+    <span className="pf-tile-frame">
+      {work.screenshotUrl
+        ? <img className="pf-tile-shot" src={work.screenshotUrl} alt="" loading="lazy" />
+        : <span className="pf-tile-shot pm-hatch" />}
+    </span>
+    <span className="pf-tile-body">
+      <span className="pf-tile-title">{work.title}</span>
+      <span className="pm-dim-text">{TYPE_LABEL[work.eventType]} · {formatDate(work.eventDate)}</span>
+    </span>
+    <span className="pf-tile-go">Открыть сайт</span>
+  </a>
+)
+
+// Незавершённая заявка - строка с путём, как в референсе отслеживания заказа. Видит только автор.
+const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
   const status = STATUS[work.status]
   return (
     <article className="pf-card pm-glass">
@@ -57,25 +105,21 @@ const WorkCard: React.FC<{ work: Work; owner: boolean }> = ({ work, owner }) => 
       <div className="pf-card-body">
         <h3>{work.title}</h3>
         <p className="pm-dim-text">
-          {TYPE_LABEL[work.eventType]} &middot; {formatDate(work.eventDate)}{owner && ` · заявка №${work.id}`}
+          {TYPE_LABEL[work.eventType]} &middot; {formatDate(work.eventDate)} &middot; заявка №{work.id}
         </p>
-        {owner && work.comment && <p className="pf-comment">{work.comment}</p>}
+        {work.comment && <p className="pf-comment">{work.comment}</p>}
         <div className="pf-actions">
-          {work.status === 'published' && work.siteUrl && (
-            <a className="pm-btn-ghost pm-pill" href={work.siteUrl} target="_blank" rel="noreferrer">Открыть сайт</a>
-          )}
-          {owner && work.status === 'rejected' && (
+          {work.status === 'rejected' && (
             <Link className="pm-btn-ghost pm-pill" to="/map?propose=1">Отправить заново</Link>
           )}
         </div>
       </div>
       <div className="pf-card-side">
-        {/* Гостю статус не нужен: у него в списке только опубликованное. */}
-        {owner && <StatusChip status={work.status} />}
+        <StatusChip status={work.status} />
         <span className="pm-dim-text">{formatDate(work.createdAt)}</span>
       </div>
-      {/* Полоса пути - только пока заявка идёт: у опубликованной и отклонённой всё сказано чипом. */}
-      {owner && status.step < 1 && (
+      {/* Полоса пути - только пока заявка идёт: у отклонённой всё сказано чипом и замечанием. */}
+      {status.step < 1 && (
         <div className={`pf-track ${status.tone}`} style={{ '--p': `${status.step * 100}%` } as React.CSSProperties}>
           <i />
           <span className="pm-dim-text">{status.note}</span>
@@ -84,6 +128,10 @@ const WorkCard: React.FC<{ work: Work; owner: boolean }> = ({ work, owner }) => 
     </article>
   )
 }
+
+const Title: React.FC<{ count: number; children: React.ReactNode }> = ({ count, children }) => (
+  <h2 className="pf-title">{children}<span className="pf-count">{count}</span></h2>
+)
 
 export const ProfilePage: React.FC = () => {
   const { id } = useParams()
@@ -115,8 +163,9 @@ export const ProfilePage: React.FC = () => {
   const profile = state.k === 'ready' ? state.profile : null
   const works = profile?.works ?? []
   const owner = !!profile?.owner
-  const published = works.filter(w => w.status === 'published').length
-  const inWork = works.filter(w => w.status === 'processing' || w.status === 'new' || w.status === 'review').length
+  const published = works.filter(w => w.status === 'published')
+  const pending = works.filter(w => w.status !== 'published')
+  const inWork = pending.filter(w => w.status !== 'rejected').length
 
   return (
     <div className="pm-root pf-page">
@@ -148,38 +197,44 @@ export const ProfilePage: React.FC = () => {
         {profile && (
           <>
             <section className="pf-hero pm-glass">
-              <Avatar seed={profile.user.id} size={mobile ? 72 : 96} className="pf-avatar" />
+              <Avatar seed={profile.user.id} size={mobile ? 72 : 104} className="pf-avatar" />
               <div className="pf-hero-name">
                 <h1>{profile.user.firstName} {profile.user.lastName}</h1>
-                <p className="pm-dim-text">На карте с {joined(profile.user.createdAt)}</p>
+                <p className="pm-dim-text">
+                  На карте с {joined(profile.user.createdAt)}
+                  {published.length > 0 && <> &middot; <span className="pf-nowrap">{span(published)}</span></>}
+                </p>
               </div>
               <dl className="pf-stats">
-                <div><dt>Опубликовано</dt><dd>{published}</dd></div>
+                <div><dt>Опубликовано</dt><dd>{published.length}</dd></div>
                 {owner && <div><dt>В работе</dt><dd>{inWork}</dd></div>}
                 {owner && <div><dt>Всего заявок</dt><dd>{works.length}</dd></div>}
               </dl>
+              {published.length > 0 && <Timeline works={published} />}
             </section>
 
-            {owner && inWork > 0 && (
-              <div className="pf-strip">
-                <Glyph status="review" />
-                {inWork} {plural(inWork, 'заявка ждёт', 'заявки ждут', 'заявок ждут')} модератора. Ответ придёт на почту.
-                <div className="pm-grow" />
-                <Link to="/map?propose=1" className="pm-btn pm-pill">Предложить ещё</Link>
-              </div>
+            {owner && pending.length > 0 && (
+              <>
+                {inWork > 0 && (
+                  <div className="pf-strip">
+                    <Glyph status="review" />
+                    {inWork} {plural(inWork, 'заявка ждёт', 'заявки ждут', 'заявок ждут')} модератора. Ответ придёт на почту.
+                    <div className="pm-grow" />
+                    <Link to="/map?propose=1" className="pm-btn pm-pill">Предложить ещё</Link>
+                  </div>
+                )}
+                <Title count={pending.length}>В работе</Title>
+                <div className="pf-list">{pending.map(w => <WorkCard key={w.id} work={w} />)}</div>
+              </>
             )}
 
-            <h2 className="pf-title">
-              {owner ? 'Мои заявки' : 'Опубликованные сайты'}
-              <span className="pf-count">{works.length}</span>
-            </h2>
-
-            {works.length === 0
+            <Title count={published.length}>{owner ? 'Опубликовано' : 'Сайты на карте'}</Title>
+            {published.length === 0
               ? <div className="pf-note pm-glass">
-                  {owner ? 'Вы ещё не предлагали события.' : 'У автора пока нет опубликованных сайтов.'}
+                  {owner ? 'Пока ни одного сайта на карте. Предложите событие - и оно появится здесь.' : 'У автора пока нет опубликованных сайтов.'}
                   {owner && <Link to="/map?propose=1" className="pm-btn pm-pill">Предложить событие</Link>}
                 </div>
-              : <div className="pf-list">{works.map(w => <WorkCard key={w.id} work={w} owner={owner} />)}</div>}
+              : <div className="pf-gallery">{published.map(w => <Tile key={w.id} work={w} />)}</div>}
           </>
         )}
       </main>

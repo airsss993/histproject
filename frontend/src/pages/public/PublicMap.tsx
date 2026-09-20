@@ -10,7 +10,7 @@ import './public.css'
 
 export const MIN_YEAR = 862
 export const MAX_YEAR = 2026
-const ROMAN = ['IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI']
+export const ROMAN = ['IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI']
 const PRESETS: [number, number][] = [[862, 988], [1237, 1480], [1380, 1917], [1700, 1800], [1914, 1945], [1991, MAX_YEAR]]
 
 const yearLabel = (y: number) => (y >= MAX_YEAR ? 'н.в.' : String(y))
