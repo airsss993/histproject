@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 )
@@ -53,8 +54,13 @@ func (service *Service) Profile(ctx context.Context, id int64, token string) (Pr
 		return Profile{}, err
 	}
 	owner := false
-	if viewer, viewerErr := service.Authenticate(ctx, token); viewerErr == nil {
+	viewer, viewerErr := service.Authenticate(ctx, token)
+	switch {
+	case viewerErr == nil:
 		owner = viewer.ID == user.ID
+	case !errors.Is(viewerErr, ErrNoSession):
+		// Сбой хранилища сессий отдаём ошибкой: иначе владелец молча получает гостевой профиль без своих заявок.
+		return Profile{}, viewerErr
 	}
 	works := []Work{}
 	if service.works != nil {
