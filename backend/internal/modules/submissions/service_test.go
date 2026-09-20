@@ -302,6 +302,8 @@ type submissionStoreStub struct {
 	getSubmission     Submission
 	getError          error
 	deletedID         int64
+	authorEmail       string
+	authorSubmissions []Submission
 }
 
 func (stub *submissionStoreStub) Create(_ context.Context, record CreateRecord) (Submission, error) {
@@ -327,6 +329,11 @@ func (stub *submissionStoreStub) Delete(_ context.Context, id int64) error {
 
 func (stub *submissionStoreStub) List(context.Context, ListFilter) (SubmissionPage, error) {
 	return SubmissionPage{}, nil
+}
+
+func (stub *submissionStoreStub) ByAuthor(_ context.Context, email string) ([]Submission, error) {
+	stub.authorEmail = email
+	return stub.authorSubmissions, nil
 }
 
 func (stub *submissionStoreStub) AuditLog(context.Context, AuditFilter) (AuditPage, error) {
@@ -390,4 +397,28 @@ func mustSubmissionDate(t *testing.T, value string) time.Time {
 		t.Fatalf("parse date: %v", err)
 	}
 	return date
+}
+
+func TestServiceByAuthorNormalizesEmail(t *testing.T) {
+	store := &submissionStoreStub{authorSubmissions: []Submission{{ID: 7}}}
+	service := NewService(store, nil, nil, nil, nil, "")
+
+	items, err := service.ByAuthor(context.Background(), "  Ivan@Example.RU ")
+	if err != nil {
+		t.Fatalf("ByAuthor: %v", err)
+	}
+	if store.authorEmail != "ivan@example.ru" {
+		t.Fatalf("store got email %q, want lowercase trimmed", store.authorEmail)
+	}
+	if len(items) != 1 || items[0].ID != 7 {
+		t.Fatalf("got %v, want one submission with ID 7", items)
+	}
+
+	store.authorEmail = "not called"
+	if items, err = service.ByAuthor(context.Background(), "   "); err != nil || items != nil {
+		t.Fatalf("empty email: got %v, %v; want nil, nil", items, err)
+	}
+	if store.authorEmail != "not called" {
+		t.Fatal("empty email must not reach the store")
+	}
 }

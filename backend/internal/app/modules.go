@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/airsss993/histproject/backend/internal/modules/admins"
 	"github.com/airsss993/histproject/backend/internal/modules/auth"
@@ -64,7 +65,10 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		cfg.MaxUploadBytes,
 	)
 	userHandler := users.NewHandler(
-		users.NewService(users.NewRepository(databaseClient.Pool()), users.NewStore(redisClient.Client()), NewCodeMailer(cfg, logger), cfg.SessionTTL),
+		users.NewService(
+			users.NewRepository(databaseClient.Pool()), users.NewStore(redisClient.Client()),
+			NewCodeMailer(cfg, logger), authorWorks{service: submissionService}, cfg.SessionTTL,
+		),
 		logger,
 		cfg.CookieDomain,
 	)
@@ -88,6 +92,27 @@ func (modules Modules) Register(mux *http.ServeMux) {
 	if modules.users != nil {
 		modules.users.Register(mux)
 	}
+}
+
+// authorWorks отдаёт профилю заявки автора: модуль users не ходит в таблицы submissions сам.
+type authorWorks struct {
+	service *submissions.Service
+}
+
+func (works authorWorks) ByAuthor(ctx context.Context, email string) ([]users.Work, error) {
+	found, err := works.service.ByAuthor(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]users.Work, 0, len(found))
+	for _, submission := range found {
+		items = append(items, users.Work{
+			ID: submission.ID, Title: submission.Title, EventDate: submission.EventDate.Format(time.DateOnly),
+			EventType: submission.EventType, Status: string(submission.Status), SiteURL: submission.SiteURL,
+			ScreenshotURL: submission.ScreenshotURL, Comment: submission.AdminComment, CreatedAt: submission.CreatedAt,
+		})
+	}
+	return items, nil
 }
 
 type submissionEventPublisher struct {

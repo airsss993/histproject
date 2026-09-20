@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
@@ -9,7 +10,7 @@ import './public.css'
 
 export const MIN_YEAR = 862
 export const MAX_YEAR = 2026
-const ROMAN = ['IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI']
+export const ROMAN = ['IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI']
 const PRESETS: [number, number][] = [[862, 988], [1237, 1480], [1380, 1917], [1700, 1800], [1914, 1945], [1991, MAX_YEAR]]
 
 const yearLabel = (y: number) => (y >= MAX_YEAR ? 'н.в.' : String(y))
@@ -93,7 +94,8 @@ export const PublicMap: React.FC = () => {
     fetchMe(ac.signal).then(setMe, () => {})
     return () => ac.abort()
   }, [])
-  const logout = () => { logoutUser(); setMe(null) }
+  // Сначала ответ сервера, потом сброс: иначе следующий fetchMe успеет вернуть ещё живую сессию.
+  const logout = async () => { await logoutUser(); setMe(null) }
 
   useEffect(() => {
     const ac = new AbortController()
@@ -187,7 +189,11 @@ export const PublicMap: React.FC = () => {
           <div className="pm-grow" />
           <Link to="/about" className="pm-btn-text">О проекте</Link>
           {me
-            ? <span className="pm-user">{!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
+            ? <span className="pm-user">
+                <Link to={`/u/${me.id}`} className="pm-user-link" title="Мой профиль">
+                  <Avatar seed={me.id} size={32} />
+                  {!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
+                </Link>
                 <button type="button" className="pm-btn-text" onClick={logout}>Выйти</button></span>
             : <Link to="/login" className="pm-btn-text">Войти</Link>}
           {!mobile && <button type="button" className={`pm-btn-ghost pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}

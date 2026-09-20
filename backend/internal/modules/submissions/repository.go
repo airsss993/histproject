@@ -44,6 +44,28 @@ func (repository *Repository) Get(ctx context.Context, id int64) (Submission, er
 	return submission, nil
 }
 
+// ByAuthor отдаёт заявки автора, новые сверху. Регистр почты в заявке какой набрали, в учётке - нижний.
+func (repository *Repository) ByAuthor(ctx context.Context, email string) ([]Submission, error) {
+	rows, err := repository.pool.Query(ctx, submissionSelect+`
+		WHERE LOWER(email) = $1 ORDER BY created_at DESC, id DESC`, email)
+	if err != nil {
+		return nil, fmt.Errorf("list author submissions: %w", err)
+	}
+	defer rows.Close()
+	items := make([]Submission, 0)
+	for rows.Next() {
+		submission, err := scanSubmission(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan author submission: %w", err)
+		}
+		items = append(items, submission)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate author submissions: %w", err)
+	}
+	return items, nil
+}
+
 func (repository *Repository) List(ctx context.Context, filter ListFilter) (SubmissionPage, error) {
 	where, args := submissionWhere(filter.Status, filter.Search)
 	var total int64

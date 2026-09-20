@@ -12,7 +12,7 @@ func TestRegisterVerifyLoginFlow(t *testing.T) {
 	repo := &memoryRepository{}
 	store := &memoryStore{codes: map[string]Pending{}, counts: map[string]int{}, sessions: map[string]int64{}}
 	mailer := &lastCode{}
-	service := NewService(repo, store, mailer, 12*time.Hour)
+	service := NewService(repo, store, mailer, nil, 12*time.Hour)
 
 	var fields ValidationError
 	if err := service.Register(ctx, RegisterInput{FirstName: " ", LastName: "Ivanov1", Email: "bad"}, "ip"); !errors.As(err, &fields) || len(fields) != 3 {
@@ -152,4 +152,48 @@ type lastCode struct{ email, code string }
 func (m *lastCode) SendCode(_ context.Context, email, code string) error {
 	m.email, m.code = email, code
 	return nil
+}
+
+type worksStub struct {
+	email string
+	works []Work
+}
+
+func (stub *worksStub) ByAuthor(_ context.Context, email string) ([]Work, error) {
+	stub.email = email
+	return stub.works, nil
+}
+
+func TestProfileHidesUnpublishedFromGuest(t *testing.T) {
+	ctx := t.Context()
+	repo := &memoryRepository{users: []User{{ID: 1, Email: "anna@example.ru", FirstName: "Анна", LastName: "Петрова"}}}
+	store := &memoryStore{codes: map[string]Pending{}, counts: map[string]int{}, sessions: map[string]int64{"token": 1}}
+	works := &worksStub{works: []Work{
+		{ID: 5, Status: "published", Comment: "опубликовано"},
+		{ID: 6, Status: "rejected", Comment: "архив без index.html"},
+	}}
+	service := NewService(repo, store, &lastCode{}, works, 12*time.Hour)
+
+	owner, err := service.Profile(ctx, 1, "token")
+	if err != nil {
+		t.Fatalf("Profile() owner error = %v", err)
+	}
+	if !owner.Owner || len(owner.Works) != 2 || owner.Works[1].Comment == "" {
+		t.Fatalf("owner profile = %+v, want both works with comments", owner)
+	}
+	if works.email != "anna@example.ru" {
+		t.Fatalf("works asked for %q", works.email)
+	}
+
+	guest, err := service.Profile(ctx, 1, "")
+	if err != nil {
+		t.Fatalf("Profile() guest error = %v", err)
+	}
+	if guest.Owner || len(guest.Works) != 1 || guest.Works[0].ID != 5 || guest.Works[0].Comment != "" {
+		t.Fatalf("guest profile = %+v, want one published work without comment", guest)
+	}
+
+	if _, err := service.Profile(ctx, 404, ""); !errors.Is(err, ErrUserNotFound) {
+		t.Fatalf("unknown user error = %v, want ErrUserNotFound", err)
+	}
 }
