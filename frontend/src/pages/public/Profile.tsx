@@ -150,6 +150,7 @@ export const ProfilePage: React.FC = () => {
   const [state, setState] = useState<{ k: 'load' } | { k: 'ready'; profile: Profile } | { k: 'none' } | { k: 'error' }>({ k: 'load' })
   const [me, setMe] = useState<User | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
+  const [retry, setRetry] = useState(0)
 
   useEffect(() => {
     const ac = new AbortController()
@@ -166,7 +167,7 @@ export const ProfilePage: React.FC = () => {
       (e: Error) => { if (e.name !== 'AbortError') setState({ k: 'error' }) },
     )
     return () => ac.abort()
-  }, [userId])
+  }, [userId, retry])
 
   if (state.k === 'none') return <NotFound path={`/u/${id}`} kind="profile" />
 
@@ -203,7 +204,7 @@ export const ProfilePage: React.FC = () => {
         {state.k === 'error' && (
           <div className="pf-note pm-glass">
             Нет связи с сервером
-            <button type="button" className="pm-btn-ghost pm-pill" onClick={() => setState({ k: 'load' })}>Повторить</button>
+            <button type="button" className="pm-btn-ghost pm-pill" onClick={() => setRetry(n => n + 1)}>Повторить</button>
           </div>
         )}
 
