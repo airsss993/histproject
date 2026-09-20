@@ -112,6 +112,9 @@
 .pm-logo-text { font: 500 14px var(--ui); letter-spacing: 0.16em; text-transform: uppercase; }
 .pm-user { display: flex; align-items: center; gap: 4px; }
 .pm-user-name { font: 400 14px var(--ui); color: var(--text-2); white-space: nowrap; }
+.pm-user-link { color: var(--text-2); display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 999px; transition: background 120ms ease-out; }
+.pm-user-link:hover { background: var(--gold-wash); }
+.pm-user-link svg { border-radius: 999px; }
 
 .pm-badge {
   min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px;

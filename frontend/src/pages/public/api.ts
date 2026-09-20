@@ -127,3 +127,31 @@ export async function zipHasRootIndex(file: Blob): Promise<boolean> {
   }
   return false
 }
+
+export type WorkStatus = 'processing' | 'new' | 'review' | 'rejected' | 'published'
+
+export interface Work {
+  id: number
+  title: string
+  eventDate: string
+  eventType: EventType
+  status: WorkStatus
+  siteUrl: string
+  screenshotUrl: string
+  comment?: string
+  createdAt: string
+}
+
+export interface Profile {
+  user: { id: number; firstName: string; lastName: string; createdAt: string }
+  owner: boolean
+  works: Work[]
+}
+
+// null - такого автора нет (404).
+export async function fetchProfile(id: number, signal: AbortSignal): Promise<Profile | null> {
+  const res = await fetch(`${API}/users/${id}`, { signal, credentials: 'include' })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`profile ${id}: HTTP ${res.status}`)
+  return res.json()
+}

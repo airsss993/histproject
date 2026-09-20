@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
@@ -187,7 +188,11 @@ export const PublicMap: React.FC = () => {
           <div className="pm-grow" />
           <Link to="/about" className="pm-btn-text">О проекте</Link>
           {me
-            ? <span className="pm-user">{!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
+            ? <span className="pm-user">
+                <Link to={`/u/${me.id}`} className="pm-user-link" title="Мой профиль">
+                  <Avatar seed={me.id} size={32} />
+                  {!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
+                </Link>
                 <button type="button" className="pm-btn-text" onClick={logout}>Выйти</button></span>
             : <Link to="/login" className="pm-btn-text">Войти</Link>}
           {!mobile && <button type="button" className={`pm-btn-ghost pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}

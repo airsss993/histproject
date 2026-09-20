@@ -7,7 +7,14 @@ import './public.css'
 const noop = () => {}
 const none = () => false
 
-export const NotFound: React.FC<{ path?: string; kind?: 'event' | 'page' }> = ({ path, kind = 'page' }) => {
+const TITLE = { event: 'Событие не найдено', profile: 'Автор не найден', page: 'Страница не найдена' }
+const TEXT = {
+  event: 'Событие удалено с карты или ссылка неверна.',
+  profile: 'Такой учётки нет или её удалили.',
+  page: 'Такой страницы нет.',
+}
+
+export const NotFound: React.FC<{ path?: string; kind?: 'event' | 'profile' | 'page' }> = ({ path, kind = 'page' }) => {
   const navigate = useNavigate()
   const loc = useLocation()
   return (
@@ -20,9 +27,9 @@ export const NotFound: React.FC<{ path?: string; kind?: 'event' | 'page' }> = ({
       </div>
       <main className="pm-404-body">
         <div className="pm-404-code">404</div>
-        <h1>{kind === 'event' ? 'Событие не найдено' : 'Страница не найдена'}</h1>
+        <h1>{TITLE[kind]}</h1>
         <p>
-          {kind === 'event' ? 'Событие удалено с карты или ссылка неверна.' : 'Такой страницы нет.'}
+          {TEXT[kind]}
           {' '}Вернитесь к карте - на ней события с IX по XXI век.
         </p>
         <div className="pm-row">
