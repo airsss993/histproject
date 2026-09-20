@@ -28,16 +28,25 @@ const ICON: Record<WorkStatus, string> = {
   rejected: 'M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9zM9 9l6 6M15 9l-6 6',
 }
 
-const Glyph: React.FC<{ status: WorkStatus }> = ({ status }) => (
+const Glyph: React.FC<{ d: string }> = ({ d }) => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
     strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d={ICON[status]} />
+    <path d={d} />
   </svg>
 )
 
 const StatusChip: React.FC<{ status: WorkStatus }> = ({ status }) => (
-  <span className={`pf-status ${STATUS[status].tone}`}><Glyph status={status} />{STATUS[status].label}</span>
+  <span className={`pf-status ${STATUS[status].tone}`}><Glyph d={ICON[status]} />{STATUS[status].label}</span>
 )
+
+// Фильтры заявок автора. Пустые группы не показываем, так что "ничего не найдено" недостижимо.
+type Filter = 'all' | 'published' | 'work' | 'rejected'
+const FILTERS: { key: Filter; label: string; icon: string; has: (work: Work) => boolean }[] = [
+  { key: 'all', label: 'Все', icon: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z', has: () => true },
+  { key: 'published', label: 'Опубликованы', icon: ICON.published, has: w => w.status === 'published' },
+  { key: 'work', label: 'В работе', icon: ICON.review, has: w => w.status !== 'published' && w.status !== 'rejected' },
+  { key: 'rejected', label: 'Отклонены', icon: ICON.rejected, has: w => w.status === 'rejected' },
+]
 
 // "20 марта 2026": месяц с числом склоняется, без числа Intl даёт именительный ("март 2026").
 const joined = (iso: string) =>
@@ -140,6 +149,7 @@ export const ProfilePage: React.FC = () => {
   const userId = Number(id)
   const [state, setState] = useState<{ k: 'load' } | { k: 'ready'; profile: Profile } | { k: 'none' } | { k: 'error' }>({ k: 'load' })
   const [me, setMe] = useState<User | null>(null)
+  const [filter, setFilter] = useState<Filter>('all')
 
   useEffect(() => {
     const ac = new AbortController()
@@ -164,8 +174,11 @@ export const ProfilePage: React.FC = () => {
   const works = profile?.works ?? []
   const owner = !!profile?.owner
   const published = works.filter(w => w.status === 'published')
-  const pending = works.filter(w => w.status !== 'published')
-  const inWork = pending.filter(w => w.status !== 'rejected').length
+  const inWork = works.filter(w => w.status !== 'published' && w.status !== 'rejected').length
+  // Разделы сами исчезают, когда фильтр их опустошает: отдельной ветки на каждый фильтр не нужно.
+  const shown = works.filter(FILTERS.find(f => f.key === filter)!.has)
+  const shownPending = shown.filter(w => w.status !== 'published')
+  const shownPublished = shown.filter(w => w.status === 'published')
 
   return (
     <div className="pm-root pf-page">
@@ -213,28 +226,51 @@ export const ProfilePage: React.FC = () => {
               {published.length > 0 && <Timeline works={published} />}
             </section>
 
-            {owner && pending.length > 0 && (
+            {owner && inWork > 0 && (
+              <div className="pf-strip">
+                <Glyph d={ICON.review} />
+                {inWork} {plural(inWork, 'заявка ждёт', 'заявки ждут', 'заявок ждут')} модератора. Ответ придёт на почту.
+                <div className="pm-grow" />
+                <Link to="/map?propose=1" className="pm-btn pm-pill">Предложить ещё</Link>
+              </div>
+            )}
+
+            {/* Гостю фильтровать нечего: у него в профиле только опубликованное. */}
+            {owner && works.length > 0 && (
+              <div className="pm-chips pf-filters" aria-label="Фильтр заявок">
+                {FILTERS.map(({ key, label, icon, has }) => {
+                  const count = works.filter(has).length
+                  if (count === 0 && key !== 'all') return null
+                  return (
+                    <button type="button" key={key} className={filter === key ? 'on' : ''}
+                      aria-pressed={filter === key} onClick={() => setFilter(key)}>
+                      <span className="pf-chip-i"><Glyph d={icon} /></span>{label}<span className="pf-chip-n">{count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {shownPending.length > 0 && (
               <>
-                {inWork > 0 && (
-                  <div className="pf-strip">
-                    <Glyph status="review" />
-                    {inWork} {plural(inWork, 'заявка ждёт', 'заявки ждут', 'заявок ждут')} модератора. Ответ придёт на почту.
-                    <div className="pm-grow" />
-                    <Link to="/map?propose=1" className="pm-btn pm-pill">Предложить ещё</Link>
-                  </div>
-                )}
-                <Title count={pending.length}>В работе</Title>
-                <div className="pf-list">{pending.map(w => <WorkCard key={w.id} work={w} />)}</div>
+                <Title count={shownPending.length}>Заявки</Title>
+                <div className="pf-list">{shownPending.map(w => <WorkCard key={w.id} work={w} />)}</div>
               </>
             )}
 
-            <Title count={published.length}>{owner ? 'Опубликовано' : 'Сайты на карте'}</Title>
-            {published.length === 0
-              ? <div className="pf-note pm-glass">
-                  {owner ? 'Пока ни одного сайта на карте. Предложите событие - и оно появится здесь.' : 'У автора пока нет опубликованных сайтов.'}
-                  {owner && <Link to="/map?propose=1" className="pm-btn pm-pill">Предложить событие</Link>}
-                </div>
-              : <div className="pf-gallery">{published.map(w => <Tile key={w.id} work={w} />)}</div>}
+            {shownPublished.length > 0 && (
+              <>
+                <Title count={shownPublished.length}>{owner ? 'Опубликовано' : 'Сайты на карте'}</Title>
+                <div className="pf-gallery">{shownPublished.map(w => <Tile key={w.id} work={w} />)}</div>
+              </>
+            )}
+
+            {works.length === 0 && (
+              <div className="pf-note pm-glass">
+                {owner ? 'Пока ни одного сайта на карте. Предложите событие - и оно появится здесь.' : 'У автора пока нет опубликованных сайтов.'}
+                {owner && <Link to="/map?propose=1" className="pm-btn pm-pill">Предложить событие</Link>}
+              </div>
+            )}
           </>
         )}
       </main>
