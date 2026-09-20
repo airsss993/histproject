@@ -299,6 +299,8 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   }, [selectedId, events, hasCallout])
 
   // Точки в экранных координатах; кластеризуем только активные, по сетке CELL.
+  // Сетку считаем в мировых пикселях, а не в экранных: от экранных состав кластеров и цифры
+  // менялись при каждом сдвиге карты. Группируем все метки, за край экрана отсекаем уже готовые.
   // ponytail: сеточная кластеризация O(n), на десятках тысяч меток понадобится supercluster.
   const view = useMemo(() => {
     type P = { e: HistEvent; x: number; y: number; lng: number }
@@ -309,28 +311,32 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     const wanted = new Set(anchorIds.split(',').map(Number))
     const { width, height } = map.getContainer().getBoundingClientRect()
     const center = map.getCenter().lng
+    const world = 512 * 2 ** map.getZoom()
+    const onScreen = (x: number, y: number) => x >= -CELL && y >= -CELL && x <= width + CELL && y <= height + CELL
     const cells = new Map<string, P[]>()
     for (const e of events) {
       // Берём копию мира, ближайшую к центру, иначе метки у 180-го меридиана уезжают за экран.
       const lng = e.longitude + 360 * Math.round((center - e.longitude) / 360)
       const { x, y } = map.project([lng, e.latitude])
       if (wanted.has(e.id)) anchors.set(e.id, { x, y })
-      if (x < -CELL || y < -CELL || x > width + CELL || y > height + CELL) continue
       const pt = { e, x, y, lng, active: isActive(e) }
       pts.push(pt)
       if (!pt.active) continue
-      const key = e.id === selectedId ? 'sel' : `${Math.floor(x / CELL)}:${Math.floor(y / CELL)}`
+      const w = maplibregl.MercatorCoordinate.fromLngLat([lng, e.latitude])
+      const key = e.id === selectedId ? 'sel'
+        : `${Math.floor((w.x * world) / CELL)}:${Math.floor((w.y * world) / CELL)}`
       cells.set(key, [...(cells.get(key) ?? []), pt])
     }
     const grouped = new Set<number>()
     for (const m of cells.values()) {
       if (m.length === 1) continue
       m.forEach(p => grouped.add(p.e.id))
-      clusters.push({ x: m.reduce((s, p) => s + p.x, 0) / m.length, y: m.reduce((s, p) => s + p.y, 0) / m.length, members: m })
+      const x = m.reduce((s, p) => s + p.x, 0) / m.length, y = m.reduce((s, p) => s + p.y, 0) / m.length
+      if (onScreen(x, y)) clusters.push({ x, y, members: m })
     }
     // Активные и неактивные одним списком в порядке events: при смене фильтра метка остаётся тем же
     // DOM-узлом и перекрашивается плавно, а не пересоздаётся.
-    const pins = pts.filter(p => !grouped.has(p.e.id))
+    const pins = pts.filter(p => !grouped.has(p.e.id) && onScreen(p.x, p.y))
     // Выбранную метку рисуем последней: в SVG порядок отрисовки задаёт порядок в документе,
     // иначе соседняя отфильтрованная метка перекрывает её вместе с кольцом.
     const sel = pins.findIndex(p => p.e.id === selectedId)
