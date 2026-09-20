@@ -44,10 +44,13 @@ func (repository *Repository) Get(ctx context.Context, id int64) (Submission, er
 	return submission, nil
 }
 
-// ByAuthor отдаёт заявки автора, новые сверху. Регистр почты в заявке какой набрали, в учётке - нижний.
+// ByAuthor отдаёт заявки автора, новые сверху. Регистр почты в заявке какой набрали, в учётке - нижний,
+// поэтому сравниваем через LOWER(email) - под это же выражение заведён submissions_email_idx.
+// ponytail: потолок 200 заявок вместо пагинации, профиль всё равно показывает их одним списком.
 func (repository *Repository) ByAuthor(ctx context.Context, email string) ([]Submission, error) {
 	rows, err := repository.pool.Query(ctx, submissionSelect+`
-		WHERE LOWER(email) = $1 ORDER BY created_at DESC, id DESC`, email)
+		WHERE LOWER(email) = $1 ORDER BY created_at DESC, id DESC
+		LIMIT 200`, email)
 	if err != nil {
 		return nil, fmt.Errorf("list author submissions: %w", err)
 	}

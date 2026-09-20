@@ -36,7 +36,7 @@ CREATE TABLE submissions.submissions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX submissions_email_idx ON submissions.submissions (email);
+CREATE INDEX submissions_email_idx ON submissions.submissions (LOWER(email));
 CREATE INDEX submissions_status_idx ON submissions.submissions (status);
 CREATE INDEX submissions_event_type_code_idx ON submissions.submissions (event_type_code);
 
