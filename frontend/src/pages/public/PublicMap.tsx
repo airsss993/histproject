@@ -190,8 +190,8 @@ export const PublicMap: React.FC = () => {
           <Link to="/about" className="pm-btn-text">О проекте</Link>
           {me
             ? <span className="pm-user">
-                <Link to={`/u/${me.id}`} className="pm-user-link" title="Мой профиль">
-                  <Avatar seed={me.id} size={32} />
+                <Link to={`/u/${me.publicId}`} className="pm-user-link" title="Мой профиль">
+                  <Avatar seed={me.publicId} size={32} />
                   {!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
                 </Link>
                 <button type="button" className="pm-btn-text" onClick={logout}>Выйти</button></span>

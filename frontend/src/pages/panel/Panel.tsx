@@ -176,7 +176,7 @@ const Submissions: React.FC<{ mobile: boolean }> = ({ mobile }) => {
                   <li key={s.id}>
                     <button type="button" className={`ad-row${selected?.id === s.id ? ' on' : ''}`} onClick={() => setSelected(s)}>
                       <span className="ad-row-head"><b>{s.title}</b><Badge status={s.status} /></span>
-                      <span className="ad-dim">#{s.id} · {TYPE_LABEL[s.eventType]} · {formatDate(s.eventDate)} · прислана {api.dateTime(s.createdAt)}</span>
+                      <span className="ad-dim">{s.publicId} · {TYPE_LABEL[s.eventType]} · {formatDate(s.eventDate)} · прислана {api.dateTime(s.createdAt)}</span>
                     </button>
                   </li>
                 ))}
@@ -283,7 +283,7 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
       )}
       <p className="ad-desc">{s.description}</p>
       <dl className="ad-facts">
-        <dt>Номер</dt><dd>#{s.id}</dd>
+        <dt>Номер</dt><dd>{s.publicId}</dd>
         <dt>Тип</dt><dd>{TYPE_LABEL[s.eventType]}</dd>
         <dt>Дата события</dt><dd>{formatDate(s.eventDate)}</dd>
         <dt>Точка автора</dt><dd>{s.latitude !== undefined ? `${s.latitude.toFixed(5)}, ${s.longitude!.toFixed(5)}` : 'не указана'}</dd>
@@ -365,7 +365,7 @@ const History: React.FC = () => {
             <ul className="ad-rows">
               {data.items.map(a => (
                 <li key={a.id} className="ad-row ad-log">
-                  <span className="ad-row-head"><b>{a.adminLogin} <span className={`ad-act ${a.action}`}>{ACTION_LABEL[a.action].toLowerCase()}</span> #{a.submissionId} {a.submissionTitle}</b></span>
+                  <span className="ad-row-head"><b>{a.adminLogin} <span className={`ad-act ${a.action}`}>{ACTION_LABEL[a.action].toLowerCase()}</span> {a.submissionPublicId} {a.submissionTitle}</b></span>
                   <span className="ad-dim">{api.dateTime(a.createdAt)} · {api.ROLE_LABEL[a.adminRole] ?? a.adminRole}</span>
                   {a.comment && <span className="ad-log-comment">{a.comment}</span>}
                 </li>

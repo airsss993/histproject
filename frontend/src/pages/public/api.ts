@@ -41,7 +41,7 @@ export async function fetchEvent(id: number, signal: AbortSignal): Promise<HistE
   return (await res.json()).event
 }
 
-export interface User { id: number; email: string; firstName: string; lastName: string }
+export interface User { id: number; publicId: string; email: string; firstName: string; lastName: string }
 
 export type ApiResult<T = unknown> =
   | { ok: true; data: T }
@@ -81,7 +81,7 @@ export async function fetchMe(signal: AbortSignal): Promise<User | null> {
 }
 
 export type SubmitResult =
-  | { ok: true; id: number }
+  | { ok: true; publicId: string }
   | { ok: false; status: number; message?: string; fields?: Record<string, string>; retryAfter?: number }
 
 // XHR, а не fetch: нужен прогресс загрузки архива. status 0 - нет связи, -1 - отменено.
@@ -95,7 +95,7 @@ export function submitProposal(body: FormData, onProgress: (loaded: number, tota
     xhr.onabort = () => resolve({ ok: false, status: -1 })
     xhr.onload = () => {
       const data = xhr.response ?? {}
-      if (xhr.status === 201) return resolve({ ok: true, id: data.submission.id })
+      if (xhr.status === 201) return resolve({ ok: true, publicId: data.submission.publicId })
       resolve({
         ok: false, status: xhr.status, message: data.error?.message, fields: data.error?.fields,
         retryAfter: Number(xhr.getResponseHeader('Retry-After')) || undefined,
@@ -131,7 +131,7 @@ export async function zipHasRootIndex(file: Blob): Promise<boolean> {
 export type WorkStatus = 'processing' | 'new' | 'review' | 'rejected' | 'published'
 
 export interface Work {
-  id: number
+  publicId: string
   title: string
   eventDate: string
   eventType: EventType
@@ -143,15 +143,15 @@ export interface Work {
 }
 
 export interface Profile {
-  user: { id: number; firstName: string; lastName: string; createdAt: string }
+  user: { publicId: string; firstName: string; lastName: string; createdAt: string }
   owner: boolean
   works: Work[]
 }
 
 // null - такого автора нет (404).
-export async function fetchProfile(id: number, signal: AbortSignal): Promise<Profile | null> {
-  const res = await fetch(`${API}/users/${id}`, { signal, credentials: 'include' })
+export async function fetchProfile(publicId: string, signal: AbortSignal): Promise<Profile | null> {
+  const res = await fetch(`${API}/users/${encodeURIComponent(publicId)}`, { signal, credentials: 'include' })
   if (res.status === 404) return null
-  if (!res.ok) throw new Error(`profile ${id}: HTTP ${res.status}`)
+  if (!res.ok) throw new Error(`profile ${publicId}: HTTP ${res.status}`)
   return res.json()
 }

@@ -76,7 +76,7 @@ const Timeline: React.FC<{ works: Work[] }> = ({ works }) => (
       {works.map(work => {
         const year = Math.min(RAIL_TO, Math.max(RAIL_FROM, yearOfWork(work)))
         return (
-          <span key={work.id} className="pf-pin" style={{ left: `${((year - RAIL_FROM) / (RAIL_TO - RAIL_FROM)) * 100}%` }}
+          <span key={work.publicId} className="pf-pin" style={{ left: `${((year - RAIL_FROM) / (RAIL_TO - RAIL_FROM)) * 100}%` }}
             title={`${work.title} · ${formatDate(work.eventDate)}`}>
             <svg viewBox="0 0 64 64" width="16" height="16"><PinShape type={work.eventType} size={16} /></svg>
           </span>
@@ -114,7 +114,7 @@ const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
       <div className="pf-card-body">
         <h3>{work.title}</h3>
         <p className="pm-dim-text">
-          {TYPE_LABEL[work.eventType]} &middot; {formatDate(work.eventDate)} &middot; заявка №{work.id}
+          {TYPE_LABEL[work.eventType]} &middot; {formatDate(work.eventDate)} &middot; <span className="pf-nowrap">заявка {work.publicId}</span>
         </p>
         {work.comment && <p className="pf-comment">{work.comment}</p>}
         <div className="pf-actions">
@@ -146,7 +146,6 @@ export const ProfilePage: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const mobile = useIsMobile()
-  const userId = Number(id)
   const [state, setState] = useState<{ k: 'load' } | { k: 'ready'; profile: Profile } | { k: 'none' } | { k: 'error' }>({ k: 'load' })
   const [me, setMe] = useState<User | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
@@ -159,15 +158,15 @@ export const ProfilePage: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    if (!Number.isInteger(userId) || userId <= 0) return setState({ k: 'none' })
+    if (!id) return setState({ k: 'none' })
     const ac = new AbortController()
     setState({ k: 'load' })
-    fetchProfile(userId, ac.signal).then(
+    fetchProfile(id, ac.signal).then(
       profile => setState(profile ? { k: 'ready', profile } : { k: 'none' }),
       (e: Error) => { if (e.name !== 'AbortError') setState({ k: 'error' }) },
     )
     return () => ac.abort()
-  }, [userId, retry])
+  }, [id, retry])
 
   if (state.k === 'none') return <NotFound path={`/u/${id}`} kind="profile" />
 
@@ -189,8 +188,8 @@ export const ProfilePage: React.FC = () => {
         {!mobile && <Link to="/about" className="pm-btn-text">О проекте</Link>}
         {me
           ? <span className="pm-user">
-              <Link to={`/u/${me.id}`} className="pm-user-link" title="Мой профиль">
-                <Avatar seed={me.id} size={32} />
+              <Link to={`/u/${me.publicId}`} className="pm-user-link" title="Мой профиль">
+                <Avatar seed={me.publicId} size={32} />
                 {!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
               </Link>
               <button type="button" className="pm-btn-text" onClick={() => { void logoutUser().then(() => navigate('/map')) }}>Выйти</button>
@@ -211,7 +210,7 @@ export const ProfilePage: React.FC = () => {
         {profile && (
           <>
             <section className="pf-hero pm-glass">
-              <Avatar seed={profile.user.id} size={mobile ? 72 : 104} className="pf-avatar" />
+              <Avatar seed={profile.user.publicId} size={mobile ? 72 : 104} className="pf-avatar" />
               <div className="pf-hero-name">
                 <h1>{profile.user.firstName} {profile.user.lastName}</h1>
                 <p className="pm-dim-text">
@@ -255,14 +254,14 @@ export const ProfilePage: React.FC = () => {
             {shownPending.length > 0 && (
               <>
                 <Title count={shownPending.length}>Заявки</Title>
-                <div className="pf-list">{shownPending.map(w => <WorkCard key={w.id} work={w} />)}</div>
+                <div className="pf-list">{shownPending.map(w => <WorkCard key={w.publicId} work={w} />)}</div>
               </>
             )}
 
             {shownPublished.length > 0 && (
               <>
                 <Title count={shownPublished.length}>{owner ? 'Опубликовано' : 'Сайты на карте'}</Title>
-                <div className="pf-gallery">{shownPublished.map(w => <Tile key={w.id} work={w} />)}</div>
+                <div className="pf-gallery">{shownPublished.map(w => <Tile key={w.publicId} work={w} />)}</div>
               </>
             )}
 
