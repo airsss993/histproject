@@ -20,4 +20,4 @@ cd frontend && npm install && npm run dev
 
 ## API
 
-Документация - `backend/docs/api.html`.
+Контракт - `backend/docs/openapi.yaml`.
