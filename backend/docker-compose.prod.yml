@@ -151,6 +151,7 @@ services:
     image: caddy:2.10.2-alpine
     environment:
       PUBLIC_ADDRESS: ${PUBLIC_ADDRESS}
+      WWW_ADDRESS: ${WWW_ADDRESS:-http://www.localhost}
     ports:
       - "80:80"
       - "${HTTPS_BIND:-443}:443"

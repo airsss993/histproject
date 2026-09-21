@@ -18,6 +18,11 @@
 	}
 }
 
+# www -> корень. По умолчанию http://www.localhost: без TLS и ACME, пустое значение ломает конфиг.
+{$WWW_ADDRESS:http://www.localhost} {
+	redir https://{$PUBLIC_ADDRESS}{uri} permanent
+}
+
 {$PUBLIC_ADDRESS} {
 	encode zstd gzip
 
