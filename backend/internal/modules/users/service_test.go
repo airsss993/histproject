@@ -92,6 +92,15 @@ func (r *memoryRepository) FindByID(_ context.Context, id int64) (User, error) {
 	return User{}, ErrUserNotFound
 }
 
+func (r *memoryRepository) FindByPublicID(_ context.Context, code string) (User, error) {
+	for _, u := range r.users {
+		if u.PublicID == "RHU-"+code {
+			return u, nil
+		}
+	}
+	return User{}, ErrUserNotFound
+}
+
 func (r *memoryRepository) Create(ctx context.Context, user User) (User, error) {
 	if _, err := r.FindByEmail(ctx, user.Email); err == nil {
 		return User{}, ErrEmailTaken
@@ -166,15 +175,15 @@ func (stub *worksStub) ByAuthor(_ context.Context, email string) ([]Work, error)
 
 func TestProfileHidesUnpublishedFromGuest(t *testing.T) {
 	ctx := t.Context()
-	repo := &memoryRepository{users: []User{{ID: 1, Email: "anna@example.ru", FirstName: "Анна", LastName: "Петрова"}}}
+	repo := &memoryRepository{users: []User{{ID: 1, PublicID: "RHU-7K3F10", Email: "anna@example.ru", FirstName: "Анна", LastName: "Петрова"}}}
 	store := &memoryStore{codes: map[string]Pending{}, counts: map[string]int{}, sessions: map[string]int64{"token": 1}}
 	works := &worksStub{works: []Work{
-		{ID: 5, Status: "published", Comment: "опубликовано"},
-		{ID: 6, Status: "rejected", Comment: "архив без index.html"},
+		{PublicID: "RH-5", Status: "published", Comment: "опубликовано"},
+		{PublicID: "RH-6", Status: "rejected", Comment: "архив без index.html"},
 	}}
 	service := NewService(repo, store, &lastCode{}, works, 12*time.Hour)
 
-	owner, err := service.Profile(ctx, 1, "token")
+	owner, err := service.Profile(ctx, "RHU-7K3F10", "token")
 	if err != nil {
 		t.Fatalf("Profile() owner error = %v", err)
 	}
@@ -185,15 +194,17 @@ func TestProfileHidesUnpublishedFromGuest(t *testing.T) {
 		t.Fatalf("works asked for %q", works.email)
 	}
 
-	guest, err := service.Profile(ctx, 1, "")
+	guest, err := service.Profile(ctx, "rhu-7k3fio", "")
 	if err != nil {
 		t.Fatalf("Profile() guest error = %v", err)
 	}
-	if guest.Owner || len(guest.Works) != 1 || guest.Works[0].ID != 5 || guest.Works[0].Comment != "" {
+	if guest.Owner || len(guest.Works) != 1 || guest.Works[0].PublicID != "RH-5" || guest.Works[0].Comment != "" {
 		t.Fatalf("guest profile = %+v, want one published work without comment", guest)
 	}
 
-	if _, err := service.Profile(ctx, 404, ""); !errors.Is(err, ErrUserNotFound) {
-		t.Fatalf("unknown user error = %v, want ErrUserNotFound", err)
+	for _, id := range []string{"RHU-000000", "17", "RHU-7K3F1", "RH-7K3F10", "RHU-7K3FU0"} {
+		if _, err := service.Profile(ctx, id, ""); !errors.Is(err, ErrUserNotFound) {
+			t.Fatalf("Profile(%q) error = %v, want ErrUserNotFound", id, err)
+		}
 	}
 }

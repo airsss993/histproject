@@ -48,7 +48,7 @@ const SERVER_FIELD: Record<string, Field> = {
 type Phase =
   | { k: 'form' }
   | { k: 'sending'; loaded: number; total: number }
-  | { k: 'done'; id: number }
+  | { k: 'done'; publicId: string }
   | { k: 'fail'; status: number; message?: string; retryAfter?: number }
 
 interface Place { place_id: number; display_name: string; lat: string; lon: string }
@@ -218,7 +218,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     const req = submitProposal(body, (loaded, total) => setPhase({ k: 'sending', loaded, total }))
     abortRef.current = req.abort
     const res = await req.promise
-    if (res.ok) return setPhase({ k: 'done', id: res.id })
+    if (res.ok) return setPhase({ k: 'done', publicId: res.publicId })
     if (res.status === -1) return setPhase({ k: 'form' })
     if (res.status === 400 && res.fields) {
       const mapped: Errors = {}
@@ -256,8 +256,8 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     body = (
       <div className="pm-row-tight pp-number">
         <span className="pm-dim-text">Номер заявки</span>
-        <span className="pp-code">#{phase.id}</span>
-        <button type="button" className="pp-copy" onClick={() => navigator.clipboard?.writeText(String(phase.id)).then(() => setCopied(true))}>
+        <span className="pp-code">{phase.publicId}</span>
+        <button type="button" className="pp-copy" onClick={() => navigator.clipboard?.writeText(phase.publicId).then(() => setCopied(true))}>
           {copied ? 'Скопировано' : 'Скопировать'}
         </button>
       </div>

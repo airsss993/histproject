@@ -16,7 +16,9 @@ const (
 )
 
 type Submission struct {
+	// ID внутренний. Людям (письма, профиль, панель) показывается PublicID вида RH-7K3F9Q.
 	ID               int64
+	PublicID         string
 	Title            string
 	Description      string
 	EventDate        time.Time
@@ -114,14 +116,15 @@ type SubmissionPage struct {
 }
 
 type AuditEntry struct {
-	ID              int64
-	SubmissionID    int64
-	SubmissionTitle string
-	AdminLogin      string
-	AdminRole       string
-	Action          string
-	Comment         string
-	CreatedAt       time.Time
+	ID                 int64
+	SubmissionID       int64
+	SubmissionPublicID string
+	SubmissionTitle    string
+	AdminLogin         string
+	AdminRole          string
+	Action             string
+	Comment            string
+	CreatedAt          time.Time
 }
 
 type AuditFilter struct {

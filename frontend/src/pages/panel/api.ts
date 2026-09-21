@@ -9,6 +9,7 @@ export interface Me { id: number; login: string; role: Role }
 
 export interface Submission {
   id: number
+  publicId: string
   title: string
   description: string
   eventDate: string
@@ -28,6 +29,7 @@ export interface Submission {
 export interface AuditEntry {
   id: number
   submissionId: number
+  submissionPublicId: string
   submissionTitle: string
   adminLogin: string
   adminRole: Role

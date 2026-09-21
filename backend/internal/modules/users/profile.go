@@ -13,7 +13,7 @@ const statusPublished = "published"
 // и письма о статусе идут на неё же, так что автор видит в профиле ровно то, о чём ему пишут.
 // ponytail: связь по почте, а не колонкой user_id. Появится смена почты в учётке - тогда и колонка.
 type Work struct {
-	ID            int64     `json:"id"`
+	PublicID      string    `json:"publicId"`
 	Title         string    `json:"title"`
 	EventDate     string    `json:"eventDate"`
 	EventType     string    `json:"eventType"`
@@ -29,9 +29,9 @@ type Works interface {
 	ByAuthor(ctx context.Context, email string) ([]Work, error)
 }
 
-// Author - автор в чужом профиле: без почты, её видеть посторонним незачем.
+// Author - автор в чужом профиле: без почты и числового id, их видеть посторонним незачем.
 type Author struct {
-	ID        int64     `json:"id"`
+	PublicID  string    `json:"publicId"`
 	FirstName string    `json:"firstName"`
 	LastName  string    `json:"lastName"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -44,12 +44,13 @@ type Profile struct {
 	Works []Work `json:"works"`
 }
 
-// Profile отдаёт публичный профиль автора. token - кука смотрящего, пустая у гостя.
-func (service *Service) Profile(ctx context.Context, id int64, token string) (Profile, error) {
-	if id <= 0 {
+// Profile отдаёт публичный профиль автора по коду RHU-XXXXXX. token - кука смотрящего, пустая у гостя.
+func (service *Service) Profile(ctx context.Context, publicID, token string) (Profile, error) {
+	code, ok := parsePublicID(publicID)
+	if !ok {
 		return Profile{}, ErrUserNotFound
 	}
-	user, err := service.repository.FindByID(ctx, id)
+	user, err := service.repository.FindByPublicID(ctx, code)
 	if err != nil {
 		return Profile{}, err
 	}
@@ -73,7 +74,7 @@ func (service *Service) Profile(ctx context.Context, id int64, token string) (Pr
 		works = onlyPublished(works)
 	}
 	return Profile{
-		User:  Author{ID: user.ID, FirstName: user.FirstName, LastName: user.LastName, CreatedAt: user.CreatedAt},
+		User:  Author{PublicID: user.PublicID, FirstName: user.FirstName, LastName: user.LastName, CreatedAt: user.CreatedAt},
 		Owner: owner,
 		Works: works,
 	}, nil
@@ -90,4 +91,18 @@ func onlyPublished(works []Work) []Work {
 		public = append(public, work)
 	}
 	return public
+}
+
+const publicIDAlphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+
+// parsePublicID принимает код с префиксом и без, в любом регистре. Похожие буквы O, I, L
+// читает как цифры 0 и 1: так декодирует Crockford base32, и продиктованный код найдётся.
+func parsePublicID(value string) (string, bool) {
+	code := strings.ToUpper(strings.TrimSpace(value))
+	code = strings.TrimPrefix(code, "RHU-")
+	code = strings.NewReplacer("O", "0", "I", "1", "L", "1").Replace(code)
+	if len(code) != 6 || strings.Trim(code, publicIDAlphabet) != "" {
+		return "", false
+	}
+	return code, true
 }

@@ -100,7 +100,7 @@ func (source notificationSubmissionSource) NotificationSubmission(ctx context.Co
 		return notifications.Submission{}, err
 	}
 	return notifications.Submission{
-		ID: submission.ID, Title: submission.Title, Email: submission.Email,
+		PublicID: submission.PublicID, Title: submission.Title, Email: submission.Email,
 		TelegramUsername: submission.TelegramUsername, SiteURL: submission.SiteURL,
 		Comment: submission.AdminComment,
 	}, nil

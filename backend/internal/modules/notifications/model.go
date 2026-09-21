@@ -31,7 +31,7 @@ func (action Action) Valid() bool {
 }
 
 type Submission struct {
-	ID               int64
+	PublicID         string
 	Title            string
 	Email            string
 	TelegramUsername string

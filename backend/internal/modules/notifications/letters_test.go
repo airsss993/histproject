@@ -14,7 +14,7 @@ import (
 func allLetters(t *testing.T) map[string]Email {
 	t.Helper()
 	submission := Submission{
-		ID: 7, Title: `<script>alert(1)</script> Бородино`, Email: "author@example.test",
+		PublicID: "RH-7K3F9Q", Title: `<script>alert(1)</script> Бородино`, Email: "author@example.test",
 		TelegramUsername: "hero", SiteURL: "https://russia-heroes.ru/sites/7/", Comment: "Исправьте описание\nи даты",
 	}
 	letters := map[string]Email{}
@@ -73,7 +73,7 @@ func TestLettersContent(t *testing.T) {
 			}
 		}
 	}
-	withoutURL, err := adminEmail(ActionReady, Submission{ID: 1, Title: "Т", Email: "a@example.test"}, []string{"a@example.test"}, "")
+	withoutURL, err := adminEmail(ActionReady, Submission{PublicID: "RH-000001", Title: "Т", Email: "a@example.test"}, []string{"a@example.test"}, "")
 	if err != nil || strings.Contains(withoutURL.HTML, "Открыть панель") {
 		t.Errorf("без ADMIN_PANEL_URL кнопки быть не должно: err=%v", err)
 	}

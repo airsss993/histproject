@@ -127,7 +127,7 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = httpserver.WriteJSON(w, http.StatusCreated, map[string]any{
-		"submission": map[string]any{"id": submission.ID, "status": submission.Status},
+		"submission": map[string]any{"id": submission.ID, "publicId": submission.PublicID, "status": submission.Status},
 	})
 }
 
@@ -273,6 +273,7 @@ func (handler *Handler) writeError(w http.ResponseWriter, r *http.Request, err e
 
 type submissionResponse struct {
 	ID               int64    `json:"id"`
+	PublicID         string   `json:"publicId"`
 	Title            string   `json:"title"`
 	Description      string   `json:"description"`
 	EventDate        string   `json:"eventDate"`
@@ -292,7 +293,7 @@ type submissionResponse struct {
 
 func newSubmissionResponse(submission Submission) submissionResponse {
 	return submissionResponse{
-		ID: submission.ID, Title: submission.Title, Description: submission.Description,
+		ID: submission.ID, PublicID: submission.PublicID, Title: submission.Title, Description: submission.Description,
 		EventDate: submission.EventDate.Format(time.DateOnly), EventType: submission.EventType,
 		Email: submission.Email, TelegramUsername: submission.TelegramUsername,
 		Latitude: submission.Latitude, Longitude: submission.Longitude,
@@ -303,19 +304,20 @@ func newSubmissionResponse(submission Submission) submissionResponse {
 }
 
 type auditResponse struct {
-	ID              int64  `json:"id"`
-	SubmissionID    int64  `json:"submissionId"`
-	SubmissionTitle string `json:"submissionTitle"`
-	AdminLogin      string `json:"adminLogin"`
-	AdminRole       string `json:"adminRole"`
-	Action          string `json:"action"`
-	Comment         string `json:"comment,omitempty"`
-	CreatedAt       string `json:"createdAt"`
+	ID                 int64  `json:"id"`
+	SubmissionID       int64  `json:"submissionId"`
+	SubmissionPublicID string `json:"submissionPublicId"`
+	SubmissionTitle    string `json:"submissionTitle"`
+	AdminLogin         string `json:"adminLogin"`
+	AdminRole          string `json:"adminRole"`
+	Action             string `json:"action"`
+	Comment            string `json:"comment,omitempty"`
+	CreatedAt          string `json:"createdAt"`
 }
 
 func newAuditResponse(entry AuditEntry) auditResponse {
 	return auditResponse{
-		ID: entry.ID, SubmissionID: entry.SubmissionID, SubmissionTitle: entry.SubmissionTitle,
+		ID: entry.ID, SubmissionID: entry.SubmissionID, SubmissionPublicID: entry.SubmissionPublicID, SubmissionTitle: entry.SubmissionTitle,
 		AdminLogin: entry.AdminLogin, AdminRole: entry.AdminRole, Action: entry.Action,
 		Comment: entry.Comment, CreatedAt: entry.CreatedAt.Format(time.RFC3339),
 	}

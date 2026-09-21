@@ -99,12 +99,11 @@ func (handler *Handler) me(w http.ResponseWriter, r *http.Request) {
 
 // profile - публичный профиль автора. Заявки в нём режет сервис: гостю только опубликованные.
 func (handler *Handler) profile(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
+	profile, err := handler.service.Profile(r.Context(), r.PathValue("id"), sessionToken(r))
+	if errors.Is(err, ErrUserNotFound) {
 		_ = httpserver.WriteError(w, http.StatusNotFound, "user_not_found", "Аккаунт не найден", nil)
 		return
 	}
-	profile, err := handler.service.Profile(r.Context(), id, sessionToken(r))
 	if err != nil {
 		handler.writeError(w, r, err)
 		return

@@ -39,6 +39,7 @@ var (
 
 type User struct {
 	ID        int64     `json:"id"`
+	PublicID  string    `json:"publicId"`
 	Email     string    `json:"email"`
 	FirstName string    `json:"firstName"`
 	LastName  string    `json:"lastName"`
@@ -59,6 +60,7 @@ func (ValidationError) Error() string { return "validation failed" }
 type Repository interface {
 	FindByEmail(context.Context, string) (User, error)
 	FindByID(context.Context, int64) (User, error)
+	FindByPublicID(context.Context, string) (User, error)
 	Create(context.Context, User) (User, error)
 }
 

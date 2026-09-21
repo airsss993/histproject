@@ -167,7 +167,7 @@ func (repository *Repository) AuditLog(ctx context.Context, filter AuditFilter) 
 	offsetPosition := len(args) + 2
 	args = append(args, filter.PageSize, (filter.Page-1)*filter.PageSize)
 	rows, err := repository.pool.Query(ctx, `
-		SELECT audit.id, audit.submission_id, submission.title, audit.admin_login,
+		SELECT audit.id, audit.submission_id, 'RH-' || submission.public_id, submission.title, audit.admin_login,
 			audit.admin_role, audit.action, COALESCE(audit.comment, ''), audit.created_at
 		FROM submissions.audit_log AS audit
 		JOIN submissions.submissions AS submission ON submission.id = audit.submission_id
@@ -179,7 +179,7 @@ func (repository *Repository) AuditLog(ctx context.Context, filter AuditFilter) 
 	items := make([]AuditEntry, 0)
 	for rows.Next() {
 		var item AuditEntry
-		if err := rows.Scan(&item.ID, &item.SubmissionID, &item.SubmissionTitle, &item.AdminLogin, &item.AdminRole, &item.Action, &item.Comment, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.SubmissionID, &item.SubmissionPublicID, &item.SubmissionTitle, &item.AdminLogin, &item.AdminRole, &item.Action, &item.Comment, &item.CreatedAt); err != nil {
 			return AuditPage{}, fmt.Errorf("scan submission audit: %w", err)
 		}
 		items = append(items, item)
@@ -191,7 +191,7 @@ func (repository *Repository) AuditLog(ctx context.Context, filter AuditFilter) 
 }
 
 // submissionColumns follows the Scan order in scanSubmission.
-const submissionColumns = `id, title, description, event_date, event_type_code, email,
+const submissionColumns = `id, 'RH-' || public_id, title, description, event_date, event_type_code, email,
 	telegram_username, latitude, longitude, archive_id, COALESCE(site_url, ''),
 	COALESCE(screenshot_url, ''), COALESCE(slug, ''), status::TEXT,
 	COALESCE(admin_comment, ''), created_at, updated_at`
@@ -206,7 +206,7 @@ func scanSubmission(row rowScanner) (Submission, error) {
 	var submission Submission
 	var status string
 	err := row.Scan(
-		&submission.ID, &submission.Title, &submission.Description, &submission.EventDate,
+		&submission.ID, &submission.PublicID, &submission.Title, &submission.Description, &submission.EventDate,
 		&submission.EventType, &submission.Email, &submission.TelegramUsername,
 		&submission.Latitude, &submission.Longitude, &submission.ArchiveID, &submission.SiteURL, &submission.ScreenshotURL,
 		&submission.Slug, &status, &submission.AdminComment,
@@ -225,7 +225,7 @@ func submissionWhere(status Status, search string) (string, []any) {
 	}
 	if search = strings.TrimSpace(search); search != "" {
 		args = append(args, "%"+search+"%")
-		conditions = append(conditions, fmt.Sprintf("(title ILIKE $%d OR id::TEXT ILIKE $%d)", len(args), len(args)))
+		conditions = append(conditions, fmt.Sprintf("(title ILIKE $%d OR 'RH-' || public_id ILIKE $%d)", len(args), len(args)))
 	}
 	if len(conditions) == 0 {
 		return "", args
@@ -238,5 +238,5 @@ func auditWhere(search string) (string, []any) {
 	if search == "" {
 		return "", nil
 	}
-	return `WHERE submission.title ILIKE $1 OR audit.action ILIKE $1 OR audit.admin_login ILIKE $1 OR audit.submission_id::TEXT ILIKE $1`, []any{"%" + search + "%"}
+	return `WHERE submission.title ILIKE $1 OR audit.action ILIKE $1 OR audit.admin_login ILIKE $1 OR 'RH-' || submission.public_id ILIKE $1`, []any{"%" + search + "%"}
 }

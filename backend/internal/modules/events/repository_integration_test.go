@@ -206,6 +206,8 @@ func resetEventsDatabase(t *testing.T, ctx context.Context, db *sql.DB) {
 		DROP SCHEMA IF EXISTS submissions CASCADE;
 		DROP SCHEMA IF EXISTS events CASCADE;
 		DROP SCHEMA IF EXISTS notifications CASCADE;
+		DROP SCHEMA IF EXISTS users CASCADE;
+		DROP FUNCTION IF EXISTS public.rh_code();
 		DROP TABLE IF EXISTS public.goose_db_version CASCADE;
 	`)
 	if err != nil {
