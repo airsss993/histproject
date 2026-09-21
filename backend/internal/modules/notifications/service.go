@@ -63,7 +63,10 @@ func (service *Service) Deliver(ctx context.Context, submissionID int64, action 
 	if service.email == nil || strings.TrimSpace(submission.Email) == "" {
 		return nil
 	}
-	message := authorEmail(action, submission)
+	message, err := authorEmail(action, submission)
+	if err != nil {
+		return err
+	}
 	return service.deliver(ctx, eventKey, ChannelEmail, func(ctx context.Context) error {
 		return service.email.Send(ctx, message)
 	})
@@ -76,10 +79,14 @@ func (service *Service) deliverToAdmins(ctx context.Context, eventKey string, ac
 		if err != nil {
 			deliveryErr = errors.Join(deliveryErr, fmt.Errorf("load notification admin emails: %w", err))
 		} else if len(emails) > 0 {
-			message := adminEmail(action, submission, emails, service.adminPanelURL)
-			deliveryErr = errors.Join(deliveryErr, service.deliver(ctx, eventKey, ChannelEmail, func(ctx context.Context) error {
-				return service.email.Send(ctx, message)
-			}))
+			message, err := adminEmail(action, submission, emails, service.adminPanelURL)
+			if err != nil {
+				deliveryErr = errors.Join(deliveryErr, err)
+			} else {
+				deliveryErr = errors.Join(deliveryErr, service.deliver(ctx, eventKey, ChannelEmail, func(ctx context.Context) error {
+					return service.email.Send(ctx, message)
+				}))
+			}
 		}
 	}
 	if service.telegram != nil {
@@ -112,40 +119,6 @@ func (service *Service) deliver(ctx context.Context, eventKey string, channel Ch
 		return err
 	}
 	return nil
-}
-
-func adminEmail(action Action, submission Submission, recipients []string, adminPanelURL string) Email {
-	status := "создана и обрабатывается"
-	if action == ActionReady {
-		status = "готова к проверке"
-	}
-	return Email{
-		To:      append([]string(nil), recipients...),
-		Subject: fmt.Sprintf("Заявка #%d %s", submission.ID, status),
-		HTML: fmt.Sprintf(
-			"<p>Заявка #%d %s.</p><p><b>Название:</b> %s</p><p><b>Email:</b> %s</p><p><b>Telegram:</b> %s</p><p><a href=\"%s\">Открыть панель</a></p>",
-			submission.ID, status, html.EscapeString(submission.Title), html.EscapeString(submission.Email),
-			html.EscapeString(telegramName(submission.TelegramUsername)), html.EscapeString(adminPanelURL),
-		),
-	}
-}
-
-func authorEmail(action Action, submission Submission) Email {
-	subject := fmt.Sprintf("Статус заявки #%d изменен", submission.ID)
-	body := "Заявка взята на проверку."
-	switch action {
-	case ActionRejected:
-		subject = fmt.Sprintf("Заявка #%d отклонена", submission.ID)
-		body = "Заявка отклонена. Комментарий: " + html.EscapeString(submission.Comment)
-	case ActionPublished:
-		subject = fmt.Sprintf("Заявка #%d опубликована", submission.ID)
-		body = fmt.Sprintf("Заявка опубликована. <a href=\"%s\">Открыть событие</a>", html.EscapeString(submission.SiteURL))
-	}
-	return Email{
-		To:      []string{submission.Email},
-		Subject: subject,
-		HTML:    fmt.Sprintf("<p>%s</p><p><b>%s</b></p>", body, html.EscapeString(submission.Title)),
-	}
 }
 
 func adminTelegram(action Action, submission Submission, adminPanelURL string) string {

@@ -1,7 +1,6 @@
 package notifications
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -10,48 +9,6 @@ import (
 	"testing"
 	"time"
 )
-
-func TestResendSenderSendsJSONWithAuthorization(t *testing.T) {
-	var request resendRequest
-	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, incoming *http.Request) {
-		if incoming.Method != http.MethodPost || incoming.Header.Get("Authorization") != "Bearer secret-key" {
-			t.Errorf("request = method:%s authorization:%q", incoming.Method, incoming.Header.Get("Authorization"))
-		}
-		if err := json.NewDecoder(incoming.Body).Decode(&request); err != nil {
-			t.Errorf("decode request: %v", err)
-		}
-		response.WriteHeader(http.StatusAccepted)
-	}))
-	t.Cleanup(server.Close)
-	sender, err := newResendSender("secret-key", "Project <mail@example.test>", time.Second, server.Client(), server.URL)
-	if err != nil {
-		t.Fatalf("newResendSender() error = %v", err)
-	}
-
-	err = sender.Send(t.Context(), Email{To: []string{"admin@example.test"}, Subject: "Subject", HTML: "<p>Body</p>"})
-	if err != nil {
-		t.Fatalf("Send() error = %v", err)
-	}
-	if request.From != "Project <mail@example.test>" || len(request.To) != 1 || request.Subject != "Subject" || request.HTML != "<p>Body</p>" {
-		t.Fatalf("request = %#v", request)
-	}
-}
-
-func TestResendSenderDoesNotExposeResponseBody(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
-		http.Error(response, "provider-secret-details", http.StatusBadGateway)
-	}))
-	t.Cleanup(server.Close)
-	sender, err := newResendSender("secret-key", "mail@example.test", time.Second, server.Client(), server.URL)
-	if err != nil {
-		t.Fatalf("newResendSender() error = %v", err)
-	}
-
-	err = sender.Send(t.Context(), Email{To: []string{"admin@example.test"}, Subject: "Subject", HTML: "Body"})
-	if err == nil || strings.Contains(err.Error(), "provider-secret-details") || strings.Contains(err.Error(), "secret-key") {
-		t.Fatalf("Send() error = %v", err)
-	}
-}
 
 func TestTelegramSenderSendsEscapedForm(t *testing.T) {
 	var path, chatID, message, parseMode string
@@ -92,8 +49,8 @@ func TestTelegramSenderHidesTokenOnTransportError(t *testing.T) {
 }
 
 func TestSendersValidateConfiguration(t *testing.T) {
-	if _, err := NewResendSender("", "mail@example.test", time.Second); err == nil {
-		t.Fatal("NewResendSender() error = nil")
+	if _, err := NewPostboxSender("postbox.cloud.yandex.net:587", "", "key-secret", "info@russia-heroes.ru", time.Second); err == nil {
+		t.Fatal("NewPostboxSender() error = nil")
 	}
 	if _, err := NewTelegramSender("token", "", time.Second); err == nil {
 		t.Fatal("NewTelegramSender() error = nil")

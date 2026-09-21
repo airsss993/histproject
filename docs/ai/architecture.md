@@ -17,7 +17,7 @@
 | Redis | | сессии, rate limit, очередь Asynq |
 | MinIO | | buckets `archives` (ZIP как пришёл) и `sites` (распакованные сайты и превью) |
 | headless Chrome | | скриншот превью опубликованного сайта |
-| Resend, Telegram | | email автору заявки и админам, сообщение в чат админов |
+| Postbox (SMTP), Telegram | | email автору заявки и админам, сообщение в чат админов |
 
 Модули бекенда: `auth` (сессии админов), `admins`, `users` (публичные пользователи),
 `events`, `submissions`, `sites` (архив -> сайт), `notifications`.
@@ -34,7 +34,7 @@ SPA форма "Предложить"
 -> статус new (или отказ при невалидном архиве)
 -> админ в /admin: review -> publish (координаты, тип) | reject
 -> publish создаёт событие в events
--> notifications -> Resend / Telegram
+-> notifications -> Postbox SMTP / Telegram
 ```
 
 Карта:
