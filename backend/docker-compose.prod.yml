@@ -2,6 +2,7 @@ name: histproject-backend
 
 x-app: &app
   image: ${BACKEND_IMAGE}
+  build: .
   env_file:
     - .env
   networks:
@@ -152,10 +153,11 @@ services:
       PUBLIC_ADDRESS: ${PUBLIC_ADDRESS}
     ports:
       - "80:80"
-      - "443:443"
+      - "${HTTPS_BIND:-443}:443"
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../frontend/dist:/srv:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
