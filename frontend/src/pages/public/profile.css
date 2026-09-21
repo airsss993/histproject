@@ -105,8 +105,15 @@
 .pf-card-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .pf-card-body h3 { margin: 0; font: 400 19px/26px var(--display); }
 .pf-comment {
-  margin-top: 4px; padding: 8px 12px; border-radius: 12px; font: 400 13px/20px var(--ui); color: var(--text-2);
-  background: rgba(255, 255, 255, 0.04); border-left: 2px solid var(--danger);
+  position: relative; margin-top: 4px; padding: 10px 14px 10px 26px; border-radius: 14px;
+  font: 400 13px/20px var(--ui); color: var(--text-2);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--danger) 12%, transparent), color-mix(in srgb, var(--danger) 3%, transparent) 70%);
+}
+/* Полоска тона внутри плашки, с отступом от рамки. */
+.pf-comment::before {
+  content: ''; position: absolute; left: 12px; top: 10px; bottom: 10px; width: 2px; border-radius: 2px;
+  background: var(--danger); box-shadow: 0 0 8px color-mix(in srgb, var(--danger) 70%, transparent);
 }
 .pf-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .pf-actions:empty { display: none; }

@@ -52,9 +52,13 @@
 {{- end}}
 {{- with .Quote}}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 0;"><tr>
-<td bgcolor="#24212F" style="background:#24212F;border-left:2px solid #C46F62;padding:14px 18px;">
-<div style="font:400 13px/1.5 'Segoe UI',Arial,sans-serif;color:#8194AE;">Комментарий модератора</div>
+<td bgcolor="#1D1D2E" style="background:#1D1D2E;border:1px solid #573A40;border-radius:12px;padding:14px 18px 14px 14px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td width="2" bgcolor="#C46F62" style="width:2px;background:#C46F62;border-radius:2px;font-size:0;line-height:0;">&nbsp;</td>
+<td style="padding-left:14px;">
+<div style="font:400 13px/1.5 'Segoe UI',Arial,sans-serif;color:#C46F62;">Комментарий модератора</div>
 <div style="margin-top:4px;font:400 15px/1.6 'Segoe UI',Arial,sans-serif;color:#FFFFFF;white-space:pre-line;">{{.}}</div>
+</td></tr></table>
 </td></tr></table>
 {{- end}}
 {{- with .Action}}
