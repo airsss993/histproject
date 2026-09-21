@@ -207,9 +207,10 @@ paths:
         - name: id
           in: path
           required: true
+          description: Публичный код автора. Принимается с префиксом RHU- и без, в любом регистре.
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: RHU-7K3F9Q
       responses:
         "200":
           description: Профиль автора
@@ -293,11 +294,13 @@ paths:
                 properties:
                   submission:
                     type: object
-                    required: [id, status]
+                    required: [id, publicId, status]
                     properties:
                       id:
                         type: integer
                         format: int64
+                      publicId:
+                        $ref: "#/components/schemas/SubmissionPublicID"
                       status:
                         $ref: "#/components/schemas/SubmissionStatus"
         "400":
@@ -730,11 +733,13 @@ components:
       properties:
         user:
           type: object
-          required: [id, email, firstName, lastName, createdAt]
+          required: [id, publicId, email, firstName, lastName, createdAt]
           properties:
             id:
               type: integer
               format: int64
+            publicId:
+              $ref: "#/components/schemas/UserPublicID"
             email:
               type: string
             firstName:
@@ -750,11 +755,10 @@ components:
       properties:
         user:
           type: object
-          required: [id, firstName, lastName, createdAt]
+          required: [publicId, firstName, lastName, createdAt]
           properties:
-            id:
-              type: integer
-              format: int64
+            publicId:
+              $ref: "#/components/schemas/UserPublicID"
             firstName:
               type: string
             lastName:
@@ -769,11 +773,10 @@ components:
           type: array
           items:
             type: object
-            required: [id, title, eventDate, eventType, status, siteUrl, screenshotUrl, createdAt]
+            required: [publicId, title, eventDate, eventType, status, siteUrl, screenshotUrl, createdAt]
             properties:
-              id:
-                type: integer
-                format: int64
+              publicId:
+                $ref: "#/components/schemas/SubmissionPublicID"
               title:
                 type: string
               eventDate:
@@ -966,13 +969,25 @@ components:
         archive:
           type: string
           format: binary
+    UserPublicID:
+      type: string
+      pattern: "^RHU-[0-9A-HJKMNP-TV-Z]{6}$"
+      description: Публичный код пользователя. Числовой id наружу в профиле не отдаётся.
+      example: RHU-7K3F9Q
+    SubmissionPublicID:
+      type: string
+      pattern: "^RH-[0-9A-HJKMNP-TV-Z]{6}$"
+      description: Номер заявки для людей (письма, профиль, панель). Пути API по-прежнему принимают числовой id.
+      example: RH-7K3F9Q
     Submission:
       type: object
-      required: [id, title, description, eventDate, eventType, email, telegramUsername, status, createdAt, updatedAt]
+      required: [id, publicId, title, description, eventDate, eventType, email, telegramUsername, status, createdAt, updatedAt]
       properties:
         id:
           type: integer
           format: int64
+        publicId:
+          $ref: "#/components/schemas/SubmissionPublicID"
         title:
           type: string
         description:
@@ -1027,7 +1042,7 @@ components:
           format: int64
     AuditEntry:
       type: object
-      required: [id, submissionId, submissionTitle, adminLogin, adminRole, action, createdAt]
+      required: [id, submissionId, submissionPublicId, submissionTitle, adminLogin, adminRole, action, createdAt]
       properties:
         id:
           type: integer
@@ -1035,6 +1050,8 @@ components:
         submissionId:
           type: integer
           format: int64
+        submissionPublicId:
+          $ref: "#/components/schemas/SubmissionPublicID"
         submissionTitle:
           type: string
         adminLogin:
