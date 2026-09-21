@@ -105,15 +105,27 @@
 .pf-card-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .pf-card-body h3 { margin: 0; font: 400 19px/26px var(--display); }
 .pf-comment {
-  position: relative; margin-top: 4px; padding: 10px 14px 10px 26px; border-radius: 14px;
+  position: relative; isolation: isolate; margin-top: 4px; padding: 11px 16px 11px 28px; border-radius: 14px;
   font: 400 13px/20px var(--ui); color: var(--text-2);
-  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
-  background: linear-gradient(100deg, color-mix(in srgb, var(--danger) 12%, transparent), color-mix(in srgb, var(--danger) 3%, transparent) 70%);
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--danger) 16%, transparent), transparent 55%),
+    rgba(8, 8, 20, 0.55);
+  box-shadow:
+    inset 14px 0 22px -16px color-mix(in srgb, var(--danger) 55%, transparent),
+    inset 0 10px 18px -16px color-mix(in srgb, var(--danger) 45%, transparent),
+    0 0 26px -12px color-mix(in srgb, var(--danger) 45%, transparent);
+}
+/* Рамка градиентом: ярче у левого верхнего угла, к правому нижнему гаснет. */
+.pf-comment::after {
+  content: ''; position: absolute; inset: 0; z-index: -1; padding: 1px; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, color-mix(in srgb, var(--danger) 85%, transparent), color-mix(in srgb, var(--danger) 25%, transparent) 35%, rgba(255, 255, 255, 0.06) 75%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
 }
 /* Полоска тона внутри плашки, с отступом от рамки. */
 .pf-comment::before {
-  content: ''; position: absolute; left: 12px; top: 10px; bottom: 10px; width: 2px; border-radius: 2px;
-  background: var(--danger); box-shadow: 0 0 8px color-mix(in srgb, var(--danger) 70%, transparent);
+  content: ''; position: absolute; left: 13px; top: 11px; bottom: 11px; width: 2px; border-radius: 2px;
+  background: var(--danger); box-shadow: 0 0 10px var(--danger);
 }
 .pf-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .pf-actions:empty { display: none; }
