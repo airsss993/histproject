@@ -112,7 +112,7 @@ export const About: React.FC = () => {
         <div className="pm-about-header-end">
           {mobile
             ? <Link to="/map" className="pm-btn-ghost pm-pill pm-nowrap">К карте</Link>
-            : <button type="button" className="pm-btn pm-pill pm-nowrap" onClick={propose}>Предложить событие</button>}
+            : <button type="button" className="pm-btn-light pm-pill pm-nowrap" onClick={propose}>Предложить событие</button>}
         </div>
       </div>
 

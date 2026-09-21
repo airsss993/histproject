@@ -372,6 +372,8 @@
 
 @media (max-width: 640px) {
   .pm-header { height: auto; padding: 14px 16px 0; }
+  .pm-root .pm-nav { padding: 2px; }
+  .pm-root .pm-nav > .pm-btn-text { padding: 8px 12px; }
   .pm-logo { gap: 12px; }
   .pm-logo-mark { height: 40px; }
   .pm-logo-text { font-size: 12px; letter-spacing: 0.14em; }

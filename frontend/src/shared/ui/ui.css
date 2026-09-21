@@ -2,7 +2,8 @@
   Дизайн-система: общие элементы всех экранов. Токены (--gold, --rim-in и т.д.) задаёт .pm-root в public.css.
   Экран собирается из этих классов; в CSS экрана остаются только размеры и раскладка.
 
-  Кнопки   .pm-btn (золотая), .pm-btn-ghost (контур), .pm-btn-text (текст), + .pm-pill, .pm-round, .danger
+  Кнопки   .pm-btn (золотая), .pm-btn-light (светлая с бликами), .pm-btn-ghost (контур), .pm-btn-text (текст), + .pm-pill, .pm-round, .danger
+  Меню     .pm-nav - стеклянная таблетка вокруг пунктов шапки
   Фокус    .pm-glow - свет изнутри снизу и блик на нижней кромке, расходится от центра;
            горит на :focus-within или с классом .on, с .bad - красный
   Поле     .pm-field - рамка с .pm-glow, внутри голый input, textarea или select; Field.tsx добавляет подпись и ошибку
@@ -10,7 +11,7 @@
 */
 
 /* Кнопки */
-.pm-root .pm-btn, .pm-root .pm-btn-ghost, .pm-root .pm-btn-text {
+.pm-root .pm-btn, .pm-root .pm-btn-light, .pm-root .pm-btn-ghost, .pm-root .pm-btn-text {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   padding: 11px 18px; border-radius: 8px; font: 500 15px var(--ui); text-decoration: none; white-space: nowrap;
   transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
@@ -18,13 +19,31 @@
 .pm-root .pm-btn, .pm-root .pm-card-more { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 18px rgba(0, 0, 20, 0.35); }
 .pm-root .pm-btn { background: var(--gold); color: var(--ink); border: 1px solid var(--gold); }
 .pm-root .pm-btn:hover { background: var(--gold-soft); }
+.pm-root .pm-btn-light {
+  border: 1px solid rgba(255, 255, 255, 0.5); color: var(--line);
+  background:
+    radial-gradient(90% 120% at 8% -10%, rgba(80, 66, 38, 0.45), transparent 50%),
+    radial-gradient(70% 110% at 96% 120%, rgba(60, 48, 26, 0.6), transparent 55%),
+    linear-gradient(#EDE3CB, #C7AE7F);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 18px rgba(216, 201, 162, 0.35), 0 6px 18px rgba(0, 0, 20, 0.45);
+  transition: filter 120ms ease-out, box-shadow 160ms ease-out;
+}
+.pm-root .pm-btn-light:hover { filter: brightness(1.08); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 26px rgba(216, 201, 162, 0.5), 0 6px 18px rgba(0, 0, 20, 0.45); }
 .pm-root .pm-btn-ghost { border: 1px solid var(--gold-line); color: var(--gold-soft); background: rgba(12, 16, 35, 0.45); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
 .pm-root .pm-btn-ghost:hover { border-color: var(--gold); background: var(--gold-wash); }
 .pm-root .pm-btn-text { color: var(--gold-soft); }
 .pm-root .pm-btn-text:hover { color: var(--gold); }
-.pm-root :is(.pm-btn, .pm-btn-ghost, .pm-btn-text):disabled { opacity: 0.5; cursor: default; }
+.pm-root :is(.pm-btn, .pm-btn-light, .pm-btn-ghost, .pm-btn-text):disabled { opacity: 0.5; cursor: default; }
 .pm-root .pm-pill { border-radius: 999px; padding: 11px 20px; font-size: 14px; }
 .pm-root .pm-pill.on { background: var(--gold-wash); border-color: var(--gold); color: var(--gold); }
+/* Светлая кнопка в состоянии .on не гаснет, как контурная, а остаётся светлой с золотой рамкой. */
+.pm-root .pm-btn-light.on { background: linear-gradient(#EDE3CB, #C7AE7F); border-color: var(--gold); color: var(--line); }
+.pm-root .pm-nav {
+  display: flex; align-items: center; gap: 4px; padding: 5px 5px 5px 10px; border-radius: 999px;
+  background: var(--glass); border: 1px solid var(--line-soft); box-shadow: var(--shadow);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+.pm-root .pm-nav > .pm-btn-text { padding: 11px 14px; font-size: 14px; }
 .pm-root .pm-round { width: 48px; height: 48px; padding: 0; border-radius: 999px; font-size: 16px; flex: none; }
 .pm-root .pm-link { color: var(--gold-soft); font: 400 13px var(--ui); white-space: nowrap; }
 /* Необратимое действие: удалить, отклонить. */

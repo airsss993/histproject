@@ -187,6 +187,7 @@ export const PublicMap: React.FC = () => {
         <div role="banner" className="pm-header">
           <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
           <div className="pm-grow" />
+          <nav className="pm-nav">
           <Link to="/about" className="pm-btn-text">О проекте</Link>
           {me
             ? <span className="pm-user">
@@ -196,7 +197,8 @@ export const PublicMap: React.FC = () => {
                 </Link>
                 <button type="button" className="pm-btn-text" onClick={logout}>Выйти</button></span>
             : <Link to="/login" className="pm-btn-text">Войти</Link>}
-          {!mobile && <button type="button" className={`pm-btn-ghost pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}
+          {!mobile && <button type="button" className={`pm-btn-light pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}
+          </nav>
         </div>
 
         <Presence>{!mobile && layer !== 'filters' && layer !== 'feed' && (
