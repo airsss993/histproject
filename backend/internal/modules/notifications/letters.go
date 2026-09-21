@@ -111,17 +111,17 @@ func adminEmail(action Action, submission Submission, recipients []string, admin
 	view := letterView{
 		Icon:      "processing",
 		Preheader: submission.Title,
-		Title:     fmt.Sprintf("Новая заявка #%d", submission.ID),
+		Title:     fmt.Sprintf("Новая заявка %s", submission.PublicID),
 		Lead:      "Заявка создана, архив сайта обрабатывается. Когда обработка закончится, придёт отдельное письмо.",
 		Fields:    submissionFields(submission),
 		Action:    linkAction("Открыть панель", adminPanelURL),
 	}
-	subject := fmt.Sprintf("Заявка #%d создана и обрабатывается", submission.ID)
+	subject := fmt.Sprintf("Заявка %s создана и обрабатывается", submission.PublicID)
 	if action == ActionReady {
 		view.Icon = "new"
-		view.Title = fmt.Sprintf("Заявка #%d готова к проверке", submission.ID)
+		view.Title = fmt.Sprintf("Заявка %s готова к проверке", submission.PublicID)
 		view.Lead = "Архив обработан, превью сайта собрано. Заявку можно проверять."
-		subject = fmt.Sprintf("Заявка #%d готова к проверке", submission.ID)
+		subject = fmt.Sprintf("Заявка %s готова к проверке", submission.PublicID)
 	}
 	return view.email(recipients, subject)
 }
@@ -135,20 +135,20 @@ func authorEmail(action Action, submission Submission) (Email, error) {
 		Lead:      "Модератор начал проверять вашу заявку. Результат придёт отдельным письмом.",
 		Fields:    fields,
 	}
-	subject := fmt.Sprintf("Заявка #%d взята на проверку", submission.ID)
+	subject := fmt.Sprintf("Заявка %s взята на проверку", submission.PublicID)
 	switch action {
 	case ActionRejected:
 		view.Icon = "rejected"
 		view.Title = "Заявка отклонена"
 		view.Lead = "Модератор отклонил заявку. Исправьте замечание и отправьте её заново."
 		view.Quote = strings.TrimSpace(submission.Comment)
-		subject = fmt.Sprintf("Заявка #%d отклонена", submission.ID)
+		subject = fmt.Sprintf("Заявка %s отклонена", submission.PublicID)
 	case ActionPublished:
 		view.Icon = "published"
 		view.Title = "Событие опубликовано"
 		view.Lead = "Заявка прошла проверку, событие появилось на карте."
 		view.Action = linkAction("Открыть событие", submission.SiteURL)
-		subject = fmt.Sprintf("Заявка #%d опубликована", submission.ID)
+		subject = fmt.Sprintf("Заявка %s опубликована", submission.PublicID)
 	}
 	return view.email([]string{submission.Email}, subject)
 }

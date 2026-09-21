@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -42,6 +43,13 @@ func TestRepositorySubmissionLifecycle(t *testing.T) {
 	if created.ID != 1 || created.Status != StatusProcessing || created.EventType != "military" || created.ArchiveID != "archive-alpha" ||
 		created.Latitude == nil || *created.Latitude != 55.75 || created.Longitude == nil || *created.Longitude != 37.62 {
 		t.Fatalf("created submission = %#v", created)
+	}
+	if !regexp.MustCompile(`^RH-[0-9A-HJKMNP-TV-Z]{6}$`).MatchString(created.PublicID) {
+		t.Fatalf("created public id = %q, want RH-XXXXXX", created.PublicID)
+	}
+	byCode, err := repository.List(ctx, ListFilter{Search: strings.ToLower(created.PublicID), Page: 1, PageSize: 10})
+	if err != nil || byCode.Total != 1 || byCode.Items[0].ID != created.ID {
+		t.Fatalf("List() by public id = %#v, %v", byCode, err)
 	}
 
 	insertSubmissionFixture(t, ctx, db, 2, "Beta", StatusReview, "political", "2021-01-01")
@@ -203,6 +211,8 @@ func resetSubmissionsDatabase(t *testing.T, ctx context.Context, db *sql.DB) {
 		DROP SCHEMA IF EXISTS submissions CASCADE;
 		DROP SCHEMA IF EXISTS events CASCADE;
 		DROP SCHEMA IF EXISTS notifications CASCADE;
+		DROP SCHEMA IF EXISTS users CASCADE;
+		DROP FUNCTION IF EXISTS public.rh_code();
 		DROP TABLE IF EXISTS public.goose_db_version CASCADE;
 	`)
 	if err != nil {

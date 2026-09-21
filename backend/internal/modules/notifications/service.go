@@ -127,8 +127,8 @@ func adminTelegram(action Action, submission Submission, adminPanelURL string) s
 		status = "готова к проверке"
 	}
 	return fmt.Sprintf(
-		"<b>Заявка #%d %s</b>\nНазвание: %s\nEmail: %s\nTelegram: %s\n<a href=\"%s\">Открыть панель</a>",
-		submission.ID, status, html.EscapeString(submission.Title), html.EscapeString(submission.Email),
+		"<b>Заявка %s %s</b>\nНазвание: %s\nEmail: %s\nTelegram: %s\n<a href=\"%s\">Открыть панель</a>",
+		submission.PublicID, status, html.EscapeString(submission.Title), html.EscapeString(submission.Email),
 		html.EscapeString(telegramName(submission.TelegramUsername)), html.EscapeString(adminPanelURL),
 	)
 }

@@ -107,7 +107,7 @@ func (works authorWorks) ByAuthor(ctx context.Context, email string) ([]users.Wo
 	items := make([]users.Work, 0, len(found))
 	for _, submission := range found {
 		items = append(items, users.Work{
-			ID: submission.ID, Title: submission.Title, EventDate: submission.EventDate.Format(time.DateOnly),
+			PublicID: submission.PublicID, Title: submission.Title, EventDate: submission.EventDate.Format(time.DateOnly),
 			EventType: submission.EventType, Status: string(submission.Status), SiteURL: submission.SiteURL,
 			ScreenshotURL: submission.ScreenshotURL, Comment: submission.AdminComment, CreatedAt: submission.CreatedAt,
 		})

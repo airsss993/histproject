@@ -143,7 +143,7 @@ func TestServiceRejectsUnknownActionBeforeLoadingSubmission(t *testing.T) {
 
 func notificationSubmission() Submission {
 	return Submission{
-		ID: 7, Title: "Event <script>", Email: "author@example.test",
+		PublicID: "RH-7K3F9Q", Title: "Event <script>", Email: "author@example.test",
 		TelegramUsername: "author", SiteURL: "https://example.test/sites/event",
 		Comment: "Исправьте описание",
 	}

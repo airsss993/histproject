@@ -477,6 +477,8 @@ func prepareAppTestDatabase(t *testing.T, ctx context.Context, databaseURL strin
 		DROP SCHEMA IF EXISTS submissions CASCADE;
 		DROP SCHEMA IF EXISTS events CASCADE;
 		DROP SCHEMA IF EXISTS notifications CASCADE;
+		DROP SCHEMA IF EXISTS users CASCADE;
+		DROP FUNCTION IF EXISTS public.rh_code();
 		DROP TABLE IF EXISTS public.goose_db_version CASCADE;
 	`); err != nil {
 		t.Fatalf("reset database: %v", err)
