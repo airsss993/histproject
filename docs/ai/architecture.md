@@ -10,9 +10,9 @@
 | SPA | `frontend/` | карта, "О проекте", вход/регистрация, профиль, панель админа `/admin` |
 | API | `backend/cmd/api` | HTTP `/api/v1`, модульный монолит, сборка модулей в `internal/app/modules.go` |
 | Worker | `backend/cmd/worker` | задачи Asynq: обработка архива, уведомления |
-| Миграции | `backend/cmd/migrate` | Goose, запуск только вручную |
+| Миграции | `backend/cmd/migrate` | Goose; на проде их применяет `deploy.sh`, локально вручную |
 | Первый админ | `backend/cmd/bootstrap-admin` | создаёт `super_admin`, требует `--apply` |
-| Caddy | `backend/Caddyfile` | единая точка: `/api/*` -> api, `/preview/*` и `/sites/*` -> MinIO |
+| Caddy | `backend/Caddyfile` | единая точка: `/api/*` -> api, `/preview/*` и `/sites/*` -> MinIO, остальное - SPA из `frontend/dist` |
 | PostgreSQL | | события, заявки, админы, пользователи, аудит |
 | Redis | | сессии, rate limit, очередь Asynq |
 | MinIO | | buckets `archives` (ZIP как пришёл) и `sites` (распакованные сайты и превью) |

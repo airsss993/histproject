@@ -45,6 +45,17 @@
 - Postbox SMTP без STARTTLS обрывает соединение до AUTH, поэтому отправитель
   отказывается работать без него.
 
+## Прод
+
+- Сервер `185.113.11.122`, код в `/opt/histproject`, `.env` только там. Push в `main` = деплой
+  (`.github/workflows/deploy.yml`, без проверок). Ключ Actions в `authorized_keys` ограничен
+  forced command: `git reset --hard origin/main` и `deploy.sh`. Правки руками в `/opt/histproject` затрутся.
+- На том же сервере живёт личный VPN (3x-ui, VLESS Reality). 443 держит nginx stream
+  (`/etc/nginx/stream.conf`): SNI `russia-heroes.ru` -> Caddy `127.0.0.1:8443`, остальное -> xray
+  `127.0.0.1:4443`. Обоим уходит PROXY protocol, без него все клиенты API делят один rate limit.
+  Новый домен или поддомен сайта добавлять и в `map` nginx, иначе он уйдёт в VPN.
+- `APP_ENV=development`, пока нет ключей Postbox и Telegram: `production` без них не стартует.
+
 ## Окружение
 
 - macOS: нет `grep -P`, запрещённые символы проверять через `perl -CSD`.
