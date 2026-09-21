@@ -31,13 +31,11 @@ func (mailer postboxCodeMailer) SendCode(ctx context.Context, email, code string
 	if mailer.err != nil {
 		return mailer.err
 	}
-	return mailer.sender.Send(ctx, notifications.Email{
-		To:      []string{email},
-		Subject: "Код входа: " + code,
-		HTML: `<p>Ваш код для входа на сайт "Россия - страна Героев":</p>` +
-			`<p style="font-size:28px;letter-spacing:6px;font-weight:600">` + code + `</p>` +
-			`<p>Код действует 10 минут. Если вы его не запрашивали, удалите письмо.</p>`,
-	})
+	message, err := notifications.LoginCodeEmail(email, code)
+	if err != nil {
+		return err
+	}
+	return mailer.sender.Send(ctx, message)
 }
 
 type logCodeMailer struct {

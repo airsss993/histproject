@@ -1,0 +1,77 @@
+{{- /*
+  Одна раскладка на все письма. Почтовые клиенты режут <style> и не знают flex и rgba,
+  поэтому раскладка на таблицах, стили inline, полупрозрачные цвета сайта запечены в hex
+  поверх фона карточки #0E1629. Картинки идут вложениями, cid задан литералом:
+  html/template вырезает подставленные URL со схемой cid.
+*/ -}}
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>{{.Title}}</title>
+<link href="https://fonts.googleapis.com/css2?family=Tenor+Sans&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; padding: 0; background: #010014; }
+  @media (max-width: 620px) {
+    .card { padding: 28px 22px 32px !important; }
+    .title { font-size: 22px !important; }
+    .code { font-size: 30px !important; letter-spacing: 7px !important; }
+    .label { width: 96px !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#010014;">
+{{with .Preheader}}<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{.}}</div>{{end}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#010014" style="background:#010014;">
+<tr><td align="center" style="padding:24px 12px 32px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+<tr><td bgcolor="#010014" style="background:#010014;border-radius:14px 14px 0 0;">
+<img src="cid:banner@histproject" width="600" alt="Россия - страна Героев" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:14px 14px 0 0;color:#C7AE7F;font:400 22px Arial,sans-serif;">
+</td></tr>
+<tr><td class="card" bgcolor="#0E1629" style="background:#0E1629;border:1px solid #31355C;border-top:0;border-radius:0 0 14px 14px;padding:36px 44px 40px;">
+<img src="cid:icon@histproject" width="56" height="56" alt="" style="display:block;width:56px;height:56px;border:0;">
+<h1 class="title" style="margin:22px 0 0;font:400 26px/1.25 'Tenor Sans','Segoe UI',Arial,sans-serif;color:#FFFFFF;">{{.Title}}</h1>
+<p style="margin:12px 0 0;font:400 16px/1.6 'Segoe UI',Arial,sans-serif;color:#BDC0C9;">{{.Lead}}</p>
+{{- with .Code}}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;"><tr>
+<td class="code" bgcolor="#242833" style="background:#242833;border:1px solid #7D7151;border-radius:12px;padding:18px 16px 18px 26px;font:400 36px/1 'Tenor Sans','Segoe UI',Arial,sans-serif;letter-spacing:10px;color:#C7AE7F;">{{.}}</td>
+</tr></table>
+{{- end}}
+{{- if .Fields}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;border-top:1px solid #31355C;">
+{{- range .Fields}}
+<tr>
+<td class="label" width="120" valign="top" style="width:120px;padding:13px 12px 13px 0;border-bottom:1px solid #31355C;font:400 13px/1.5 'Segoe UI',Arial,sans-serif;color:#8194AE;">{{.Label}}</td>
+<td valign="top" style="padding:13px 0;border-bottom:1px solid #31355C;font:400 15px/1.5 'Segoe UI',Arial,sans-serif;color:#FFFFFF;word-break:break-word;">{{.Value}}</td>
+</tr>
+{{- end}}
+</table>
+{{- end}}
+{{- with .Quote}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 0;"><tr>
+<td bgcolor="#24212F" style="background:#24212F;border-left:2px solid #C46F62;padding:14px 18px;">
+<div style="font:400 13px/1.5 'Segoe UI',Arial,sans-serif;color:#8194AE;">Комментарий модератора</div>
+<div style="margin-top:4px;font:400 15px/1.6 'Segoe UI',Arial,sans-serif;color:#FFFFFF;white-space:pre-line;">{{.}}</div>
+</td></tr></table>
+{{- end}}
+{{- with .Action}}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:30px 0 0;"><tr>
+<td bgcolor="#C7AE7F" style="background:#C7AE7F;border-radius:8px;">
+<a href="{{.URL}}" target="_blank" style="display:inline-block;padding:14px 26px;font:400 15px/1 'Tenor Sans','Segoe UI',Arial,sans-serif;color:#010011;text-decoration:none;border-radius:8px;">{{.Label}}</a>
+</td></tr></table>
+{{- end}}
+{{- with .Note}}
+<p style="margin:28px 0 0;font:400 13px/1.6 'Segoe UI',Arial,sans-serif;color:#8194AE;">{{.}}</p>
+{{- end}}
+</td></tr>
+<tr><td align="center" style="padding:22px 20px 0;font:400 12px/1.6 'Segoe UI',Arial,sans-serif;color:#666F8F;">
+Письмо отправлено автоматически, отвечать на него не нужно.<br>Россия - страна Героев
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

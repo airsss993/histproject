@@ -43,4 +43,14 @@ type Email struct {
 	To      []string
 	Subject string
 	HTML    string
+	// Text - text/plain версия. Пустая - письмо уходит одной HTML-частью.
+	Text string
+	// Images встраиваются в письмо и доступны в HTML как cid:ContentID.
+	Images []InlineImage
+}
+
+type InlineImage struct {
+	ContentID string
+	FileName  string
+	Content   []byte
 }

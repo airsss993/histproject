@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"mime"
+	"mime/multipart"
 	"net"
 	"net/mail"
 	"net/smtp"
 	"net/textproto"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -117,8 +119,6 @@ func deliverLetter(client *smtp.Client, envelopeFrom string, recipients []string
 
 // buildLetter собирает MIME-письмо. Адреса проходят через mail.Address.String():
 // имя с кириллицей кодируется по RFC 2047, заголовки остаются семибитными.
-// Тело кодируется в base64: это разом снимает ограничение SMTP на длину строки,
-// точку в начале строки и восьмибитные символы.
 func buildLetter(from string, message Email) ([]byte, error) {
 	if len(message.To) == 0 || strings.TrimSpace(message.Subject) == "" || strings.TrimSpace(message.HTML) == "" {
 		return nil, ErrInvalidMessage
@@ -143,16 +143,91 @@ func buildLetter(from string, message Email) ([]byte, error) {
 	fmt.Fprintf(&letter, "From: %s\r\n", parsedFrom.String())
 	fmt.Fprintf(&letter, "To: %s\r\n", strings.Join(recipients, ", "))
 	fmt.Fprintf(&letter, "Subject: %s\r\n", mime.QEncoding.Encode("utf-8", message.Subject))
+	body, err := letterBody(message)
+	if err != nil {
+		return nil, err
+	}
 	letter.WriteString("MIME-Version: 1.0\r\n")
-	letter.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
-	letter.WriteString("Content-Transfer-Encoding: base64\r\n\r\n")
-	encoded := base64.StdEncoding.EncodeToString([]byte(message.HTML))
+	for _, key := range []string{"Content-Type", "Content-Transfer-Encoding"} {
+		if value := body.header.Get(key); value != "" {
+			fmt.Fprintf(&letter, "%s: %s\r\n", key, value)
+		}
+	}
+	letter.WriteString("\r\n")
+	letter.Write(body.content)
+	return letter.Bytes(), nil
+}
+
+type mimePart struct {
+	header  textproto.MIMEHeader
+	content []byte
+}
+
+// letterBody раскладывает письмо по частям:
+// multipart/alternative{text/plain, multipart/related{text/html, картинки}}.
+// Без Text или без картинок лишний уровень вложенности не создаётся.
+func letterBody(message Email) (mimePart, error) {
+	body := base64Part("text/html; charset=UTF-8", []byte(message.HTML))
+	if len(message.Images) > 0 {
+		parts := []mimePart{body}
+		for _, image := range message.Images {
+			if image.ContentID == "" || len(image.Content) == 0 || strings.ContainsAny(image.ContentID+image.FileName, "\r\n\"<>") {
+				return mimePart{}, ErrInvalidMessage
+			}
+			contentType := mime.TypeByExtension(filepath.Ext(image.FileName))
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+			part := base64Part(contentType, image.Content)
+			part.header.Set("Content-ID", "<"+image.ContentID+">")
+			part.header.Set("Content-Disposition", fmt.Sprintf("inline; filename=%q", image.FileName))
+			parts = append(parts, part)
+		}
+		var err error
+		if body, err = multipartBody(`related; type="text/html"`, parts); err != nil {
+			return mimePart{}, err
+		}
+	}
+	if strings.TrimSpace(message.Text) != "" {
+		return multipartBody("alternative", []mimePart{base64Part("text/plain; charset=UTF-8", []byte(message.Text)), body})
+	}
+	return body, nil
+}
+
+func multipartBody(subtype string, parts []mimePart) (mimePart, error) {
+	var content bytes.Buffer
+	writer := multipart.NewWriter(&content)
+	for _, part := range parts {
+		partWriter, err := writer.CreatePart(part.header)
+		if err != nil {
+			return mimePart{}, err
+		}
+		if _, err := partWriter.Write(part.content); err != nil {
+			return mimePart{}, err
+		}
+	}
+	if err := writer.Close(); err != nil {
+		return mimePart{}, err
+	}
+	header := textproto.MIMEHeader{}
+	header.Set("Content-Type", fmt.Sprintf("multipart/%s; boundary=%s", subtype, writer.Boundary()))
+	return mimePart{header: header, content: content.Bytes()}, nil
+}
+
+// base64Part кодирует тело в base64 строками по 76 символов: это разом снимает
+// ограничение SMTP на длину строки, точку в начале строки и восьмибитные символы.
+func base64Part(contentType string, content []byte) mimePart {
+	header := textproto.MIMEHeader{}
+	header.Set("Content-Type", contentType)
+	header.Set("Content-Transfer-Encoding", "base64")
+	var body bytes.Buffer
+	encoded := base64.StdEncoding.EncodeToString(content)
 	for len(encoded) > base64LineLength {
-		letter.WriteString(encoded[:base64LineLength] + "\r\n")
+		body.WriteString(encoded[:base64LineLength] + "\r\n")
 		encoded = encoded[base64LineLength:]
 	}
-	letter.WriteString(encoded + "\r\n")
-	return letter.Bytes(), nil
+	body.WriteString(encoded + "\r\n")
+	return mimePart{header: header, content: body.Bytes()}
 }
 
 // smtpFailure отдаёт код ответа сервера без его текста: в текст может попасть
