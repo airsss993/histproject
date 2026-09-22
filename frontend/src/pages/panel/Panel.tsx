@@ -29,7 +29,7 @@ const ExpiredContext = React.createContext<() => void>(noop)
 export const Panel: React.FC = () => {
   const [me, setMe] = useState<Me | null | undefined>(undefined)
   useEffect(() => { api.getSession().then(r => setMe(r.ok ? r.data.admin : null)) }, [])
-  if (me === undefined) return <div className="pm-root ad-page" />
+  if (me === undefined) return <div className="pm-root mod-page" />
   if (!me) return <Login onDone={setMe} />
   return (
     <ExpiredContext.Provider value={() => setMe(null)}>
@@ -60,11 +60,11 @@ const Login: React.FC<{ onDone: (me: Me) => void }> = ({ onDone }) => {
   }
 
   return (
-    <div className="pm-root ad-page ad-login">
-      <header className="ad-top"><Logo onClick={() => navigate('/map')} /></header>
-      <form className="ad-card ad-login-card" onSubmit={submit} noValidate>
-        <h1 className="ad-title">Модерация</h1>
-        <p className="ad-dim">Вход для модераторов</p>
+    <div className="pm-root mod-page mod-login">
+      <header className="mod-top"><Logo onClick={() => navigate('/map')} /></header>
+      <form className="mod-card mod-login-card" onSubmit={submit} noValidate>
+        <h1 className="mod-title">Модерация</h1>
+        <p className="mod-dim">Вход для модераторов</p>
         <Field label="Логин" error={errors.login}>
           <input value={form.login} autoFocus autoComplete="username" maxLength={100}
             onChange={e => setForm(f => ({ ...f, login: e.target.value }))} />
@@ -73,8 +73,8 @@ const Login: React.FC<{ onDone: (me: Me) => void }> = ({ onDone }) => {
           <input type="password" value={form.password} autoComplete="current-password" maxLength={128}
             onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
         </Field>
-        {errors.form && <p className="ad-error" role="alert">{errors.form}</p>}
-        <button className="pm-btn ad-wide" disabled={busy}>{busy ? 'Входим...' : 'Войти'}</button>
+        {errors.form && <p className="mod-error" role="alert">{errors.form}</p>}
+        <button className="pm-btn mod-wide" disabled={busy}>{busy ? 'Входим...' : 'Войти'}</button>
       </form>
     </div>
   )
@@ -93,21 +93,21 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
   const tab = tabs.find(([t]) => t === params.get('tab'))?.[0] ?? 'submissions'
 
   return (
-    <div className={`pm-root ad-page${mobile ? ' mobile' : ''}`}>
-      <header className="ad-top">
+    <div className={`pm-root mod-page${mobile ? ' mobile' : ''}`}>
+      <header className="mod-top">
         <Logo short={mobile} onClick={() => navigate('/map')} />
         {tabs.length > 1 && (
-          <nav className="ad-tabs">
+          <nav className="mod-tabs">
             {tabs.map(([t, label]) => (
               <button key={t} type="button" className={t === tab ? 'on' : ''} onClick={() => setParams(t === 'submissions' ? {} : { tab: t })}>{label}</button>
             ))}
           </nav>
         )}
         <div className="pm-grow" />
-        <span className="ad-me">{me.login}<small>{api.ROLE_LABEL[me.role]}</small></span>
+        <span className="mod-me">{me.login}<small>{api.ROLE_LABEL[me.role]}</small></span>
         <button type="button" className="pm-btn-text" onClick={onLogout}>Выйти</button>
       </header>
-      <main className="ad-main">
+      <main className="mod-main">
         {tab === 'submissions' && <Submissions mobile={mobile} />}
         {tab === 'history' && <History />}
         {tab === 'moderators' && <Moderators me={me} />}
@@ -160,8 +160,8 @@ const Submissions: React.FC<{ mobile: boolean }> = ({ mobile }) => {
     return <Detail key={selected.id} submission={selected} onBack={() => setSelected(null)} onChanged={changed} />
   }
   return (
-    <div className="ad-split">
-      <section className="ad-list">
+    <div className="mod-split">
+      <section className="mod-list">
         <div className="pm-chips" role="tablist">
           {FILTERS.map(f => (
             <button key={f.label} type="button" role="tab" aria-selected={f.status === status} className={f.status === status ? 'on' : ''}
@@ -172,12 +172,12 @@ const Submissions: React.FC<{ mobile: boolean }> = ({ mobile }) => {
         <Rows state={list} empty="Заявок нет">
           {(data: Page<Submission>) => (
             <>
-              <ul className="ad-rows">
+              <ul className="mod-rows">
                 {data.items.map(s => (
                   <li key={s.id}>
-                    <button type="button" className={`ad-row${selected?.id === s.id ? ' on' : ''}`} onClick={() => setSelected(s)}>
-                      <span className="ad-row-head"><b>{s.title}</b><Badge status={s.status} /></span>
-                      <span className="ad-dim">{s.publicId} · {TYPE_LABEL[s.eventType]} · {formatDate(s.eventDate)} · прислана {api.dateTime(s.createdAt)}</span>
+                    <button type="button" className={`mod-row${selected?.id === s.id ? ' on' : ''}`} onClick={() => setSelected(s)}>
+                      <span className="mod-row-head"><b>{s.title}</b><Badge status={s.status} /></span>
+                      <span className="mod-dim">{s.publicId} · {TYPE_LABEL[s.eventType]} · {formatDate(s.eventDate)} · прислана {api.dateTime(s.createdAt)}</span>
                     </button>
                   </li>
                 ))}
@@ -188,10 +188,10 @@ const Submissions: React.FC<{ mobile: boolean }> = ({ mobile }) => {
         </Rows>
       </section>
       {!mobile && (
-        <section className="ad-detail-col">
+        <section className="mod-detail-col">
           {selected
             ? <Detail key={selected.id} submission={selected} onChanged={changed} />
-            : <div className="ad-card ad-placeholder ad-dim">Выберите заявку в списке</div>}
+            : <div className="mod-card mod-placeholder mod-dim">Выберите заявку в списке</div>}
         </section>
       )}
     </div>
@@ -202,25 +202,25 @@ const Submissions: React.FC<{ mobile: boolean }> = ({ mobile }) => {
 function Rows<T extends { items: unknown[] }>({ state, empty, children }: {
   state: { data?: T; error?: string; loading: boolean; reload: () => void }; empty: string; children: (data: T) => React.ReactNode
 }) {
-  if (state.error) return <p className="ad-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
-  if (!state.data) return <p className="ad-dim">Загружаем...</p>
-  if (!state.data.items.length) return <p className="ad-dim ad-empty">{empty}</p>
-  return <div className={state.loading ? 'ad-stale' : ''}>{children(state.data)}</div>
+  if (state.error) return <p className="mod-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
+  if (!state.data) return <p className="mod-dim">Загружаем...</p>
+  if (!state.data.items.length) return <p className="mod-dim mod-empty">{empty}</p>
+  return <div className={state.loading ? 'mod-stale' : ''}>{children(state.data)}</div>
 }
 
 const Pager: React.FC<{ page: number; pageSize: number; total: number; onPage: (p: number) => void }> = ({ page, pageSize, total, onPage }) => {
   const pages = Math.ceil(total / pageSize)
   if (pages <= 1) return null
   return (
-    <div className="ad-pager">
+    <div className="mod-pager">
       <button type="button" className="pm-btn-ghost" disabled={page <= 1} onClick={() => onPage(page - 1)}>Назад</button>
-      <span className="ad-dim">{page} из {pages}</span>
+      <span className="mod-dim">{page} из {pages}</span>
       <button type="button" className="pm-btn-ghost" disabled={page >= pages} onClick={() => onPage(page + 1)}>Дальше</button>
     </div>
   )
 }
 
-const Badge: React.FC<{ status: Status }> = ({ status }) => <span className={`ad-badge ${status}`}>{STATUS_LABEL[status]}</span>
+const Badge: React.FC<{ status: Status }> = ({ status }) => <span className={`mod-badge ${status}`}>{STATUS_LABEL[status]}</span>
 
 type Mode = 'view' | 'approve' | 'reject'
 
@@ -276,14 +276,14 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
   )
 
   return (
-    <article className="ad-card ad-detail">
-      {onBack && <button type="button" className="pm-btn-text ad-back" onClick={onBack}>К списку</button>}
-      <div className="ad-row-head"><h2 className="ad-title">{s.title}</h2><Badge status={s.status} /></div>
+    <article className="mod-card mod-detail">
+      {onBack && <button type="button" className="pm-btn-text mod-back" onClick={onBack}>К списку</button>}
+      <div className="mod-row-head"><h2 className="mod-title">{s.title}</h2><Badge status={s.status} /></div>
       {s.screenshotUrl && (
-        <a href={s.siteUrl} target="_blank" rel="noopener noreferrer" className="ad-shot"><img src={s.screenshotUrl} alt="Снимок присланного сайта" /></a>
+        <a href={s.siteUrl} target="_blank" rel="noopener noreferrer" className="mod-shot"><img src={s.screenshotUrl} alt="Снимок присланного сайта" /></a>
       )}
-      <p className="ad-desc">{s.description}</p>
-      <dl className="ad-facts">
+      <p className="mod-desc">{s.description}</p>
+      <dl className="mod-facts">
         <dt>Номер</dt><dd>{s.publicId}</dd>
         <dt>Тип</dt><dd>{TYPE_LABEL[s.eventType]}</dd>
         <dt>Дата события</dt><dd>{formatDate(s.eventDate)}</dd>
@@ -293,11 +293,11 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
         <dt>Прислана</dt><dd>{api.dateTime(s.createdAt)}</dd>
         <dt>Изменена</dt><dd>{api.dateTime(s.updatedAt)}</dd>
       </dl>
-      {s.status === 'rejected' && s.adminComment && <p className="ad-reason"><b>Причина отказа.</b> {s.adminComment}</p>}
-      {s.status === 'processing' && <p className="ad-dim">Архив ещё распаковывается, предпросмотр появится через минуту.</p>}
+      {s.status === 'rejected' && s.adminComment && <p className="mod-reason"><b>Причина отказа.</b> {s.adminComment}</p>}
+      {s.status === 'processing' && <p className="mod-dim">Архив ещё распаковывается, предпросмотр появится через минуту.</p>}
 
       {mode === 'view' && (
-        <div className="ad-actions">
+        <div className="mod-actions">
           {s.status === 'new' && <button type="button" className="pm-btn" disabled={busy} onClick={() => run(() => api.reviewSubmission(s.id))}>Проверить</button>}
           {preview}
           {s.status === 'review' && <>
@@ -308,12 +308,12 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
       )}
 
       {mode === 'approve' && (
-        <form className="ad-form" onSubmit={approve} noValidate>
+        <form className="mod-form" onSubmit={approve} noValidate>
           <h3>Публикация на карте</h3>
-          <p className="ad-dim">Проверьте точку: кликните по карте или перетащите метку. Координаты можно ввести вручную.</p>
-          <div className="ad-map"><MapView ref={mapRef} events={[]} isActive={always} selectedId={null} onSelect={noop} pad={12} labels
+          <p className="mod-dim">Проверьте точку: кликните по карте или перетащите метку. Координаты можно ввести вручную.</p>
+          <div className="mod-map"><MapView ref={mapRef} events={[]} isActive={always} selectedId={null} onSelect={noop} pad={12} labels
             pick={pick} onPick={busy ? undefined : (a, b) => { setLat(a.toFixed(6)); setLng(b.toFixed(6)); setErrors({}) }} /></div>
-          <div className="ad-pair">
+          <div className="mod-pair">
             <Field label="Широта" error={errors.latitude}><input inputMode="decimal" value={lat} onChange={e => setLat(e.target.value)} placeholder="55.751244" /></Field>
             <Field label="Долгота" error={errors.longitude}><input inputMode="decimal" value={lng} onChange={e => setLng(e.target.value)} placeholder="37.618423" /></Field>
           </div>
@@ -321,9 +321,9 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
           <div className="pm-types">
             {TYPES.map(t => <button key={t} type="button" className={t === type ? 'on' : ''} aria-pressed={t === type} onClick={() => setType(t)}>{TYPE_LABEL[t]}</button>)}
           </div>
-          {errors.eventType && <p className="ad-error">{errors.eventType}</p>}
-          {note && <p className="ad-error" role="alert">{note}</p>}
-          <div className="ad-actions">
+          {errors.eventType && <p className="mod-error">{errors.eventType}</p>}
+          {note && <p className="mod-error" role="alert">{note}</p>}
+          <div className="mod-actions">
             <button className="pm-btn" disabled={busy}>{busy ? 'Публикуем...' : 'Опубликовать'}</button>
             <button type="button" className="pm-btn-text" onClick={() => setMode('view')}>Отмена</button>
           </div>
@@ -331,20 +331,20 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
       )}
 
       {mode === 'reject' && (
-        <form className="ad-form" onSubmit={reject} noValidate>
+        <form className="mod-form" onSubmit={reject} noValidate>
           <h3>Отклонить заявку</h3>
           <Field label="Причина для автора" error={errors.comment}>
             <textarea rows={4} maxLength={MAX_REASON} autoFocus value={reason} onChange={e => { setReason(e.target.value); setErrors({}) }} />
           </Field>
-          <p className="ad-dim">{reason.length} / {MAX_REASON}</p>
-          {note && <p className="ad-error" role="alert">{note}</p>}
-          <div className="ad-actions">
+          <p className="mod-dim">{reason.length} / {MAX_REASON}</p>
+          {note && <p className="mod-error" role="alert">{note}</p>}
+          <div className="mod-actions">
             <button className="pm-btn danger" disabled={busy}>{busy ? 'Отклоняем...' : 'Отклонить'}</button>
             <button type="button" className="pm-btn-text" onClick={() => setMode('view')}>Отмена</button>
           </div>
         </form>
       )}
-      {mode === 'view' && note && <p className="ad-error" role="alert">{note}</p>}
+      {mode === 'view' && note && <p className="mod-error" role="alert">{note}</p>}
     </article>
   )
 }
@@ -356,19 +356,19 @@ const History: React.FC = () => {
   const list = useLoad(() => api.listAudit({ q: query, page }), [query, page])
   useEffect(() => setPage(1), [query])
   return (
-    <section className="ad-narrow">
-      <h1 className="ad-title">История действий</h1>
-      <p className="ad-dim">Каждое действие модератора. Записи нельзя изменить или удалить.</p>
+    <section className="mod-narrow">
+      <h1 className="mod-title">История действий</h1>
+      <p className="mod-dim">Каждое действие модератора. Записи нельзя изменить или удалить.</p>
       <Field><input type="search" aria-label="Поиск по истории" placeholder="Поиск по заявке, логину или действию" value={q} onChange={e => setQ(e.target.value)} /></Field>
       <Rows state={list} empty="Действий пока нет">
         {(data: Page<AuditEntry>) => (
           <>
-            <ul className="ad-rows">
+            <ul className="mod-rows">
               {data.items.map(a => (
-                <li key={a.id} className="ad-row ad-log">
-                  <span className="ad-row-head"><b>{a.adminLogin} <span className={`ad-act ${a.action}`}>{ACTION_LABEL[a.action].toLowerCase()}</span> {a.submissionPublicId} {a.submissionTitle}</b></span>
-                  <span className="ad-dim">{api.dateTime(a.createdAt)} · {api.ROLE_LABEL[a.adminRole] ?? a.adminRole}</span>
-                  {a.comment && <span className="ad-log-comment">{a.comment}</span>}
+                <li key={a.id} className="mod-row mod-log">
+                  <span className="mod-row-head"><b>{a.adminLogin} <span className={`mod-act ${a.action}`}>{ACTION_LABEL[a.action].toLowerCase()}</span> {a.submissionPublicId} {a.submissionTitle}</b></span>
+                  <span className="mod-dim">{api.dateTime(a.createdAt)} · {api.ROLE_LABEL[a.adminRole] ?? a.adminRole}</span>
+                  {a.comment && <span className="mod-log-comment">{a.comment}</span>}
                 </li>
               ))}
             </ul>
@@ -413,20 +413,20 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
   }
 
   return (
-    <section className="ad-narrow">
-      <h1 className="ad-title">Модераторы</h1>
-      <p className="ad-dim">Модератор проверяет заявки. Супер-админ ещё видит историю и управляет модераторами.</p>
-      {note && <p className="ad-error" role="alert">{note}</p>}
+    <section className="mod-narrow">
+      <h1 className="mod-title">Модераторы</h1>
+      <p className="mod-dim">Модератор проверяет заявки. Супер-админ ещё видит историю и управляет модераторами.</p>
+      {note && <p className="mod-error" role="alert">{note}</p>}
       <Rows state={list} empty="Никого нет">
         {(data: { items: Moderator[] }) => (
-          <ul className="ad-rows">
+          <ul className="mod-rows">
             {data.items.map(m => (
-              <li key={m.id} className="ad-row ad-mod">
-                <span className="ad-grow-col">
+              <li key={m.id} className="mod-row mod-mod">
+                <span className="mod-grow-col">
                   <b>{m.login}{m.id === me.id && ' (вы)'}</b>
-                  <span className="ad-dim">{m.email || 'почта не указана'} · с {formatDate(m.createdAt)}</span>
+                  <span className="mod-dim">{m.email || 'почта не указана'} · с {formatDate(m.createdAt)}</span>
                 </span>
-                <Field className="ad-select"><select value={m.role} disabled={busy || m.id === me.id} aria-label={`Роль ${m.login}`}
+                <Field className="mod-select"><select value={m.role} disabled={busy || m.id === me.id} aria-label={`Роль ${m.login}`}
                   onChange={e => act(() => api.changeRole(m.id, e.target.value as Role))}>
                   <option value="admin">Модератор</option>
                   <option value="super_admin">Супер-админ</option>
@@ -441,13 +441,13 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
         )}
       </Rows>
 
-      <form className="ad-card ad-form" onSubmit={create} noValidate>
+      <form className="mod-card mod-form" onSubmit={create} noValidate>
         <h3>Добавить модератора</h3>
-        <div className="ad-pair">
+        <div className="mod-pair">
           <Field label="Логин" error={errors.login}><input value={form.login} onChange={set('login')} autoComplete="off" maxLength={100} placeholder="ivanov" /></Field>
           <Field label="Пароль" error={errors.password}><input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="не короче 12 символов" /></Field>
         </div>
-        <div className="ad-pair">
+        <div className="mod-pair">
           <Field label="Почта для уведомлений" error={errors.email}><input type="email" value={form.email} onChange={set('email')} maxLength={254} placeholder="можно пусто" /></Field>
           <Field label="Роль" error={errors.role}>
             <select value={form.role} onChange={set('role')}>
@@ -456,7 +456,7 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
             </select>
           </Field>
         </div>
-        <div className="ad-actions"><button className="pm-btn" disabled={busy}>Добавить</button></div>
+        <div className="mod-actions"><button className="pm-btn" disabled={busy}>Добавить</button></div>
       </form>
     </section>
   )
@@ -502,24 +502,24 @@ const Bot: React.FC = () => {
 
   if (!bot) {
     return (
-      <section className="ad-narrow">
-        <h1 className="ad-title">Бот</h1>
+      <section className="mod-narrow">
+        <h1 className="mod-title">Бот</h1>
         {state.error
-          ? <p className="ad-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
-          : <p className="ad-dim">Загружаем...</p>}
+          ? <p className="mod-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
+          : <p className="mod-dim">Загружаем...</p>}
       </section>
     )
   }
-  const noteLine = note && <p className={note.bad ? 'ad-error' : 'ad-dim'} role={note.bad ? 'alert' : 'status'}>{note.text}</p>
+  const noteLine = note && <p className={note.bad ? 'mod-error' : 'mod-dim'} role={note.bad ? 'alert' : 'status'}>{note.text}</p>
   const link = bot.username && <a href={`https://t.me/${bot.username}`} target="_blank" rel="noopener noreferrer">@{bot.username}</a>
 
   return (
-    <section className="ad-narrow">
-      <h1 className="ad-title">Бот</h1>
-      <p className="ad-dim">Telegram-бот пишет о новых заявках и о заявках, готовых к проверке. Сообщения получают только чаты из списка ниже.</p>
-      <form className="ad-card ad-form" onSubmit={save} noValidate>
+    <section className="mod-narrow">
+      <h1 className="mod-title">Бот</h1>
+      <p className="mod-dim">Telegram-бот пишет о новых заявках и о заявках, готовых к проверке. Сообщения получают только чаты из списка ниже.</p>
+      <form className="mod-card mod-form" onSubmit={save} noValidate>
         <h3>Токен</h3>
-        <p className="ad-dim">
+        <p className="mod-dim">
           {bot.configured
             ? <>Подключён {link}. Новый токен заменит текущий, получатели сохранятся.</>
             : 'Бот не подключён. Создайте бота у @BotFather командой /newbot и вставьте токен, который он пришлёт.'}
@@ -529,7 +529,7 @@ const Bot: React.FC = () => {
             onChange={e => { setToken(e.target.value); setTokenError('') }} />
         </Field>
         {note?.at === 'token' && noteLine}
-        <div className="ad-actions">
+        <div className="mod-actions">
           <button className="pm-btn" disabled={busy}>Сохранить</button>
           {bot.configured && (
             <button type="button" className="pm-btn-text danger" disabled={busy}
@@ -542,33 +542,33 @@ const Bot: React.FC = () => {
         <>
           <h3>Получают уведомления</h3>
           {bot.recipients.length ? (
-            <ul className="ad-rows">
+            <ul className="mod-rows">
               {bot.recipients.map(c => (
-                <li key={c.chatId} className="ad-row ad-mod">
+                <li key={c.chatId} className="mod-row mod-mod">
                   <ChatName chat={c} />
                   <button type="button" className="pm-btn-text danger" disabled={busy}
                     onClick={() => confirm(`Закрыть доступ для ${c.title}? Уведомления туда больше не придут.`) && act('list', () => api.revokeBot(c.chatId))}>Закрыть доступ</button>
                 </li>
               ))}
             </ul>
-          ) : <p className="ad-dim">Пока никто. Выдайте доступ тем, кто написал боту.</p>}
+          ) : <p className="mod-dim">Пока никто. Выдайте доступ тем, кто написал боту.</p>}
           {note?.at === 'list' && noteLine}
           {bot.recipients.length > 0 && (
-            <div className="ad-actions">
+            <div className="mod-actions">
               <button type="button" className="pm-btn-ghost" disabled={busy} onClick={() => act('list', api.testBot, 'Проверка дошла до всех получателей')}>Отправить проверку</button>
             </div>
           )}
 
           <h3>Написали боту</h3>
-          <p className="ad-dim">
+          <p className="mod-dim">
             Человек открывает {link} в Telegram и нажимает Start. Чтобы уведомления шли в группу, добавьте бота в неё.
             Потом обновите список: Telegram помнит обращения к боту сутки.
           </p>
           <Rows state={candidates} empty="За последние сутки боту никто не писал">
             {(data: { items: TelegramChat[] }) => (
-              <ul className="ad-rows">
+              <ul className="mod-rows">
                 {data.items.map(c => (
-                  <li key={c.chatId} className="ad-row ad-mod">
+                  <li key={c.chatId} className="mod-row mod-mod">
                     <ChatName chat={c} />
                     <button type="button" className="pm-btn-ghost" disabled={busy} onClick={() => act('list', () => api.grantBot(c.chatId), `${c.title} получает уведомления`)}>Дать доступ</button>
                   </li>
@@ -576,7 +576,7 @@ const Bot: React.FC = () => {
               </ul>
             )}
           </Rows>
-          <div className="ad-actions">
+          <div className="mod-actions">
             <button type="button" className="pm-btn-text" disabled={candidates.loading} onClick={candidates.reload}>{candidates.loading ? 'Обновляем...' : 'Обновить список'}</button>
           </div>
         </>
@@ -586,8 +586,8 @@ const Bot: React.FC = () => {
 }
 
 const ChatName: React.FC<{ chat: TelegramChat }> = ({ chat }) => (
-  <span className="ad-grow-col">
+  <span className="mod-grow-col">
     <b>{chat.title}</b>
-    <span className="ad-dim">{chat.username ? `@${chat.username}` : chat.chatId < 0 ? 'группа или канал' : 'без username'}</span>
+    <span className="mod-dim">{chat.username ? `@${chat.username}` : chat.chatId < 0 ? 'группа или канал' : 'без username'}</span>
   </span>
 )
