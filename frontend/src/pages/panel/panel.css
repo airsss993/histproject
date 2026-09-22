@@ -57,6 +57,7 @@
 .mod-page h3 { margin: 0; font: 400 18px/26px var(--display); }
 .mod-dim { color: var(--dim); font: 400 13px/20px var(--ui); }
 .mod-error { margin: 0; color: var(--danger); font: 400 13px/18px var(--ui); }
+.mod-note { margin: 0; color: #8FC79B; font: 400 13px/18px var(--ui); }
 .mod-empty { padding: 40px 0; text-align: center; }
 .mod-stale { opacity: 0.55; transition: opacity 160ms; }
 
@@ -65,6 +66,7 @@
 .mod-login-card { width: min(420px, calc(100% - 32px)); margin: auto; display: flex; flex-direction: column; gap: 14px; }
 .mod-login-card .mod-title { text-align: center; }
 .mod-login-card > .mod-dim { text-align: center; margin-bottom: 8px; }
+.mod-login-card > .mod-note { text-align: center; }
 .pm-root .mod-wide { width: 100%; height: 48px; margin-top: 6px; }
 
 /* Поля и кнопки - из дизайн-системы (shared/ui/ui.css). */
@@ -125,6 +127,13 @@
 .mod-grow-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .mod-grow-col b { font-weight: 400; }
 .mod-select { flex: none; width: auto; }
+.mod-edit { display: flex; flex-direction: column; gap: 14px; }
+.mod-edit > b { font-weight: 400; }
+.mod-status { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px; overflow-wrap: anywhere; }
+.mod-status b { font-weight: 400; color: var(--gold-soft); }
+.mod-dot { flex: none; width: 10px; height: 10px; margin-top: 7px; border-radius: 50%; background: var(--danger); }
+.mod-dot.on { background: #8FC79B; box-shadow: 0 0 10px rgba(143, 199, 155, 0.6); }
+.pm-root .mod-side-back.on { color: var(--gold); border-color: var(--gold-line); }
 .pm-root .mod-select select { padding: 8px 22px 8px 0; font-size: 14px; }
 
 @media (max-width: 1100px) {
@@ -136,6 +145,9 @@
 .mod-page.mobile .mod-top { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(1, 0, 17, 0.96); }
 .mod-page.mobile .mod-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; justify-content: space-around; padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   background: rgba(1, 0, 17, 0.92); border-top: 1px solid var(--line-soft); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.pm-root.mod-page.mobile .mod-tabs button { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 12px; font: 400 11px/14px var(--ui); }
+.mod-page.mobile .mod-tabs button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mod-tabs svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .mod-page.mobile .mod-main { padding: 16px 16px 88px; }
 .mod-page.mobile .mod-split { display: block; }
 .mod-page.mobile .mod-card { padding: 18px; }

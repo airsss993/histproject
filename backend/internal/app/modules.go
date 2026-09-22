@@ -28,6 +28,7 @@ type Modules struct {
 	submissions *submissions.Handler
 	users       *users.Handler
 	bot         *notifications.BotHandler
+	mail        *notifications.MailHandler
 	rateLimit   httpserver.ClientRateLimiter
 }
 
@@ -76,7 +77,7 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 	botHandler := notifications.NewBotHandler(notifications.NewBot(notifications.NewRepository(databaseClient.Pool()), cfg.NotificationTimeout), logger)
 	return Modules{
 		auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, users: userHandler,
-		bot: botHandler, rateLimit: redisClient.Allow,
+		bot: botHandler, mail: NewMailHandler(cfg, logger, adminService), rateLimit: redisClient.Allow,
 	}
 }
 
@@ -91,7 +92,7 @@ func (modules Modules) Register(mux *http.ServeMux) {
 		return modules.auth.Authenticate(auth.RequireRole(string(admins.RoleSuperAdmin))(next))
 	}
 	modules.auth.Register(mux)
-	modules.admins.Register(mux, superAdminOnly)
+	modules.admins.Register(mux, superAdminOnly, adminOnly)
 	modules.events.Register(mux, adminOnly)
 	modules.submissions.Register(mux, adminOnly, superAdminOnly)
 	if modules.users != nil {
@@ -99,6 +100,9 @@ func (modules Modules) Register(mux *http.ServeMux) {
 	}
 	if modules.bot != nil {
 		modules.bot.Register(mux, superAdminOnly)
+	}
+	if modules.mail != nil {
+		modules.mail.Register(mux, superAdminOnly)
 	}
 }
 

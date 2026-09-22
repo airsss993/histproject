@@ -171,6 +171,52 @@ func (repository *Repository) Delete(ctx context.Context, targetID int64) error 
 	return nil
 }
 
+func (repository *Repository) Get(ctx context.Context, adminID int64) (Admin, error) {
+	admin, err := scanAdmin(repository.pool.QueryRow(ctx, `
+		SELECT id, login, name, email, role::TEXT, created_at
+		FROM auth.admins
+		WHERE id = $1
+	`, adminID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Admin{}, ErrAdminNotFound
+	}
+	if err != nil {
+		return Admin{}, fmt.Errorf("get admin: %w", err)
+	}
+	return admin, nil
+}
+
+// Update меняет только заданные поля: NULL в имени и почте и пустой хеш оставляют прежнее значение.
+func (repository *Repository) Update(ctx context.Context, adminID int64, record UpdateRecord) (Admin, error) {
+	admin, err := scanAdmin(repository.pool.QueryRow(ctx, `
+		UPDATE auth.admins
+		SET name = COALESCE($2, name),
+			email = COALESCE($3, email),
+			password_hash = COALESCE(NULLIF($4, ''), password_hash)
+		WHERE id = $1
+		RETURNING id, login, name, email, role::TEXT, created_at
+	`, adminID, record.Name, record.Email, record.PasswordHash))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Admin{}, ErrAdminNotFound
+	}
+	if err != nil {
+		return Admin{}, fmt.Errorf("update admin: %w", err)
+	}
+	return admin, nil
+}
+
+func (repository *Repository) PasswordHash(ctx context.Context, adminID int64) (string, error) {
+	var passwordHash string
+	err := repository.pool.QueryRow(ctx, `SELECT password_hash FROM auth.admins WHERE id = $1`, adminID).Scan(&passwordHash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrAdminNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("read admin password hash: %w", err)
+	}
+	return passwordHash, nil
+}
+
 func (repository *Repository) HasSuperAdmin(ctx context.Context) (bool, error) {
 	var exists bool
 	if err := repository.pool.QueryRow(ctx, `

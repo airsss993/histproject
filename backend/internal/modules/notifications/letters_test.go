@@ -26,6 +26,8 @@ func allLetters(t *testing.T) map[string]Email {
 	}
 	message, err := LoginCodeEmail("user@example.test", "123456")
 	add("code", message, err)
+	message, err = checkEmail("admin@example.test")
+	add("check", message, err)
 	for _, action := range []Action{ActionCreated, ActionReady} {
 		message, err := adminEmail(action, submission, []string{"admin@example.test"}, "https://russia-heroes.ru/panel")
 		add(string(action), message, err)

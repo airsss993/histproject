@@ -64,13 +64,9 @@ func (notifier *SubmissionNotifier) SubmissionChanged(ctx context.Context, submi
 }
 
 func NewNotificationService(cfg config.Config, databaseClient *database.Database, submissionService *submissions.Service, adminService *admins.Service) (*notifications.Service, error) {
-	var emailSender notifications.EmailSender
-	if cfg.PostboxKeyID != "" {
-		sender, err := notifications.NewPostboxSender(cfg.PostboxAddress, cfg.PostboxKeyID, cfg.PostboxSecret, cfg.EmailFrom, cfg.NotificationTimeout)
-		if err != nil {
-			return nil, err
-		}
-		emailSender = sender
+	emailSender, err := newEmailSender(cfg)
+	if err != nil {
+		return nil, err
 	}
 	repository := notifications.NewRepository(databaseClient.Pool())
 	return notifications.NewService(
@@ -81,6 +77,31 @@ func NewNotificationService(cfg config.Config, databaseClient *database.Database
 		notifications.NewBot(repository, cfg.NotificationTimeout),
 		cfg.AdminPanelURL,
 	), nil
+}
+
+// newEmailSender - Postbox из env. Без POSTBOX_KEY_ID отдаёт nil: почта не настроена.
+func newEmailSender(cfg config.Config) (notifications.EmailSender, error) {
+	if cfg.PostboxKeyID == "" {
+		return nil, nil
+	}
+	return notifications.NewPostboxSender(cfg.PostboxAddress, cfg.PostboxKeyID, cfg.PostboxSecret, cfg.EmailFrom, cfg.NotificationTimeout)
+}
+
+// NewMailHandler - проверка почты в панели. Ошибка настройки Postbox всплывает при отправке тестового письма.
+func NewMailHandler(cfg config.Config, logger *slog.Logger, adminService *admins.Service) *notifications.MailHandler {
+	sender, err := newEmailSender(cfg)
+	if err != nil {
+		sender = brokenSender{err: err}
+	}
+	return notifications.NewMailHandler(sender, cfg.EmailFrom, notificationAdminSource{service: adminService}.NotificationAdminEmails, logger)
+}
+
+type brokenSender struct {
+	err error
+}
+
+func (sender brokenSender) Send(context.Context, notifications.Email) error {
+	return sender.err
 }
 
 type notificationSubmissionSource struct {

@@ -107,6 +107,17 @@ func LoginCodeEmail(to, code string) (Email, error) {
 	}.email([]string{to}, "Код входа: "+code)
 }
 
+// checkEmail - проверочное письмо, которое супер-админ отправляет из панели.
+func checkEmail(to string) (Email, error) {
+	return letterView{
+		Icon:      "published",
+		Preheader: "Почта сайта работает",
+		Title:     "Проверка почты",
+		Lead:      "Письмо отправлено из панели модерации. Раз оно дошло, письма о заявках и коды входа тоже доходят.",
+		Note:      "Если письмо попало в спам, отметьте его как не спам: так следующие придут во входящие.",
+	}.email([]string{to}, "Проверка почты")
+}
+
 func adminEmail(action Action, submission Submission, recipients []string, adminPanelURL string) (Email, error) {
 	view := letterView{
 		Icon:      "processing",

@@ -28,17 +28,19 @@ const ExpiredContext = React.createContext<() => void>(noop)
 
 export const Panel: React.FC = () => {
   const [me, setMe] = useState<Me | null | undefined>(undefined)
+  const [notice, setNotice] = useState('')
   useEffect(() => { api.getSession().then(r => setMe(r.ok ? r.data.admin : null)) }, [])
   if (me === undefined) return <div className="pm-root mod-page" />
-  if (!me) return <Login onDone={setMe} />
+  if (!me) return <Login notice={notice} onDone={m => { setNotice(''); setMe(m) }} />
   return (
     <ExpiredContext.Provider value={() => setMe(null)}>
-      <Shell me={me} onLogout={() => { api.logout(); setMe(null) }} />
+      <Shell me={me} onMe={setMe} onLogout={() => { api.logout(); setMe(null) }}
+        onRelogin={() => { setNotice('Пароль изменён. Войдите с новым паролем.'); setMe(null) }} />
     </ExpiredContext.Provider>
   )
 }
 
-const Login: React.FC<{ onDone: (me: Me) => void }> = ({ onDone }) => {
+const Login: React.FC<{ notice: string; onDone: (me: Me) => void }> = ({ notice, onDone }) => {
   const navigate = useNavigate()
   const [form, setForm] = useState({ login: '', password: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -65,6 +67,7 @@ const Login: React.FC<{ onDone: (me: Me) => void }> = ({ onDone }) => {
       <form className="mod-card mod-login-card" onSubmit={submit} noValidate>
         <h1 className="mod-title">Модерация</h1>
         <p className="mod-dim">Вход для модераторов</p>
+        {notice && <p className="mod-note" role="status">{notice}</p>}
         <Field label="Логин" error={errors.login}>
           <input value={form.login} autoFocus autoComplete="username" maxLength={100}
             onChange={e => setForm(f => ({ ...f, login: e.target.value }))} />
@@ -80,7 +83,7 @@ const Login: React.FC<{ onDone: (me: Me) => void }> = ({ onDone }) => {
   )
 }
 
-type Tab = 'submissions' | 'history' | 'moderators' | 'bot'
+type Tab = 'submissions' | 'history' | 'moderators' | 'bot' | 'mail' | 'profile'
 
 // Иконки меню: контур 24x24, stroke задаёт .pm-menu-item svg.
 const ICON: Record<Tab | 'map' | 'logout', string> = {
@@ -88,6 +91,8 @@ const ICON: Record<Tab | 'map' | 'logout', string> = {
   history: 'M12 7v5l3 2 M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4',
   moderators: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20a6.5 6.5 0 0 1 13 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18.5 14.5A6.5 6.5 0 0 1 21.5 20',
   bot: 'M21 4 3 11l6.5 2.5L18 7l-6.5 7.5L17 20z',
+  mail: 'M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z M3.5 7l8.5 6 8.5-6',
+  profile: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4.5 20a7.5 7.5 0 0 1 15 0',
   map: 'M15 6l-6 6 6 6',
   logout: 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M20 12H9 M16 8l4 4-4 4',
 }
@@ -95,14 +100,16 @@ const Icon: React.FC<{ name: keyof typeof ICON }> = ({ name }) => (
   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d={ICON[name]} /></svg>
 )
 
-const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => {
+const Shell: React.FC<{ me: Me; onMe: (me: Me) => void; onLogout: () => void; onRelogin: () => void }> = ({ me, onMe, onLogout, onRelogin }) => {
   const navigate = useNavigate()
   const mobile = useIsMobile()
   const [params, setParams] = useSearchParams()
   const superAdmin = me.role === 'super_admin'
+  const account: [string, [Tab, string][]] = ['Аккаунт', [['profile', 'Профиль']]]
   const groups: [string, [Tab, string][]][] = superAdmin
-    ? [['Модерация', [['submissions', 'Заявки'], ['history', 'История']]], ['Управление', [['moderators', 'Модераторы'], ['bot', 'Бот']]]]
-    : [['Модерация', [['submissions', 'Заявки']]]]
+    ? [['Модерация', [['submissions', 'Заявки'], ['history', 'История']]],
+        ['Управление', [['moderators', 'Модераторы'], ['bot', 'Бот'], ['mail', 'Почта']]], account]
+    : [['Модерация', [['submissions', 'Заявки']]], account]
   const tabs = groups.flatMap(([, items]) => items)
   const tab = tabs.find(([t]) => t === params.get('tab'))?.[0] ?? 'submissions'
   const open = (t: Tab) => setParams(t === 'submissions' ? {} : { tab: t })
@@ -111,23 +118,30 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
     <main className="mod-main">
       {tab === 'submissions' && <Submissions mobile={mobile} />}
       {tab === 'history' && <History />}
-      {tab === 'moderators' && <Moderators me={me} />}
+      {tab === 'moderators' && <Moderators me={me} onProfile={() => open('profile')} />}
       {tab === 'bot' && <Bot />}
+      {tab === 'mail' && <Mail />}
+      {tab === 'profile' && <Profile onSaved={a => onMe({ ...me, name: a.name })} onRelogin={onRelogin} />}
     </main>
   )
 
+  // На телефоне профиль - кнопкой в шапке: в нижней полосе места на пять вкладок.
+  const barTabs = tabs.filter(([t]) => t !== 'profile')
   if (mobile) return (
     <div className="pm-root mod-page mobile">
       <header className="mod-top">
         <Logo short onClick={() => navigate('/map')} />
-        {tabs.length > 1 && (
+        {barTabs.length > 1 && (
           <nav className="mod-tabs">
-            {tabs.map(([t, label]) => (
-              <button key={t} type="button" className={t === tab ? 'on' : ''} onClick={() => open(t)}>{label}</button>
+            {barTabs.map(([t, label]) => (
+              <button key={t} type="button" className={t === tab ? 'on' : ''} aria-current={t === tab ? 'page' : undefined}
+                onClick={() => open(t)}><Icon name={t} /><span>{label}</span></button>
             ))}
           </nav>
         )}
         <div className="pm-grow" />
+        <button type="button" className={`mod-side-back${tab === 'profile' ? ' on' : ''}`} title="Профиль" aria-label="Профиль"
+          aria-current={tab === 'profile' ? 'page' : undefined} onClick={() => open('profile')}><Icon name="profile" /></button>
         <button type="button" className="pm-btn-text" onClick={onLogout}>Выйти</button>
       </header>
       {main}
@@ -187,6 +201,31 @@ function useDebounced<T>(value: T, ms = 300) {
   const [v, setV] = useState(value)
   useEffect(() => { const t = setTimeout(() => setV(value), ms); return () => clearTimeout(t) }, [value, ms])
   return v
+}
+
+// Отправка формы: ошибки полей - к полям, остальное - строкой под формой, 401 - на вход.
+function useSubmit() {
+  const expired = React.useContext(ExpiredContext)
+  const [busy, setBusy] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null)
+  const submit = async <T,>(action: () => Promise<ApiResult<T>>, done?: string): Promise<T | undefined> => {
+    setBusy(true)
+    setNote(null)
+    setErrors({})
+    const res = await action()
+    setBusy(false)
+    if (res.ok) {
+      if (done) setNote({ text: done, bad: false })
+      return res.data
+    }
+    if (res.status === 401) expired()
+    else if (res.fields) setErrors(res.fields)
+    else setNote({ text: api.problem(res), bad: true })
+  }
+  const clear = (k: string) => { setErrors(e => ({ ...e, [k]: '' })); setNote(null) }
+  const noteLine = note && <p className={note.bad ? 'mod-error' : 'mod-note'} role={note.bad ? 'alert' : 'status'}>{note.text}</p>
+  return { busy, errors, setErrors, noteLine, submit, clear }
 }
 
 const Submissions: React.FC<{ mobile: boolean }> = ({ mobile }) => {
@@ -428,13 +467,14 @@ const History: React.FC = () => {
 
 const EMPTY = { login: '', name: '', password: '', email: '', role: 'admin' as Role }
 
-const Moderators: React.FC<{ me: Me }> = ({ me }) => {
+const Moderators: React.FC<{ me: Me; onProfile: () => void }> = ({ me, onProfile }) => {
   const expired = React.useContext(ExpiredContext)
   const list = useLoad(() => api.listModerators(), [])
   const [form, setForm] = useState(EMPTY)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState<number | null>(null)
 
   const act = async (action: () => Promise<ApiResult>, onOk?: () => void) => {
     setBusy(true)
@@ -466,7 +506,11 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
       <Rows state={list} empty="Никого нет">
         {(data: { items: Moderator[] }) => (
           <ul className="mod-rows">
-            {data.items.map(m => (
+            {data.items.map(m => m.id === editing ? (
+              <li key={m.id} className="mod-row">
+                <ModeratorEdit moderator={m} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); list.reload() }} />
+              </li>
+            ) : (
               <li key={m.id} className="mod-row mod-mod">
                 <span className="mod-grow-col">
                   <b>{m.name || m.login}{m.id === me.id && ' (вы)'}</b>
@@ -477,6 +521,8 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
                   <option value="admin">Модератор</option>
                   <option value="super_admin">Супер-админ</option>
                 </select></Field>
+                <button type="button" className="pm-btn-text" disabled={busy}
+                  onClick={() => m.id === me.id ? onProfile() : setEditing(m.id)}>Изменить</button>
                 {m.id !== me.id && (
                   <button type="button" className="pm-btn-text danger" disabled={busy}
                     onClick={() => confirm(`Удалить ${m.login}? Войти он больше не сможет.`) && act(() => api.deleteModerator(m.id))}>Удалить</button>
@@ -507,6 +553,158 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
         </div>
         <div className="mod-actions"><button className="pm-btn" disabled={busy}>Добавить</button></div>
       </form>
+    </section>
+  )
+}
+
+// Правка чужой учётки. Свою супер-админ правит в профиле: там пароль меняется только с текущим.
+const ModeratorEdit: React.FC<{ moderator: Moderator; onCancel: () => void; onSaved: () => void }> = ({ moderator: m, onCancel, onSaved }) => {
+  const [form, setForm] = useState({ name: m.name, email: m.email, password: '' })
+  const s = useSubmit()
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => { setForm(f => ({ ...f, [k]: e.target.value })); s.clear(k) }
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.name.trim()) return s.setErrors({ name: 'Введите имя' })
+    if (await s.submit(() => api.updateModerator(m.id, { name: form.name.trim(), email: form.email.trim(), password: form.password }))) onSaved()
+  }
+  return (
+    <form className="mod-edit" onSubmit={save} noValidate>
+      <b>Изменить {m.login}</b>
+      <div className="mod-pair">
+        <Field label="Имя" error={s.errors.name}><input value={form.name} onChange={set('name')} autoComplete="off" maxLength={100} autoFocus /></Field>
+        <Field label="Почта для уведомлений" error={s.errors.email}><input type="email" value={form.email} onChange={set('email')} maxLength={254} placeholder="можно пусто" /></Field>
+      </div>
+      <div className="mod-pair">
+        <Field label="Новый пароль" error={s.errors.password}>
+          <input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="пусто - пароль прежний" />
+        </Field>
+      </div>
+      {form.password && <p className="mod-dim">После смены пароля модератора выкинет из панели на всех устройствах.</p>}
+      {s.noteLine}
+      <div className="mod-actions">
+        <button className="pm-btn" disabled={s.busy}>{s.busy ? 'Сохраняем...' : 'Сохранить'}</button>
+        <button type="button" className="pm-btn-text" onClick={onCancel}>Отмена</button>
+      </div>
+    </form>
+  )
+}
+
+const Profile: React.FC<{ onSaved: (m: Moderator) => void; onRelogin: () => void }> = ({ onSaved, onRelogin }) => {
+  const state = useLoad(() => api.getProfile(), [])
+  return (
+    <section className="mod-narrow">
+      <h1 className="mod-title">Профиль</h1>
+      {state.data
+        ? <ProfileForm admin={state.data.admin} onSaved={onSaved} />
+        : state.error
+          ? <p className="mod-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
+          : <p className="mod-dim">Загружаем...</p>}
+      <PasswordForm onDone={onRelogin} />
+    </section>
+  )
+}
+
+const ProfileForm: React.FC<{ admin: Moderator; onSaved: (m: Moderator) => void }> = ({ admin, onSaved }) => {
+  const [form, setForm] = useState({ name: admin.name, email: admin.email })
+  const s = useSubmit()
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => { setForm(f => ({ ...f, [k]: e.target.value })); s.clear(k) }
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.name.trim()) return s.setErrors({ name: 'Введите имя' })
+    const res = await s.submit(() => api.updateProfile({ name: form.name.trim(), email: form.email.trim() }), 'Сохранено')
+    if (res) { setForm({ name: res.admin.name, email: res.admin.email }); onSaved(res.admin) }
+  }
+  return (
+    <form className="mod-card mod-form" onSubmit={save} noValidate>
+      <h3>Данные</h3>
+      <p className="mod-dim">Логин {admin.login}, {api.ROLE_LABEL[admin.role].toLowerCase()}. Логин и роль меняет супер-админ.</p>
+      <div className="mod-pair">
+        <Field label="Имя" error={s.errors.name}><input value={form.name} onChange={set('name')} autoComplete="name" maxLength={100} placeholder="Иван Иванов" /></Field>
+        <Field label="Почта для уведомлений" error={s.errors.email}><input type="email" value={form.email} onChange={set('email')} autoComplete="email" maxLength={254} placeholder="можно пусто" /></Field>
+      </div>
+      <p className="mod-dim">На почту приходят письма о новых заявках. Пустое поле - писем не будет.</p>
+      {s.noteLine}
+      <div className="mod-actions"><button className="pm-btn" disabled={s.busy}>{s.busy ? 'Сохраняем...' : 'Сохранить'}</button></div>
+    </form>
+  )
+}
+
+const PasswordForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
+  const [form, setForm] = useState({ currentPassword: '', password: '', repeat: '' })
+  const s = useSubmit()
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => { setForm(f => ({ ...f, [k]: e.target.value })); s.clear(k) }
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const next: Record<string, string> = {}
+    if (!form.currentPassword) next.currentPassword = 'Введите текущий пароль'
+    if (!form.password) next.password = 'Введите новый пароль'
+    else if (form.repeat !== form.password) next.repeat = 'Пароли не совпадают'
+    if (Object.keys(next).length) return s.setErrors(next)
+    if (await s.submit(() => api.changePassword(form.currentPassword, form.password))) onDone()
+  }
+  return (
+    <form className="mod-card mod-form" onSubmit={save} noValidate>
+      <h3>Пароль</h3>
+      <p className="mod-dim">После смены пароля панель попросит войти заново, на остальных устройствах сессии закроются.</p>
+      <Field label="Текущий пароль" error={s.errors.currentPassword}>
+        <input type="password" value={form.currentPassword} onChange={set('currentPassword')} autoComplete="current-password" />
+      </Field>
+      <div className="mod-pair">
+        <Field label="Новый пароль" error={s.errors.password}>
+          <input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="не короче 12 символов" />
+        </Field>
+        <Field label="Повторите пароль" error={s.errors.repeat}>
+          <input type="password" value={form.repeat} onChange={set('repeat')} autoComplete="new-password" />
+        </Field>
+      </div>
+      {s.noteLine}
+      <div className="mod-actions"><button className="pm-btn" disabled={s.busy}>{s.busy ? 'Меняем...' : 'Сменить пароль'}</button></div>
+    </form>
+  )
+}
+
+// Postbox задаётся на сервере, здесь только статус и проверочное письмо.
+const Mail: React.FC = () => {
+  const state = useLoad(() => api.getMail(), [])
+  const mail = state.data?.mail
+  const [email, setEmail] = useState('')
+  const s = useSubmit()
+  const send = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim()) return s.setErrors({ email: 'Введите адрес' })
+    s.submit(() => api.testMail(email.trim()), `Postbox принял письмо для ${email.trim()}. Проверьте входящие и папку "Спам".`)
+  }
+  return (
+    <section className="mod-narrow">
+      <h1 className="mod-title">Почта</h1>
+      <p className="mod-dim">Сайт отправляет письма через Yandex Cloud Postbox: коды входа и решения по заявкам авторам, уведомления о новых заявках модераторам.</p>
+      {!mail
+        ? state.error
+          ? <p className="mod-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
+          : <p className="mod-dim">Загружаем...</p>
+        : <>
+          <div className="mod-card mod-status">
+            <span className={`mod-dot${mail.configured ? ' on' : ''}`} aria-hidden="true" />
+            {mail.configured
+              ? <span>Postbox подключён. Письма уходят от <b>{mail.from}</b>.</span>
+              : <span>Почта не настроена: на сервере не заданы POSTBOX_KEY_ID, POSTBOX_SECRET и EMAIL_FROM. Письма не уходят, коды входа пишутся в лог сервера.</span>}
+          </div>
+          <h3>Получают письма о заявках</h3>
+          {mail.recipients.length ? (
+            <ul className="mod-rows">
+              {mail.recipients.map(r => <li key={r} className="mod-row">{r}</li>)}
+            </ul>
+          ) : <p className="mod-dim">Никто: почта не указана ни у одного модератора. Её задают в профиле или в разделе "Модераторы".</p>}
+          <form className="mod-card mod-form" onSubmit={send} noValidate>
+            <h3>Проверка</h3>
+            <p className="mod-dim">Отправьте письмо себе и убедитесь, что оно дошло и не попало в спам.</p>
+            <Field label="Адрес" error={s.errors.email}>
+              <input type="email" value={email} onChange={e => { setEmail(e.target.value); s.clear('email') }} autoComplete="email" maxLength={254} placeholder="you@example.ru" />
+            </Field>
+            {s.noteLine}
+            <div className="mod-actions"><button className="pm-btn" disabled={s.busy || !mail.configured}>{s.busy ? 'Отправляем...' : 'Отправить письмо'}</button></div>
+          </form>
+        </>}
     </section>
   )
 }

@@ -38,7 +38,7 @@ func TestLoginChecksBcryptAndCreatesSession(t *testing.T) {
 	if token != "generated-token" {
 		t.Fatalf("token = %q", token)
 	}
-	if identity != (Identity{AdminID: 7, Login: "admin", Role: "admin"}) {
+	if identity != (Identity{AdminID: 7, Login: "admin", Role: "admin", Stamp: passwordStamp(string(passwordHash))}) {
 		t.Fatalf("identity = %#v", identity)
 	}
 	if sessions.createdToken != token || sessions.createdIdentity != identity || sessions.createdTTL != 12*time.Hour {
@@ -91,7 +91,7 @@ func TestLoginReturnsSameErrorForMissingAdminAndWrongPassword(t *testing.T) {
 }
 
 func TestAuthenticateAndLogoutUseSessionStore(t *testing.T) {
-	identity := Identity{AdminID: 7, Login: "admin", Role: "admin"}
+	identity := Identity{AdminID: 7, Login: "admin", Role: "admin", Stamp: passwordStamp("")}
 	sessions := &sessionStoreStub{identity: identity}
 	service := newService(&credentialReaderStub{adminID: 7, login: "admin", role: "admin"}, sessions, time.Hour, func() (string, error) {
 		return "unused", nil
@@ -124,7 +124,7 @@ func TestLoginReturnsDatabaseErrorAsInternal(t *testing.T) {
 }
 
 func TestAuthenticateUsesCurrentAdminRole(t *testing.T) {
-	sessions := &sessionStoreStub{identity: Identity{AdminID: 7, Login: "admin", Role: "super_admin"}}
+	sessions := &sessionStoreStub{identity: Identity{AdminID: 7, Login: "admin", Role: "super_admin", Stamp: passwordStamp("")}}
 	service := newService(&credentialReaderStub{adminID: 7, login: "admin", role: "admin"}, sessions, time.Hour, newSessionToken)
 
 	got, err := service.Authenticate(t.Context(), "session-token")
@@ -135,6 +135,15 @@ func TestAuthenticateUsesCurrentAdminRole(t *testing.T) {
 	deleted := newService(&credentialReaderStub{err: pgx.ErrNoRows}, sessions, time.Hour, newSessionToken)
 	if _, err := deleted.Authenticate(t.Context(), "session-token"); !errors.Is(err, ErrInvalidSession) || sessions.deletedToken != "session-token" {
 		t.Fatalf("Authenticate() for deleted admin error = %v, deleted token = %q", err, sessions.deletedToken)
+	}
+}
+
+func TestAuthenticateRejectsSessionAfterPasswordChange(t *testing.T) {
+	sessions := &sessionStoreStub{identity: Identity{AdminID: 7, Login: "admin", Role: "admin", Stamp: passwordStamp("old-hash")}}
+	service := newService(&credentialReaderStub{adminID: 7, login: "admin", passwordHash: "new-hash", role: "admin"}, sessions, time.Hour, newSessionToken)
+
+	if _, err := service.Authenticate(t.Context(), "session-token"); !errors.Is(err, ErrInvalidSession) || sessions.deletedToken != "session-token" {
+		t.Fatalf("Authenticate() error = %v, deleted token = %q, want session dropped", err, sessions.deletedToken)
 	}
 }
 

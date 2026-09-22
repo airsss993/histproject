@@ -16,8 +16,10 @@ tags:
   - name: Events
   - name: Submissions
   - name: Admins
+  - name: Profile
   - name: Audit
   - name: Bot
+  - name: Mail
 paths:
   /healthz:
     get:
@@ -546,6 +548,40 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
   /api/v1/admin/admins/{id}:
+    patch:
+      tags: [Admins]
+      operationId: updateAdmin
+      description: Только super_admin и только чужая учётка (свою правят через /admin/profile). Отсутствующее поле не меняется, пустой password оставляет прежний пароль. Смена пароля обрывает сессии этой учётки.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                email:
+                  type: string
+                  description: Пустая строка убирает почту
+                password:
+                  type: string
+                  description: Новый пароль, 12-72 байта
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
     delete:
       tags: [Admins]
       operationId: deleteAdmin
@@ -560,6 +596,72 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+  /api/v1/admin/profile:
+    get:
+      tags: [Profile]
+      operationId: getProfile
+      description: Своя учётка, для любой роли.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Profile]
+      operationId: updateProfile
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                email:
+                  type: string
+                  description: Почта для уведомлений о заявках, можно пусто
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/admin/profile/password:
+    put:
+      tags: [Profile]
+      operationId: changePassword
+      description: Нужен текущий пароль (иначе 400 с полем currentPassword). После смены все сессии учётки, включая текущую, недействительны.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, password]
+              properties:
+                currentPassword:
+                  type: string
+                password:
+                  type: string
+                  description: 12-72 байта
+      responses:
+        "204":
+          description: Пароль изменён
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /api/v1/admin/audit-log:
     get:
       tags: [Audit]
@@ -702,6 +804,57 @@ paths:
           $ref: "#/components/responses/Conflict"
         "502":
           $ref: "#/components/responses/TelegramUnavailable"
+  /api/v1/admin/mail:
+    get:
+      tags: [Mail]
+      operationId: getMail
+      description: Только super_admin. Postbox задаётся env-переменными, ключи наружу не отдаются.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Состояние почты
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mail]
+                properties:
+                  mail:
+                    $ref: "#/components/schemas/MailStatus"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/v1/admin/mail/test:
+    post:
+      tags: [Mail]
+      operationId: sendMailTest
+      description: Проверочное письмо на указанный адрес. 409 mail_not_configured - Postbox не настроен, 502 mail_unavailable - Postbox не принял письмо, в тексте этап и код SMTP.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "204":
+          description: Postbox принял письмо
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "502":
+          description: Postbox не принял письмо
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   securitySchemes:
     sessionCookie:
@@ -809,6 +962,16 @@ components:
             properties:
               bot:
                 $ref: "#/components/schemas/BotStatus"
+    AdminResult:
+      description: Учётка модератора
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [admin]
+            properties:
+              admin:
+                $ref: "#/components/schemas/Admin"
     SubmissionResult:
       description: Состояние заявки изменено
       content:
@@ -993,6 +1156,20 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TelegramChat"
+    MailStatus:
+      type: object
+      required: [configured, recipients]
+      properties:
+        configured:
+          type: boolean
+        from:
+          type: string
+          description: Адрес отправителя (EMAIL_FROM), только если почта настроена
+        recipients:
+          type: array
+          description: Почты модераторов, которые получают письма о заявках
+          items:
+            type: string
     AdminRole:
       type: string
       enum: [admin, super_admin]
