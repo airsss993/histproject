@@ -433,10 +433,11 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
       )
       : (
         <>
-          <button type="button" className="pp-nav" onClick={() => setStep(step - 1)}><Chip d={ARROW} back />Назад</button>
-          <button type="submit" className="pp-nav pp-next">
+          {/* С первого шага "Назад" возвращает к вопросу о готовности сайта, вперёд там ведёт выбор типа. */}
+          <button type="button" className="pp-nav" onClick={() => step ? setStep(step - 1) : setReady(false)}><Chip d={ARROW} back />Назад</button>
+          {step > 0 && <button type="submit" className="pp-nav pp-next">
             {last ? (mobile ? 'Отправить' : 'Отправить на модерацию') : 'Далее'}<Chip d={last ? SEND : ARROW} />
-          </button>
+          </button>}
         </>
       )
   }
@@ -463,8 +464,7 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
           {head.sub && <p className="pp-sub">{head.sub}</p>}
         </div>
         <div className="pp-body">{body}</div>
-        {/* На первом шаге вперёд ведёт сам выбор типа: кнопок нет. */}
-        {ready && !(form && !sending && step === 0) && <div className="pp-foot">{foot}</div>}
+        {ready && <div className="pp-foot">{foot}</div>}
       </form>
     </div>
   )
