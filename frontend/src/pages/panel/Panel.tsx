@@ -467,10 +467,26 @@ const History: React.FC = () => {
 
 const EMPTY = { login: '', name: '', password: '', email: '', role: 'admin' as Role }
 
+// Пароль модератору: 14 символов, в нём есть заглавная, строчная, цифра и знак из _-!@#$%.
+// Без похожих друг на друга I, O, l, 0, 1: пароль часто диктуют или переписывают.
+const PASS_SETS = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnopqrstuvwxyz', '23456789', '_-!@#$%']
+const PASS_ALL = PASS_SETS.join('')
+const randomIndex = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
+function generatePassword(length = 14) {
+  const chars = PASS_SETS.map(set => set[randomIndex(set.length)])
+  while (chars.length < length) chars.push(PASS_ALL[randomIndex(PASS_ALL.length)])
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomIndex(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]]
+  }
+  return chars.join('')
+}
+
 const Moderators: React.FC<{ me: Me; onProfile: () => void }> = ({ me, onProfile }) => {
   const expired = React.useContext(ExpiredContext)
   const list = useLoad(() => api.listModerators(), [])
   const [form, setForm] = useState(EMPTY)
+  const [generated, setGenerated] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -540,7 +556,20 @@ const Moderators: React.FC<{ me: Me; onProfile: () => void }> = ({ me, onProfile
           <Field label="Логин" error={errors.login}><input value={form.login} onChange={set('login')} autoComplete="off" maxLength={100} placeholder="ivanov" /></Field>
         </div>
         <div className="mod-pair">
-          <Field label="Пароль" error={errors.password}><input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="не короче 12 символов" /></Field>
+          <Field label="Пароль" error={errors.password} after={
+            <button type="button" className="pm-field-btn" title="Сгенерировать пароль" aria-label="Сгенерировать пароль" onClick={() => {
+              const password = generatePassword()
+              setGenerated(password)
+              setForm(f => ({ ...f, password }))
+              setErrors(er => ({ ...er, password: '' }))
+            }}>
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14.3 4.9 M4 12a8 8 0 0 1 14.3-4.9 M18.5 3v4.5H14 M5.5 21v-4.5H10" /></svg>
+            </button>
+          }>
+            {/* Сгенерированный пароль виден, чтобы его можно было скопировать и передать модератору. */}
+            <input type={form.password && form.password === generated ? 'text' : 'password'} value={form.password} onChange={set('password')}
+              autoComplete="new-password" spellCheck={false} placeholder="не короче 12 символов" />
+          </Field>
           <Field label="Почта для уведомлений" error={errors.email}><input type="email" value={form.email} onChange={set('email')} maxLength={254} placeholder="можно пусто" /></Field>
         </div>
         <div className="mod-pair">

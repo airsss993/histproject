@@ -141,6 +141,16 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238194AE' stroke-width='1.6'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E") no-repeat right center; }
 .pm-root .pm-field select option { background: #0C1023; }
 .pm-root .pm-field:has(select) { cursor: pointer; }
+/* Кнопка-иконка внутри поля, справа от input (слот after у Field) */
+.pm-root .pm-field-btn {
+  display: grid; place-items: center; flex: none; width: 32px; height: 32px; margin-right: -8px; padding: 0;
+  border: 0; border-radius: 8px; background: none; color: var(--gold-soft); cursor: pointer;
+  transition: color 160ms ease-out, background 160ms ease-out, rotate 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.pm-root .pm-field-btn svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.pm-root .pm-field-btn:hover { color: var(--gold); background: var(--gold-wash); }
+.pm-root .pm-field-btn:active { rotate: 90deg; }
+.pm-root .pm-field-btn:focus-visible { outline: 1px solid var(--gold-line); outline-offset: 0; }
 /* Раскрытый список - стекло как у меню шапки. Браузер без base-select показывает системный список. */
 @supports (appearance: base-select) {
   .pm-root .pm-field select, .pm-root .pm-field select::picker(select) { appearance: base-select; }
