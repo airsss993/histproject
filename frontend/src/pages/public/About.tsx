@@ -194,9 +194,8 @@ export const About: React.FC = () => {
                     <span className="pm-grow">{item.q}</span>
                     <span className="pm-about-faq-toggle" aria-hidden="true" />
                   </button>
-                  {/* Высоту анимирует grid-template-rows 0fr -> 1fr: ответ в DOM всегда, закрытый недоступен через inert.
-                      inert через spread: в @types/react 18 его нет, рантайм React 19 его знает. */}
-                  <div className="pm-about-faq-body" id={`faq-a-${i}`} role="region" aria-labelledby={`faq-q-${i}`} {...{ inert: !open }}>
+                  {/* Высоту анимирует grid-template-rows 0fr -> 1fr: ответ в DOM всегда, закрытый недоступен через inert. */}
+                  <div className="pm-about-faq-body" id={`faq-a-${i}`} role="region" aria-labelledby={`faq-q-${i}`} inert={!open}>
                     <div><p>{item.a}</p></div>
                   </div>
                 </div>
