@@ -808,7 +808,7 @@ paths:
     get:
       tags: [Mail]
       operationId: getMail
-      description: Только super_admin. Postbox задаётся env-переменными, ключи наружу не отдаются.
+      description: Только super_admin. Ключи Postbox задаются env-переменными и наружу не отдаются.
       security:
         - sessionCookie: []
       responses:
@@ -824,6 +824,45 @@ paths:
                     $ref: "#/components/schemas/MailStatus"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /api/v1/admin/mail/sender:
+    put:
+      tags: [Mail]
+      operationId: setMailSender
+      description: Отправитель всех писем. Адрес только на домене EMAIL_FROM, подтверждённом в Postbox. Пока не задан, письма уходят от EMAIL_FROM. 409 mail_not_configured - Postbox не настроен.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, address]
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                  description: Имя отправителя, можно пусто
+                address:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Отправитель сохранён
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mail]
+                properties:
+                  mail:
+                    $ref: "#/components/schemas/MailStatus"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /api/v1/admin/mail/test:
     post:
       tags: [Mail]
@@ -1158,18 +1197,21 @@ components:
             $ref: "#/components/schemas/TelegramChat"
     MailStatus:
       type: object
-      required: [configured, recipients]
+      required: [configured]
+      description: Поля отправителя есть, только если почта настроена
       properties:
         configured:
           type: boolean
-        from:
+        name:
           type: string
-          description: Адрес отправителя (EMAIL_FROM), только если почта настроена
-        recipients:
-          type: array
-          description: Почты модераторов, которые получают письма о заявках
-          items:
-            type: string
+          description: Имя отправителя
+        address:
+          type: string
+          format: email
+          description: Адрес отправителя - из панели, иначе из EMAIL_FROM
+        domain:
+          type: string
+          description: Домен EMAIL_FROM, на нём должен быть адрес отправителя
     AdminRole:
       type: string
       enum: [admin, super_admin]

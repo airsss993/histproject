@@ -2,7 +2,9 @@ package notifications
 
 import (
 	"bufio"
+	"context"
 	"encoding/base64"
+	"errors"
 	"net"
 	"net/smtp"
 	"strings"
@@ -252,5 +254,30 @@ func TestNewPostboxSenderValidatesConfig(t *testing.T) {
 				t.Fatalf("NewPostboxSender() error = %v, want %v", err, ErrInvalidSenderConfig)
 			}
 		})
+	}
+}
+
+func TestPostboxSenderTakesFromOverride(t *testing.T) {
+	sender, err := NewPostboxSender("postbox.cloud.yandex.net:587", "key-id", "key-secret", "info@russia-heroes.ru", time.Second)
+	if err != nil {
+		t.Fatalf("NewPostboxSender() error = %v", err)
+	}
+	for _, test := range []struct {
+		override, from, envelope string
+	}{
+		{"", "<info@russia-heroes.ru>", "info@russia-heroes.ru"},
+		{"=?utf-8?q?=D0=93=D0=B5=D1=80=D0=BE=D0=B8?= <news@russia-heroes.ru>", "=?utf-8?q?=D0=93=D0=B5=D1=80=D0=BE=D0=B8?= <news@russia-heroes.ru>", "news@russia-heroes.ru"},
+	} {
+		sender.WithFromOverride(func(context.Context) (string, error) { return test.override, nil })
+		from, envelope, err := sender.fromHeader(t.Context())
+		if err != nil || from != test.from || envelope != test.envelope {
+			t.Fatalf("override %q: from = %q, envelope = %q, err = %v", test.override, from, envelope, err)
+		}
+	}
+
+	want := errors.New("database unavailable")
+	sender.WithFromOverride(func(context.Context) (string, error) { return "", want })
+	if err := sender.Send(t.Context(), Email{To: []string{"a@example.test"}, Subject: "s", HTML: "h"}); !errors.Is(err, want) {
+		t.Fatalf("Send() error = %v, want override error", err)
 	}
 }
