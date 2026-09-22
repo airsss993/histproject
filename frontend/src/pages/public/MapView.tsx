@@ -177,14 +177,14 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   { events, isActive, selectedId, onSelect, pad, labels, sea = INK, interactive = true, pick, onPick, callout }, ref) {
   const wrap = useRef<HTMLDivElement>(null)
   const hasCallout = !!callout
-  const mapRef = useRef<maplibregl.Map>()
-  const pickRef = useRef<maplibregl.Marker>()
+  const mapRef = useRef<maplibregl.Map | undefined>(undefined)
+  const pickRef = useRef<maplibregl.Marker | undefined>(undefined)
   const onPickRef = useRef(onPick)
   onPickRef.current = onPick
   const labelsRef = useRef(labels)
   labelsRef.current = labels
   const baseZoom = useRef(0)
-  const pendingFly = useRef<{ center: [number, number]; zoom: number }>()
+  const pendingFly = useRef<{ center: [number, number]; zoom: number } | undefined>(undefined)
   const loadedRef = useRef(false)
   const [tick, setTick] = useState(0)
   const [hover, setHover] = useState<number | null>(null)
@@ -260,7 +260,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   // заново.
   type Shown = { key: number | null; node: React.ReactNode }
   const liveKey = callout ? selectedId : undefined
-  const live = useRef<Shown>()
+  const live = useRef<Shown | undefined>(undefined)
   const [leaving, setLeaving] = useState<(Shown & { at: number })[]>([])
   const shownKey = useRef(liveKey)
   if (shownKey.current !== liveKey) {

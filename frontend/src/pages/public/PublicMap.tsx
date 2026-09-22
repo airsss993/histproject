@@ -84,7 +84,7 @@ export const PublicMap: React.FC = () => {
   const [draft, setDraft] = useState<Filter>(applied)
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
-  const abortRef = useRef<AbortController>()
+  const abortRef = useRef<AbortController | undefined>(undefined)
   const [proposeOpen, setProposeOpen] = useState(false)
   const proposeParam = params.get('propose') === '1'
   useEffect(() => { if (proposeParam) setProposeOpen(true) }, [proposeParam])

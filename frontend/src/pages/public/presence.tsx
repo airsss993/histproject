@@ -27,7 +27,7 @@ type El = React.ReactElement<{ className?: string }>
  */
 export function Presence({ children }: { children: El | false | null | undefined }) {
   const leaving = useLeaving(!!children)
-  const last = useRef<El>()
+  const last = useRef<El | undefined>(undefined)
   if (children) {
     last.current = children
     return children

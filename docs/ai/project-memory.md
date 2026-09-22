@@ -27,9 +27,6 @@
 
 - maplibre-gl держим на 5: в 6 нет default export, а отдельный воркер ломается при
   pre-bundling Vite 4.
-- Глобальная SCSS старого слоя стилизует голые теги (`header`, `input`); в новом слое
-  стилизовать только классами.
-- `@types/react` 18 при React 19: атрибут `inert` не проходит typecheck.
 - `transition: width` у контейнера карты не использовать: MapLibre создаётся посреди
   анимации, пропускает первый колбэк ResizeObserver и canvas остаётся узким.
 - В скрытой вкладке браузера `requestAnimationFrame` не срабатывает, CSS-анимации

@@ -114,7 +114,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   const fileRef = useRef<HTMLInputElement>(null)
   const pickerRef = useRef<HTMLInputElement>(null)
   const mapRef = useRef<MapHandle>(null)
-  const abortRef = useRef<() => void>()
+  const abortRef = useRef<(() => void) | undefined>(undefined)
   const closeRef = useRef<() => void>(noop) // close объявлен ниже раннего return, а хук должен быть до него
   const chosenRef = useRef('') // выбранное место: его текст в поле не ищем повторно
   const sending = phase.k === 'sending'
