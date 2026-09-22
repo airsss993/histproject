@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -56,6 +57,10 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		NewSubmissionNotifier(queueClient),
 		cfg.SitePublicBaseURL,
 	)
+	userService := users.NewService(
+		users.NewRepository(databaseClient.Pool()), users.NewStore(redisClient.Client()),
+		NewCodeMailer(cfg, logger), authorWorks{service: submissionService}, cfg.SessionTTL,
+	)
 	submissionHandler := submissions.NewHandler(
 		submissionService,
 		submissions.NewCreateLimiter(redisClient.Client()),
@@ -64,16 +69,10 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 			identity, ok := auth.IdentityFromContext(ctx)
 			return submissions.Actor{Login: identity.Login, Role: identity.Role}, ok
 		},
+		visitorEmail(userService),
 		cfg.MaxUploadBytes,
 	)
-	userHandler := users.NewHandler(
-		users.NewService(
-			users.NewRepository(databaseClient.Pool()), users.NewStore(redisClient.Client()),
-			NewCodeMailer(cfg, logger), authorWorks{service: submissionService}, cfg.SessionTTL,
-		),
-		logger,
-		cfg.CookieDomain,
-	)
+	userHandler := users.NewHandler(userService, logger, cfg.CookieDomain)
 	botHandler := notifications.NewBotHandler(notifications.NewBot(notifications.NewRepository(databaseClient.Pool()), cfg.NotificationTimeout), logger)
 	return Modules{
 		auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, users: userHandler,
@@ -100,6 +99,21 @@ func (modules Modules) Register(mux *http.ServeMux) {
 	}
 	if modules.bot != nil {
 		modules.bot.Register(mux, superAdminOnly)
+	}
+}
+
+// visitorEmail - автор заявки из сессии посетителя: email берётся из аккаунта, а не из формы.
+func visitorEmail(service *users.Service) submissions.AuthorReader {
+	return func(r *http.Request) (string, error) {
+		token := ""
+		if cookie, err := r.Cookie(users.SessionCookieName); err == nil {
+			token = cookie.Value
+		}
+		user, err := service.Authenticate(r.Context(), token)
+		if errors.Is(err, users.ErrNoSession) {
+			return "", submissions.ErrUnauthorized
+		}
+		return user.Email, err
 	}
 }
 

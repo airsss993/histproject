@@ -278,6 +278,9 @@ paths:
     post:
       tags: [Submissions]
       operationId: createSubmission
+      description: Только для вошедшего посетителя. Email автора берётся из аккаунта.
+      security:
+        - userCookie: []
       requestBody:
         required: true
         content:
@@ -306,6 +309,8 @@ paths:
                         $ref: "#/components/schemas/SubmissionStatus"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "413":
           description: Архив превышает лимит
           content:
@@ -1095,7 +1100,7 @@ components:
       enum: [processing, new, review, rejected, published]
     CreateSubmissionInput:
       type: object
-      required: [title, description, eventDate, eventType, email, telegramUsername, latitude, longitude, archive]
+      required: [title, description, eventDate, eventType, telegramUsername, latitude, longitude, archive]
       properties:
         title:
           type: string
@@ -1109,10 +1114,6 @@ components:
         eventType:
           type: string
           enum: [political, military]
-        email:
-          type: string
-          format: email
-          maxLength: 70
         telegramUsername:
           type: string
           pattern: "^[A-Za-z0-9_]{5,32}$"

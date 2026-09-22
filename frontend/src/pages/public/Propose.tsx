@@ -11,14 +11,14 @@ const MIN_YEAR = 862
 interface Draft {
   title: string; date: string; type: EventType | ''; description: string
   lat: number | null; lng: number | null
-  email: string; telegram: string; file: File | null
+  telegram: string; file: File | null
   zip: 'none' | 'checking' | 'ok' | string // строка - текст ошибки архива
 }
-const EMPTY: Draft = { title: '', date: '', type: '', description: '', lat: null, lng: null, email: '', telegram: '', file: null, zip: 'none' }
+const EMPTY: Draft = { title: '', date: '', type: '', description: '', lat: null, lng: null, telegram: '', file: null, zip: 'none' }
 
-type Field = 'type' | 'title' | 'date' | 'description' | 'place' | 'archive' | 'email' | 'telegram'
+type Field = 'type' | 'title' | 'date' | 'description' | 'place' | 'archive' | 'telegram'
 type Errors = Partial<Record<Field, string>>
-const FIELDS: Field[] = ['type', 'title', 'date', 'description', 'place', 'archive', 'email', 'telegram']
+const FIELDS: Field[] = ['type', 'title', 'date', 'description', 'place', 'archive', 'telegram']
 
 // Шаги мастера. icon - путь 24x24 для плитки в шапке карточки.
 const STEPS: { fields: Field[]; title: string; sub: string; icon: string }[] = [
@@ -30,7 +30,7 @@ const STEPS: { fields: Field[]; title: string; sub: string; icon: string }[] = [
     icon: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z M12 12.2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z' },
   { fields: ['archive'], title: 'Сайт события', sub: 'ZIP-архив, index.html лежит в его корне',
     icon: 'M4 7.5 12 3.5l8 4v9l-8 4-8-4Z M4 7.5l8 4 8-4 M12 11.5v9' },
-  { fields: ['email', 'telegram'], title: 'Контакты', sub: 'Не публикуются. На email придёт статус заявки',
+  { fields: ['telegram'], title: 'Контакты', sub: 'Не публикуется. Статус заявки придёт на почту аккаунта',
     icon: 'M3.5 5.5h17v13h-17Z M3.5 6.5l8.5 7 8.5-7' },
 ]
 const stepOf = (f: Field) => STEPS.findIndex(s => s.fields.includes(f))
@@ -42,7 +42,7 @@ const PLUS = 'M12 5v14 M5 12h14'
 const CROSS = 'M6 6l12 12 M18 6 6 18'
 const SERVER_FIELD: Record<string, Field> = {
   title: 'title', eventDate: 'date', eventType: 'type', description: 'description', latitude: 'place', longitude: 'place',
-  archive: 'archive', email: 'email', telegramUsername: 'telegram',
+  archive: 'archive', telegramUsername: 'telegram',
 }
 
 type Phase =
@@ -90,9 +90,6 @@ function validate(d: Draft): Errors {
   if (!d.file) e.archive = 'Прикрепите ZIP-архив сайта'
   else if (d.zip === 'checking') e.archive = 'Архив ещё проверяется'
   else if (d.zip !== 'ok') e.archive = d.zip
-  const email = d.email.trim()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) e.email = 'Проверьте адрес: нужен домен вида example.ru'
-  else if (email.length > 70) e.email = 'Не больше 70 символов'
   if (!/^[A-Za-z0-9_]{5,32}$/.test(d.telegram.trim())) e.telegram = 'Без "@", только латиница, цифры и _, от 5 до 32 символов'
   return e
 }
@@ -100,7 +97,8 @@ function validate(d: Draft): Errors {
 const none = () => false
 const noop = () => undefined
 
-export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: () => void }> = ({ open, mobile, onClose }) => {
+// email - почта аккаунта: форму открывают только вошедшим, статус заявки уходит туда.
+export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: boolean; onClose: () => void }> = ({ open, email, mobile, onClose }) => {
   const [d, setD] = useState<Draft>(EMPTY)
   const [phase, setPhase] = useState<Phase>({ k: 'form' })
   const [shown, setShown] = useState<Set<Field>>(new Set())
@@ -211,7 +209,6 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
     body.set('eventType', d.type)
     body.set('latitude', String(d.lat))
     body.set('longitude', String(d.lng))
-    body.set('email', d.email.trim())
     body.set('telegramUsername', d.telegram.trim())
     body.set('archive', d.file!)
     setPhase({ k: 'sending', loaded: 0, total: d.file!.size })
@@ -252,7 +249,7 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
   let foot: React.ReactNode
   if (phase.k === 'done') {
     head = { title: 'Заявка отправлена', icon: RESULT_ICON.ok, tone: 'ok',
-      sub: `Модератор проверит событие, место и архив. Статус придёт на ${d.email.trim()}: опубликовано со ссылкой или отклонено с причиной.` }
+      sub: `Модератор проверит событие, место и архив. Статус придёт на ${email}: опубликовано со ссылкой или отклонено с причиной.` }
     body = (
       <div className="pm-row-tight pp-number">
         <span className="pm-dim-text">Номер заявки</span>
@@ -390,14 +387,10 @@ export const ProposeModal: React.FC<{ open: boolean; mobile: boolean; onClose: (
           </Text>
         )}
 
-        {field === 'email' && (
+        {field === 'telegram' && (
           <div className="pp-stack">
-            <Text label="Email" error={visible('email')} hint="Сюда придёт статус заявки">
-              <input type="email" autoComplete="email" value={d.email} maxLength={70} placeholder="ivan@example.ru" autoFocus={!mobile}
-                onChange={e => set('email', e.target.value, 'email')} onBlur={() => d.email && show('email')} />
-            </Text>
             <Text label="Telegram" error={visible('telegram')} hint="Для вопросов модератора">
-              <input value={d.telegram} maxLength={33} placeholder="ivan_petrov" autoCapitalize="none" spellCheck={false}
+              <input value={d.telegram} maxLength={33} placeholder="ivan_petrov" autoCapitalize="none" spellCheck={false} autoFocus={!mobile}
                 onChange={e => set('telegram', e.target.value.replace(/^@/, ''), 'telegram')} onBlur={() => d.telegram && show('telegram')} />
             </Text>
           </div>

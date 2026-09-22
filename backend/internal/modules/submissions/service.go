@@ -362,8 +362,8 @@ func validateCreateInput(input CreateInput, maxUploadBytes int64) map[string]str
 	parsedEmail, err := mail.ParseAddress(email)
 	if err != nil || parsedEmail.Address != email {
 		fields["email"] = "Некорректный email"
-	} else if utf8.RuneCountInString(email) > 70 {
-		fields["email"] = "Не более 70 символов"
+	} else if utf8.RuneCountInString(email) > 254 {
+		fields["email"] = "Не более 254 символов"
 	}
 	if !telegramUsernamePattern.MatchString(telegramUsername) {
 		fields["telegramUsername"] = "От 5 до 32 латинских букв, цифр или _"

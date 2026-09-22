@@ -17,9 +17,9 @@ type Mode = 'login' | 'register'
 type Field = 'firstName' | 'lastName' | 'email' | 'code'
 type Errors = Partial<Record<Field, string>>
 
-const COPY: Record<Mode, { title: string; sub: string; alt: string; altLink: string; altTo: string }> = {
-  login: { title: 'С возвращением', sub: 'Войдите по коду из письма', alt: 'Нет аккаунта?', altLink: 'Зарегистрироваться', altTo: '/register' },
-  register: { title: 'Создать аккаунт', sub: 'Код для входа придёт на почту', alt: 'Уже есть аккаунт?', altLink: 'Войти', altTo: '/login' },
+const COPY: Record<Mode, { title: string; sub: string; backSub: string; alt: string; altLink: string; altTo: string }> = {
+  login: { title: 'С возвращением', sub: 'Войдите по коду из письма', backSub: 'Чтобы предложить событие, войдите по коду из письма', alt: 'Нет аккаунта?', altLink: 'Зарегистрироваться', altTo: '/register' },
+  register: { title: 'Создать аккаунт', sub: 'Код для входа придёт на почту', backSub: 'Чтобы предложить событие, создайте аккаунт. Код для входа придёт на почту', alt: 'Уже есть аккаунт?', altLink: 'Войти', altTo: '/login' },
 }
 
 const Arrow = () => (
@@ -38,7 +38,8 @@ function problem(res: Extract<ApiResult, { ok: false }>) {
 export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
   const navigate = useNavigate()
   const mobile = useIsMobile()
-  const prefill = (useLocation().state as { email?: string } | null)?.email ?? ''
+  // back - куда вернуть после входа (форма заявки), переходы вход <-> регистрация его сохраняют.
+  const { email: prefill = '', back } = (useLocation().state as { email?: string; back?: string } | null) ?? {}
   const copy = COPY[mode]
 
   const [form, setForm] = useState({ firstName: '', lastName: '', email: prefill })
@@ -100,7 +101,7 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
     const res = await verifyLoginCode(sentTo, value, remember)
     setBusy(false)
     if (res.ok) {
-      navigate('/map', { replace: true })
+      navigate(back ?? '/map', { replace: true })
       return
     }
     setCode('')
@@ -143,7 +144,7 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
             ) : (
               <form className="au-step" key={mode} onSubmit={send} noValidate>
                 <h1 id="au-title" className="au-title">{copy.title}</h1>
-                <p className="au-sub">{copy.sub}</p>
+                <p className="au-sub">{back ? copy.backSub : copy.sub}</p>
 
                 <div className="au-fields">
                   {mode === 'register' && (
@@ -166,12 +167,12 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
 
                 {errors.email === NO_ACCOUNT && (
                   <p className="au-hint">
-                    <Link to="/register" state={{ email: form.email.trim() }}>Зарегистрироваться с этой почтой</Link>
+                    <Link to="/register" state={{ email: form.email.trim(), back }}>Зарегистрироваться с этой почтой</Link>
                   </p>
                 )}
                 {errors.email === TAKEN && (
                   <p className="au-hint">
-                    <Link to="/login" state={{ email: form.email.trim() }}>Войти с этой почтой</Link>
+                    <Link to="/login" state={{ email: form.email.trim(), back }}>Войти с этой почтой</Link>
                   </p>
                 )}
 
@@ -184,7 +185,7 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
                 {note && <p className="au-error" role="alert">{note}</p>}
 
                 <p className="au-alt">
-                  {copy.alt} <Link to={copy.altTo} state={{ email: form.email.trim() }}>{copy.altLink}</Link>
+                  {copy.alt} <Link to={copy.altTo} state={{ email: form.email.trim(), back }}>{copy.altLink}</Link>
                 </p>
               </form>
             )}
