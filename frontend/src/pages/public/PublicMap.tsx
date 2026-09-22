@@ -114,13 +114,21 @@ export const PublicMap: React.FC = () => {
   const abortRef = useRef<AbortController | undefined>(undefined)
   const [proposeOpen, setProposeOpen] = useState(false)
   const proposeParam = params.get('propose') === '1'
-  useEffect(() => { if (proposeParam) setProposeOpen(true) }, [proposeParam])
-  const [me, setMe] = useState<User | null>(null)
+  // undefined - сессия ещё проверяется, null - гость.
+  const [me, setMe] = useState<User | null | undefined>(undefined)
   useEffect(() => {
     const ac = new AbortController()
-    fetchMe(ac.signal).then(setMe, () => {})
+    fetchMe(ac.signal).then(setMe, () => { if (!ac.signal.aborted) setMe(null) })
     return () => ac.abort()
   }, [])
+  // Заявку принимают только от вошедших: гостя ведём на вход, оттуда он вернётся в форму.
+  // По ссылке ?propose=1 - с replace, иначе "Назад" со входа снова попадёт на этот редирект.
+  const toLogin = useCallback((replace = false) => navigate('/login', { replace, state: { back: '/map?propose=1' } }), [navigate])
+  useEffect(() => {
+    if (!proposeParam || me === undefined) return
+    if (me) setProposeOpen(true)
+    else toLogin(true)
+  }, [proposeParam, me, toLogin])
   // Сначала ответ сервера, потом сброс: иначе следующий fetchMe успеет вернуть ещё живую сессию.
   const logout = async () => { await logoutUser(); setMe(null) }
 
@@ -166,7 +174,10 @@ export const PublicMap: React.FC = () => {
     setLayer(cur => (cur === l ? 'none' : l))
   }
   const resetFilters = () => { setDraft(DEFAULT_FILTER); applyFilter(DEFAULT_FILTER) }
-  const propose = () => setProposeOpen(true)
+  const propose = () => {
+    if (me) setProposeOpen(true)
+    else if (me === null) toLogin()
+  }
   const closePropose = () => { setProposeOpen(false); patch({ propose: null }) }
 
   const highlight = !isDefault(applied)
@@ -197,7 +208,7 @@ export const PublicMap: React.FC = () => {
   )
 
   // Окно всегда вторым в фрагменте: при смене ветки React сохраняет черновик заявки.
-  const modal = <ProposeModal open={proposeOpen} mobile={mobile} onClose={closePropose} />
+  const modal = <ProposeModal open={proposeOpen && !!me} email={me?.email ?? ''} mobile={mobile} onClose={closePropose} />
   // На телефоне фильтры и лента - экраны поверх карты: карта остаётся смонтированной и не теряет вид.
   const screen = mobile && (layer === 'filters' || layer === 'feed')
   const feed = <Feed mobile={mobile} events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />
@@ -214,7 +225,7 @@ export const PublicMap: React.FC = () => {
         <div role="banner" className="pm-header">
           <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
           <div className="pm-grow" />
-          <HeaderNav me={me} mobile={mobile} onLogout={logout} onPropose={propose} proposeOpen={proposeOpen} />
+          <HeaderNav me={me ?? null} mobile={mobile} onLogout={logout} onPropose={propose} proposeOpen={proposeOpen} />
         </div>
 
         <Presence>{!mobile && layer !== 'filters' && layer !== 'feed' && (
