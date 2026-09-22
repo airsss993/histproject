@@ -506,11 +506,32 @@ function generatePassword(length = 14) {
   return chars.join('')
 }
 
+// Логин модератора из имени: "Иван Иванов" -> i.ivanov-k7m2. Хвост из 4 символов разводит однофамильцев,
+// в нём нет похожих друг на друга l, o, 0, 1. Уникальность всё равно проверяет база при создании.
+// Иконка кнопок "сгенерировать" в полях логина и пароля.
+const REGENERATE = 'M20 12a8 8 0 0 1-14.3 4.9 M4 12a8 8 0 0 1 14.3-4.9 M18.5 3v4.5H14 M5.5 21v-4.5H10'
+const LOGIN_TAG = 'abcdefghijkmnpqrstuvwxyz23456789'
+const TRANSLIT: Record<string, string> = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm',
+  н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch',
+  ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+}
+const loginTag = () => Array.from({ length: 4 }, () => LOGIN_TAG[randomIndex(LOGIN_TAG.length)]).join('')
+function makeLogin(name: string, tag: string) {
+  const words = name.toLowerCase().split(/\s+/)
+    .map(w => [...w].map(c => TRANSLIT[c] ?? c).join('').replace(/[^a-z0-9]/g, '')).filter(Boolean)
+  if (!words.length) return ''
+  const base = words.length > 1 ? `${words[0][0]}.${words[words.length - 1]}` : words[0]
+  return `${base.slice(0, 90)}-${tag}`
+}
+
 const Moderators: React.FC<{ me: Me; onProfile: () => void }> = ({ me, onProfile }) => {
   const expired = React.useContext(ExpiredContext)
   const list = useLoad(() => api.listModerators(), [])
   const [form, setForm] = useState(EMPTY)
   const [generated, setGenerated] = useState('')
+  // Пока логин не правили руками, он собирается из имени.
+  const [autoLogin, setAutoLogin] = useState({ on: true, tag: loginTag() })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -531,11 +552,20 @@ const Moderators: React.FC<{ me: Me; onProfile: () => void }> = ({ me, onProfile
   const create = (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
-    act(() => api.createModerator({ ...form, login: form.login.trim(), name: form.name.trim(), email: form.email.trim() }), () => setForm(EMPTY))
+    act(() => api.createModerator({ ...form, login: form.login.trim(), name: form.name.trim(), email: form.email.trim() }),
+      () => { setForm(EMPTY); setAutoLogin({ on: true, tag: loginTag() }) })
   }
   const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm(f => ({ ...f, [k]: e.target.value }))
-    setErrors(er => ({ ...er, [k]: '' }))
+    const value = e.target.value
+    if (k === 'login') setAutoLogin(a => ({ ...a, on: false }))
+    setForm(f => ({ ...f, [k]: value, ...(k === 'name' && autoLogin.on ? { login: makeLogin(value, autoLogin.tag) } : {}) }))
+    setErrors(er => ({ ...er, [k]: '', ...(k === 'name' && autoLogin.on ? { login: '' } : {}) }))
+  }
+  const regenerateLogin = () => {
+    const tag = loginTag()
+    setAutoLogin({ on: true, tag })
+    setForm(f => ({ ...f, login: makeLogin(f.name, tag) }))
+    setErrors(er => ({ ...er, login: '' }))
   }
 
   return (
@@ -577,7 +607,14 @@ const Moderators: React.FC<{ me: Me; onProfile: () => void }> = ({ me, onProfile
         <h3>Добавить модератора</h3>
         <div className="mod-pair">
           <Field label="Имя" error={errors.name}><input value={form.name} onChange={set('name')} autoComplete="off" maxLength={100} placeholder="Иван Иванов" /></Field>
-          <Field label="Логин" error={errors.login}><input value={form.login} onChange={set('login')} autoComplete="off" maxLength={100} placeholder="ivanov" /></Field>
+          <Field label="Логин" error={errors.login} after={
+            <button type="button" className="pm-field-btn" title="Собрать логин из имени" aria-label="Собрать логин из имени"
+              disabled={!makeLogin(form.name, 'x')} onClick={regenerateLogin}>
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={REGENERATE} /></svg>
+            </button>
+          }>
+            <input value={form.login} onChange={set('login')} autoComplete="off" spellCheck={false} maxLength={100} placeholder="i.ivanov-k7m2" />
+          </Field>
         </div>
         <div className="mod-pair">
           <Field label="Пароль" error={errors.password} after={
@@ -587,7 +624,7 @@ const Moderators: React.FC<{ me: Me; onProfile: () => void }> = ({ me, onProfile
               setForm(f => ({ ...f, password }))
               setErrors(er => ({ ...er, password: '' }))
             }}>
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14.3 4.9 M4 12a8 8 0 0 1 14.3-4.9 M18.5 3v4.5H14 M5.5 21v-4.5H10" /></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={REGENERATE} /></svg>
             </button>
           }>
             {/* Сгенерированный пароль виден, чтобы его можно было скопировать и передать модератору. */}
