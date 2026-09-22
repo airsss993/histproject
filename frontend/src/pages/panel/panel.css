@@ -42,10 +42,13 @@
   .mod-side :is(.pm-logo-text, .mod-side-hello, .pm-menu-label, .pm-menu-item > span) { display: none; }
   .mod-side-nav .pm-menu-label + .pm-menu-item { margin-top: 12px; }
   .pm-root .mod-side .pm-menu-item { justify-content: center; padding: 0; }
-  .pm-root .mod-side .pm-menu-item.on::after { right: 5px; }
+  .mod-side .pm-menu-pill::after { right: 5px; }
 }
 
-.mod-main { flex: 1; width: 100%; max-width: 1320px; margin: 0 auto; padding: 28px; }
+.mod-main { flex: 1; width: 100%; max-width: 1320px; margin: 0 auto; padding: 28px; animation: mod-main-in 320ms ease-out; }
+/* Смена вкладки: новый экран проявляется и чуть поднимается */
+@keyframes mod-main-in { from { opacity: 0; translate: 0 8px; } }
+@media (prefers-reduced-motion: reduce) { .mod-main { animation: none; } .pm-menu-pill { transition: none; } }
 .mod-narrow { max-width: 820px; display: flex; flex-direction: column; gap: 14px; }
 
 .mod-card {

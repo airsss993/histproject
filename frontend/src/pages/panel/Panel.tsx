@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Logo, useIsMobile } from '../public/PublicMap.tsx'
 import { MapView, type MapHandle } from '../public/MapView.tsx'
@@ -114,8 +114,31 @@ const Shell: React.FC<{ me: Me; onMe: (me: Me) => void; onLogout: () => void; on
   const tab = tabs.find(([t]) => t === params.get('tab'))?.[0] ?? 'submissions'
   const open = (t: Tab) => setParams(t === 'submissions' ? {} : { tab: t })
 
+  // Плашка выбранного пункта одна на всё меню и переезжает к новому пункту. Первая расстановка
+  // и перестройка раскладки (ширина окна) идут без анимации, переезд - только при смене пункта.
+  const navRef = useRef<HTMLElement>(null)
+  const [pill, setPill] = useState<{ style: React.CSSProperties; tab: Tab }>()
+  useLayoutEffect(() => {
+    const nav = navRef.current
+    if (!nav) return
+    const place = (animate: boolean) => {
+      const on = nav.querySelector<HTMLElement>('.pm-menu-item.on')
+      if (on) setPill({ tab, style: {
+        width: on.offsetWidth, height: on.offsetHeight, translate: `${on.offsetLeft}px ${on.offsetTop}px`,
+        ...(animate ? {} : { transition: 'none' }),
+      } })
+    }
+    place(pill !== undefined && pill.tab !== tab)
+    // Первый вызов ResizeObserver приходит сразу при подписке - он не перестройка, пропускаем.
+    let first = true
+    const ro = new ResizeObserver(() => { if (!first) place(false); first = false })
+    ro.observe(nav)
+    return () => ro.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, mobile])
+
   const main = (
-    <main className="mod-main">
+    <main key={tab} className="mod-main">
       {tab === 'submissions' && <Submissions mobile={mobile} />}
       {tab === 'history' && <History />}
       {tab === 'moderators' && <Moderators me={me} onProfile={() => open('profile')} />}
@@ -159,7 +182,8 @@ const Shell: React.FC<{ me: Me; onMe: (me: Me) => void; onLogout: () => void; on
           <h2>Здравствуйте,<br />{me.name || me.login}</h2>
           <span className="mod-dim">{api.ROLE_LABEL[me.role]}</span>
         </div>
-        <nav className="mod-side-nav">
+        <nav ref={navRef} className="mod-side-nav pm-menu">
+          {pill && <span className="pm-menu-pill" style={pill.style} aria-hidden="true" />}
           {groups.map(([title, items]) => (
             <React.Fragment key={title}>
               <span className="pm-menu-label">{title}</span>
