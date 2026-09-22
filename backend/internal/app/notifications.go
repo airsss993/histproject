@@ -14,16 +14,16 @@ import (
 )
 
 // NewCodeMailer шлёт код входа через Postbox. Без POSTBOX_KEY_ID (только dev, прод без него не стартует) код пишется в лог.
-func NewCodeMailer(cfg config.Config, logger *slog.Logger) users.Mailer {
+func NewCodeMailer(cfg config.Config, logger *slog.Logger, repository *notifications.Repository) users.Mailer {
 	if cfg.PostboxKeyID == "" {
 		return logCodeMailer{logger: logger}
 	}
-	sender, err := notifications.NewPostboxSender(cfg.PostboxAddress, cfg.PostboxKeyID, cfg.PostboxSecret, cfg.EmailFrom, cfg.NotificationTimeout)
+	sender, err := newEmailSender(cfg, repository)
 	return postboxCodeMailer{sender: sender, err: err}
 }
 
 type postboxCodeMailer struct {
-	sender *notifications.PostboxSender
+	sender notifications.EmailSender
 	err    error
 }
 
@@ -64,11 +64,11 @@ func (notifier *SubmissionNotifier) SubmissionChanged(ctx context.Context, submi
 }
 
 func NewNotificationService(cfg config.Config, databaseClient *database.Database, submissionService *submissions.Service, adminService *admins.Service) (*notifications.Service, error) {
-	emailSender, err := newEmailSender(cfg)
+	repository := notifications.NewRepository(databaseClient.Pool())
+	emailSender, err := newEmailSender(cfg, repository)
 	if err != nil {
 		return nil, err
 	}
-	repository := notifications.NewRepository(databaseClient.Pool())
 	return notifications.NewService(
 		repository,
 		notificationSubmissionSource{service: submissionService},
@@ -80,20 +80,25 @@ func NewNotificationService(cfg config.Config, databaseClient *database.Database
 }
 
 // newEmailSender - Postbox из env. Без POSTBOX_KEY_ID отдаёт nil: почта не настроена.
-func newEmailSender(cfg config.Config) (notifications.EmailSender, error) {
+// Отправителя, заданного в панели, читает перед каждым письмом, EMAIL_FROM - запасной.
+func newEmailSender(cfg config.Config, repository *notifications.Repository) (notifications.EmailSender, error) {
 	if cfg.PostboxKeyID == "" {
 		return nil, nil
 	}
-	return notifications.NewPostboxSender(cfg.PostboxAddress, cfg.PostboxKeyID, cfg.PostboxSecret, cfg.EmailFrom, cfg.NotificationTimeout)
+	sender, err := notifications.NewPostboxSender(cfg.PostboxAddress, cfg.PostboxKeyID, cfg.PostboxSecret, cfg.EmailFrom, cfg.NotificationTimeout)
+	if err != nil {
+		return nil, err
+	}
+	return sender.WithFromOverride(repository.MailFrom), nil
 }
 
-// NewMailHandler - проверка почты в панели. Ошибка настройки Postbox всплывает при отправке тестового письма.
-func NewMailHandler(cfg config.Config, logger *slog.Logger, adminService *admins.Service) *notifications.MailHandler {
-	sender, err := newEmailSender(cfg)
+// NewMailHandler - почта в панели. Ошибка настройки Postbox всплывает при отправке тестового письма.
+func NewMailHandler(cfg config.Config, logger *slog.Logger, repository *notifications.Repository) *notifications.MailHandler {
+	sender, err := newEmailSender(cfg, repository)
 	if err != nil {
 		sender = brokenSender{err: err}
 	}
-	return notifications.NewMailHandler(sender, cfg.EmailFrom, notificationAdminSource{service: adminService}.NotificationAdminEmails, logger)
+	return notifications.NewMailHandler(sender, cfg.EmailFrom, repository, logger)
 }
 
 type brokenSender struct {

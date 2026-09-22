@@ -753,7 +753,7 @@ const PasswordForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   )
 }
 
-// Postbox задаётся на сервере, здесь только статус и проверочное письмо.
+// Ключи Postbox задаются на сервере. Здесь статус, отправитель писем и проверочное письмо.
 const Mail: React.FC = () => {
   const state = useLoad(() => api.getMail(), [])
   const mail = state.data?.mail
@@ -762,12 +762,12 @@ const Mail: React.FC = () => {
   const send = (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return s.setErrors({ email: 'Введите адрес' })
-    s.submit(() => api.testMail(email.trim()), `Postbox принял письмо для ${email.trim()}. Проверьте входящие и папку "Спам".`)
+    s.submit(() => api.testMail(email.trim()), `Письмо для ${email.trim()} отправлено. Проверьте входящие и папку "Спам".`)
   }
   return (
     <section className="mod-narrow">
       <h1 className="mod-title">Почта</h1>
-      <p className="mod-dim">Сайт отправляет письма через Yandex Cloud Postbox: коды входа и решения по заявкам авторам, уведомления о новых заявках модераторам.</p>
+      <p className="mod-dim">Сайт отправляет письма: коды входа и решения по заявкам авторам, уведомления о новых заявках модераторам.</p>
       {!mail
         ? state.error
           ? <p className="mod-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
@@ -776,15 +776,10 @@ const Mail: React.FC = () => {
           <div className="mod-card mod-status">
             <span className={`mod-dot${mail.configured ? ' on' : ''}`} aria-hidden="true" />
             {mail.configured
-              ? <span>Postbox подключён. Письма уходят от <b>{mail.from}</b>.</span>
-              : <span>Почта не настроена: на сервере не заданы POSTBOX_KEY_ID, POSTBOX_SECRET и EMAIL_FROM. Письма не уходят, коды входа пишутся в лог сервера.</span>}
+              ? <span>Почта подключена</span>
+              : <span>Почта не подключена: письма не уходят</span>}
           </div>
-          <h3>Получают письма о заявках</h3>
-          {mail.recipients.length ? (
-            <ul className="mod-rows">
-              {mail.recipients.map(r => <li key={r} className="mod-row">{r}</li>)}
-            </ul>
-          ) : <p className="mod-dim">Никто: почта не указана ни у одного модератора. Её задают в профиле или в разделе "Модераторы".</p>}
+          {mail.configured && <MailSender mail={mail} onSaved={state.reload} />}
           <form className="mod-card mod-form" onSubmit={send} noValidate>
             <h3>Проверка</h3>
             <p className="mod-dim">Отправьте письмо себе и убедитесь, что оно дошло и не попало в спам.</p>
@@ -796,6 +791,30 @@ const Mail: React.FC = () => {
           </form>
         </>}
     </section>
+  )
+}
+
+const MailSender: React.FC<{ mail: api.MailStatus; onSaved: () => void }> = ({ mail, onSaved }) => {
+  const [form, setForm] = useState({ name: mail.name ?? '', address: mail.address ?? '' })
+  const s = useSubmit()
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => { setForm(f => ({ ...f, [k]: e.target.value })); s.clear(k) }
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.address.trim()) return s.setErrors({ address: 'Введите адрес' })
+    if (await s.submit(() => api.setMailSender({ name: form.name.trim(), address: form.address.trim() }), 'Сохранено')) onSaved()
+  }
+  return (
+    <form className="mod-card mod-form" onSubmit={save} noValidate>
+      <h3>Отправитель</h3>
+      <p className="mod-dim">Так письма подписаны в поле "От" у получателя. Меняется сразу для всех писем сайта.</p>
+      <div className="mod-pair">
+        <Field label="Имя" error={s.errors.name}><input value={form.name} onChange={set('name')} maxLength={100} placeholder="Россия - страна Героев" /></Field>
+        <Field label="Адрес" error={s.errors.address}><input type="email" value={form.address} onChange={set('address')} maxLength={254} placeholder={`info@${mail.domain}`} /></Field>
+      </div>
+      <p className="mod-dim">Адрес только на домене {mail.domain}: с другого адреса письма не уйдут.</p>
+      {s.noteLine}
+      <div className="mod-actions"><button className="pm-btn" disabled={s.busy}>{s.busy ? 'Сохраняем...' : 'Сохранить'}</button></div>
+    </form>
   )
 }
 
