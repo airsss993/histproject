@@ -156,6 +156,11 @@
 .mod-page.mobile .mod-card { padding: 18px; }
 .mod-page.mobile .mod-pair { grid-template-columns: 1fr; }
 .mod-page.mobile .mod-map { height: 280px; }
-.mod-page.mobile .mod-mod { flex-wrap: wrap; }
-.mod-page.mobile .mod-grow-col { flex-basis: 160px; }
+.mod-page.mobile .mod-mod { flex-wrap: wrap; gap: 6px 4px; padding-left: 12px; padding-right: 12px; }
+.mod-page.mobile .mod-grow-col { flex-basis: 100%; }
+.mod-page.mobile .mod-mod .mod-select { flex: 1 1 0; min-width: 0; }
+.pm-root.mod-page.mobile .mod-mod .mod-select .pm-field { padding-left: 10px; padding-right: 10px; }
+.pm-root.mod-page.mobile .mod-mod .mod-select select { padding-right: 0; gap: 4px; white-space: nowrap; }
+.pm-root.mod-page.mobile .mod-mod .pm-btn-text { padding-left: 4px; padding-right: 4px; }
+.mod-mod .pm-btn-text { flex: none; white-space: nowrap; }
 .mod-page.mobile .mod-title { font-size: 22px; line-height: 30px; }

@@ -163,7 +163,7 @@
   .pm-root .pm-field select, .pm-root .pm-field select::picker(select) { appearance: base-select; }
   .pm-root .pm-field select { display: flex; align-items: center; background: none; }
   .pm-root .pm-field select::picker-icon {
-    content: ''; width: 12px; height: 8px; margin-left: auto; transition: rotate 200ms ease-out;
+    content: ''; flex: none; width: 12px; height: 8px; margin-left: auto; transition: rotate 200ms ease-out;
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238194AE' stroke-width='1.6'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E") no-repeat center;
   }
   .pm-root .pm-field select:open::picker-icon { rotate: 180deg; }
