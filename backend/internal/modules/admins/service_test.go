@@ -181,6 +181,54 @@ func TestServicePropagatesLastSuperAdminConflict(t *testing.T) {
 	}
 }
 
+func TestUpdateValidatesAndHashesPassword(t *testing.T) {
+	store := &adminStoreStub{}
+	service := NewService(store)
+
+	if _, err := service.Update(t.Context(), 1, 1, UpdateInput{}); !errors.Is(err, ErrSelfMutation) {
+		t.Fatalf("Update() self error = %v, want ErrSelfMutation", err)
+	}
+	blank, bad := " ", "not-email"
+	_, err := service.Update(t.Context(), 1, 2, UpdateInput{Name: &blank, Email: &bad, Password: "short"})
+	var validationError *ValidationError
+	if !errors.As(err, &validationError) || len(validationError.Fields) != 3 || store.updateCalled {
+		t.Fatalf("Update() error = %v, store called = %v, want name/email/password errors", err, store.updateCalled)
+	}
+
+	name := " Анна "
+	if _, err := service.Update(t.Context(), 1, 2, UpdateInput{Name: &name, Password: "long-enough-password"}); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+	record := store.updateRecord
+	if store.updateID != 2 || record.Name == nil || *record.Name != "Анна" || record.Email != nil {
+		t.Fatalf("update record = id:%d %#v", store.updateID, record)
+	}
+	if bcrypt.CompareHashAndPassword([]byte(record.PasswordHash), []byte("long-enough-password")) != nil {
+		t.Fatal("password was not hashed")
+	}
+}
+
+func TestChangePasswordRequiresCurrentPassword(t *testing.T) {
+	hash, err := bcrypt.GenerateFromPassword([]byte("current-password"), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("hash: %v", err)
+	}
+	store := &adminStoreStub{passwordHash: string(hash)}
+	service := NewService(store)
+
+	err = service.ChangePassword(t.Context(), 4, "wrong-password", "new-long-password")
+	var validationError *ValidationError
+	if !errors.As(err, &validationError) || validationError.Fields["currentPassword"] == "" || store.updateCalled {
+		t.Fatalf("ChangePassword() error = %v, want currentPassword error without update", err)
+	}
+	if err := service.ChangePassword(t.Context(), 4, "current-password", "new-long-password"); err != nil {
+		t.Fatalf("ChangePassword() error = %v", err)
+	}
+	if store.updateID != 4 || store.updateRecord.Name != nil || bcrypt.CompareHashAndPassword([]byte(store.updateRecord.PasswordHash), []byte("new-long-password")) != nil {
+		t.Fatalf("update record = id:%d %#v", store.updateID, store.updateRecord)
+	}
+}
+
 type adminStoreStub struct {
 	createCalled      bool
 	createInput       CreateRecord
@@ -196,6 +244,10 @@ type adminStoreStub struct {
 	deleteError       error
 	admins            []Admin
 	listError         error
+	updateID          int64
+	updateRecord      UpdateRecord
+	updateCalled      bool
+	passwordHash      string
 }
 
 func (stub *adminStoreStub) Create(_ context.Context, input CreateRecord) (Admin, error) {
@@ -221,4 +273,19 @@ func (stub *adminStoreStub) ChangeRole(_ context.Context, targetID int64, role R
 func (stub *adminStoreStub) Delete(context.Context, int64) error {
 	stub.deleteCalled = true
 	return stub.deleteError
+}
+
+func (stub *adminStoreStub) Get(context.Context, int64) (Admin, error) {
+	return stub.changedAdmin, nil
+}
+
+func (stub *adminStoreStub) Update(_ context.Context, adminID int64, record UpdateRecord) (Admin, error) {
+	stub.updateCalled = true
+	stub.updateID = adminID
+	stub.updateRecord = record
+	return stub.changedAdmin, nil
+}
+
+func (stub *adminStoreStub) PasswordHash(context.Context, int64) (string, error) {
+	return stub.passwordHash, nil
 }

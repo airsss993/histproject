@@ -111,6 +111,28 @@ func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
 		t.Fatalf("delete super admin with replacement: %v", err)
 	}
 
+	name := "Анна"
+	updated, err := repository.Update(ctx, 1, UpdateRecord{Name: &name})
+	if err != nil || updated.Name != "Анна" || updated.Email != "root@example.test" {
+		t.Fatalf("Update() name only = %#v, %v", updated, err)
+	}
+	if hash, err := repository.PasswordHash(ctx, 1); err != nil || hash != "$2a$12$test-hash" {
+		t.Fatalf("password hash after name update = %q, %v", hash, err)
+	}
+	empty := ""
+	if _, err := repository.Update(ctx, 1, UpdateRecord{Email: &empty, PasswordHash: "$2a$12$new-hash"}); err != nil {
+		t.Fatalf("Update() email and password: %v", err)
+	}
+	if got, err := repository.Get(ctx, 1); err != nil || got.Name != "Анна" || got.Email != "" {
+		t.Fatalf("Get() after update = %#v, %v", got, err)
+	}
+	if hash, _ := repository.PasswordHash(ctx, 1); hash != "$2a$12$new-hash" {
+		t.Fatalf("password hash = %q, want new", hash)
+	}
+	if _, err := repository.Update(ctx, 999, UpdateRecord{Name: &name}); !errors.Is(err, ErrAdminNotFound) {
+		t.Fatalf("Update() missing admin error = %v, want ErrAdminNotFound", err)
+	}
+
 	admins, err := repository.List(ctx)
 	if err != nil {
 		t.Fatalf("List() error = %v", err)

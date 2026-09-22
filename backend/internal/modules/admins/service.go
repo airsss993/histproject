@@ -37,6 +37,19 @@ type CreateRecord struct {
 	Role         Role
 }
 
+// UpdateInput - правка учётки. nil - поле не меняется, пустой Password - пароль прежний.
+type UpdateInput struct {
+	Name     *string
+	Email    *string
+	Password string
+}
+
+type UpdateRecord struct {
+	Name         *string
+	Email        *string
+	PasswordHash string
+}
+
 type ValidationError struct {
 	Fields map[string]string
 }
@@ -51,6 +64,9 @@ type Store interface {
 	List(context.Context) ([]Admin, error)
 	ChangeRole(context.Context, int64, Role) (Admin, error)
 	Delete(context.Context, int64) error
+	Get(context.Context, int64) (Admin, error)
+	Update(context.Context, int64, UpdateRecord) (Admin, error)
+	PasswordHash(context.Context, int64) (string, error)
 }
 
 type Service struct {
@@ -121,27 +137,126 @@ func (service *Service) Delete(ctx context.Context, callerID, targetID int64) er
 	return service.store.Delete(ctx, targetID)
 }
 
+// Update - правка чужой учётки супер-админом. Свою правят через профиль: там пароль меняется только с текущим.
+func (service *Service) Update(ctx context.Context, callerID, targetID int64, input UpdateInput) (Admin, error) {
+	if callerID == targetID {
+		return Admin{}, ErrSelfMutation
+	}
+	record, err := prepareUpdateRecord(input)
+	if err != nil {
+		return Admin{}, err
+	}
+	return service.store.Update(ctx, targetID, record)
+}
+
+func (service *Service) Get(ctx context.Context, adminID int64) (Admin, error) {
+	return service.store.Get(ctx, adminID)
+}
+
+func (service *Service) UpdateProfile(ctx context.Context, adminID int64, name, email string) (Admin, error) {
+	record, err := prepareUpdateRecord(UpdateInput{Name: &name, Email: &email})
+	if err != nil {
+		return Admin{}, err
+	}
+	return service.store.Update(ctx, adminID, record)
+}
+
+func (service *Service) ChangePassword(ctx context.Context, adminID int64, current, next string) error {
+	if next == "" {
+		return &ValidationError{Fields: map[string]string{"password": "Введите новый пароль"}}
+	}
+	record, err := prepareUpdateRecord(UpdateInput{Password: next})
+	if err != nil {
+		return err
+	}
+	hash, err := service.store.PasswordHash(ctx, adminID)
+	if err != nil {
+		return err
+	}
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(current)) != nil {
+		return &ValidationError{Fields: map[string]string{"currentPassword": "Неверный пароль"}}
+	}
+	_, err = service.store.Update(ctx, adminID, record)
+	return err
+}
+
+func prepareUpdateRecord(input UpdateInput) (UpdateRecord, error) {
+	fields := make(map[string]string)
+	var record UpdateRecord
+	if input.Name != nil {
+		name := strings.TrimSpace(*input.Name)
+		if problem := nameProblem(name, true); problem != "" {
+			fields["name"] = problem
+		}
+		record.Name = &name
+	}
+	if input.Email != nil {
+		email := strings.TrimSpace(*input.Email)
+		if problem := emailProblem(email); problem != "" {
+			fields["email"] = problem
+		}
+		record.Email = &email
+	}
+	if input.Password != "" {
+		if problem := passwordProblem(input.Password); problem != "" {
+			fields["password"] = problem
+		}
+	}
+	if len(fields) > 0 {
+		return UpdateRecord{}, &ValidationError{Fields: fields}
+	}
+	if input.Password != "" {
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return UpdateRecord{}, errors.New("hash admin password")
+		}
+		record.PasswordHash = string(passwordHash)
+	}
+	return record, nil
+}
+
 func validateCreate(input CreateInput, requireName bool) map[string]string {
 	fields := make(map[string]string)
 	if len(input.Login) < 3 || len(input.Login) > 100 || !loginPattern.MatchString(input.Login) {
 		fields["login"] = "От 3 до 100 латинских букв, цифр и символов ._-"
 	}
-	if requireName && input.Name == "" {
-		fields["name"] = "Введите имя"
-	} else if utf8.RuneCountInString(input.Name) > 100 {
-		fields["name"] = "Не более 100 символов"
+	checks := map[string]string{
+		"name": nameProblem(input.Name, requireName), "password": passwordProblem(input.Password), "email": emailProblem(input.Email),
 	}
-	if len(input.Password) < 12 || len(input.Password) > 72 {
-		fields["password"] = "От 12 до 72 байт: латинский символ занимает 1 байт, кириллический 2"
-	}
-	if input.Email != "" {
-		address, err := mail.ParseAddress(input.Email)
-		if err != nil || address.Address != input.Email {
-			fields["email"] = "Некорректный email"
+	for field, problem := range checks {
+		if problem != "" {
+			fields[field] = problem
 		}
 	}
 	if !input.Role.Valid() {
 		fields["role"] = "Недопустимая роль"
 	}
 	return fields
+}
+
+func nameProblem(name string, required bool) string {
+	if required && name == "" {
+		return "Введите имя"
+	}
+	if utf8.RuneCountInString(name) > 100 {
+		return "Не более 100 символов"
+	}
+	return ""
+}
+
+func passwordProblem(password string) string {
+	if len(password) < 12 || len(password) > 72 {
+		return "От 12 до 72 байт: латинский символ занимает 1 байт, кириллический 2"
+	}
+	return ""
+}
+
+func emailProblem(email string) string {
+	if email == "" {
+		return ""
+	}
+	if address, err := mail.ParseAddress(email); err != nil || address.Address != email {
+		return "Некорректный email"
+	}
+	return ""
 }

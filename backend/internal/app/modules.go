@@ -91,7 +91,7 @@ func (modules Modules) Register(mux *http.ServeMux) {
 		return modules.auth.Authenticate(auth.RequireRole(string(admins.RoleSuperAdmin))(next))
 	}
 	modules.auth.Register(mux)
-	modules.admins.Register(mux, superAdminOnly)
+	modules.admins.Register(mux, superAdminOnly, adminOnly)
 	modules.events.Register(mux, adminOnly)
 	modules.submissions.Register(mux, adminOnly, superAdminOnly)
 	if modules.users != nil {

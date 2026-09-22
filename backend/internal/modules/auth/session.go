@@ -21,6 +21,8 @@ type Identity struct {
 	Login   string `json:"login"`
 	Name    string `json:"name,omitempty"`
 	Role    string `json:"role"`
+	// Stamp - отпечаток хеша пароля на момент входа: смена пароля обрывает все прежние сессии.
+	Stamp string `json:"stamp,omitempty"`
 }
 
 type redisCommands interface {

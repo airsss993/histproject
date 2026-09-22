@@ -16,6 +16,7 @@ tags:
   - name: Events
   - name: Submissions
   - name: Admins
+  - name: Profile
   - name: Audit
   - name: Bot
 paths:
@@ -546,6 +547,40 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
   /api/v1/admin/admins/{id}:
+    patch:
+      tags: [Admins]
+      operationId: updateAdmin
+      description: Только super_admin и только чужая учётка (свою правят через /admin/profile). Отсутствующее поле не меняется, пустой password оставляет прежний пароль. Смена пароля обрывает сессии этой учётки.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                email:
+                  type: string
+                  description: Пустая строка убирает почту
+                password:
+                  type: string
+                  description: Новый пароль, 12-72 байта
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
     delete:
       tags: [Admins]
       operationId: deleteAdmin
@@ -560,6 +595,72 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+  /api/v1/admin/profile:
+    get:
+      tags: [Profile]
+      operationId: getProfile
+      description: Своя учётка, для любой роли.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Profile]
+      operationId: updateProfile
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                email:
+                  type: string
+                  description: Почта для уведомлений о заявках, можно пусто
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/admin/profile/password:
+    put:
+      tags: [Profile]
+      operationId: changePassword
+      description: Нужен текущий пароль (иначе 400 с полем currentPassword). После смены все сессии учётки, включая текущую, недействительны.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, password]
+              properties:
+                currentPassword:
+                  type: string
+                password:
+                  type: string
+                  description: 12-72 байта
+      responses:
+        "204":
+          description: Пароль изменён
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /api/v1/admin/audit-log:
     get:
       tags: [Audit]
@@ -809,6 +910,16 @@ components:
             properties:
               bot:
                 $ref: "#/components/schemas/BotStatus"
+    AdminResult:
+      description: Учётка модератора
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [admin]
+            properties:
+              admin:
+                $ref: "#/components/schemas/Admin"
     SubmissionResult:
       description: Состояние заявки изменено
       content:

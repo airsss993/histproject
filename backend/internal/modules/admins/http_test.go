@@ -21,7 +21,7 @@ func TestCreateAdminDoesNotReturnPassword(t *testing.T) {
 		return Actor{AdminID: 1, Role: RoleSuperAdmin}, true
 	})
 	mux := http.NewServeMux()
-	handler.Register(mux, passThrough)
+	handler.Register(mux, passThrough, passThrough)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/admin/admins", strings.NewReader(`{"login":"new-admin","password":"long-enough-password","email":"admin@example.test","role":"admin"}`))
 	response := httptest.NewRecorder()
 
@@ -44,7 +44,7 @@ func TestCreateAdminMapsValidationError(t *testing.T) {
 		return Actor{AdminID: 1, Role: RoleSuperAdmin}, true
 	})
 	mux := http.NewServeMux()
-	handler.Register(mux, passThrough)
+	handler.Register(mux, passThrough, passThrough)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/admin/admins", strings.NewReader(`{"login":"x","password":"long-enough-password","role":"admin"}`))
 	response := httptest.NewRecorder()
 
@@ -61,7 +61,7 @@ func TestListAdminsReturnsItems(t *testing.T) {
 		return Actor{AdminID: 1, Role: RoleSuperAdmin}, true
 	})
 	mux := http.NewServeMux()
-	handler.Register(mux, passThrough)
+	handler.Register(mux, passThrough, passThrough)
 	response := httptest.NewRecorder()
 
 	mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/admin/admins", nil))
@@ -86,7 +86,7 @@ func TestChangeRoleUsesCallerIdentity(t *testing.T) {
 		return Actor{AdminID: 3, Role: RoleSuperAdmin}, true
 	})
 	mux := http.NewServeMux()
-	handler.Register(mux, passThrough)
+	handler.Register(mux, passThrough, passThrough)
 	request := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/admins/8/role", strings.NewReader(`{"role":"super_admin"}`))
 	response := httptest.NewRecorder()
 
@@ -106,7 +106,7 @@ func TestDeleteMapsLastSuperAdminConflict(t *testing.T) {
 		return Actor{AdminID: 3, Role: RoleSuperAdmin}, true
 	})
 	mux := http.NewServeMux()
-	handler.Register(mux, passThrough)
+	handler.Register(mux, passThrough, passThrough)
 	response := httptest.NewRecorder()
 
 	mux.ServeHTTP(response, httptest.NewRequest(http.MethodDelete, "/api/v1/admin/admins/8", nil))
@@ -126,12 +126,64 @@ func TestRoutesUseProtectionMiddleware(t *testing.T) {
 		return Actor{AdminID: 1, Role: RoleSuperAdmin}, true
 	})
 	mux := http.NewServeMux()
-	handler.Register(mux, protect)
+	handler.Register(mux, protect, passThrough)
 
 	mux.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/v1/admin/admins", nil))
 
 	if !protected {
 		t.Fatal("protection middleware was not called")
+	}
+}
+
+func TestUpdateLeavesMissingFieldsNil(t *testing.T) {
+	service := &adminServiceStub{changedAdmin: Admin{ID: 8, Login: "admin", Name: "Пётр", Role: RoleAdmin}}
+	handler := NewHandler(service, adminDiscardLogger(), func(context.Context) (Actor, bool) {
+		return Actor{AdminID: 3, Role: RoleSuperAdmin}, true
+	})
+	mux := http.NewServeMux()
+	handler.Register(mux, passThrough, passThrough)
+	response := httptest.NewRecorder()
+
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/api/v1/admin/admins/8", strings.NewReader(`{"name":"Пётр"}`)))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", response.Code)
+	}
+	in := service.updateInput
+	if service.callerID != 3 || service.targetID != 8 || in.Name == nil || *in.Name != "Пётр" || in.Email != nil || in.Password != "" {
+		t.Fatalf("Update args = caller:%d target:%d input:%#v", service.callerID, service.targetID, in)
+	}
+}
+
+func TestProfileRoutesUseOwnIdentityAndAdminMiddleware(t *testing.T) {
+	service := &adminServiceStub{passwordErr: &ValidationError{Fields: map[string]string{"currentPassword": "Неверный пароль"}}}
+	handler := NewHandler(service, adminDiscardLogger(), func(context.Context) (Actor, bool) {
+		return Actor{AdminID: 5, Role: RoleAdmin}, true
+	})
+	superAdminCalled := false
+	superAdmin := func(http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			superAdminCalled = true
+			w.WriteHeader(http.StatusForbidden)
+		})
+	}
+	mux := http.NewServeMux()
+	handler.Register(mux, superAdmin, passThrough)
+
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/api/v1/admin/profile", strings.NewReader(`{"name":"Анна","email":""}`)))
+	if response.Code != http.StatusOK || service.profileID != 5 || service.profileName != "Анна" {
+		t.Fatalf("profile update status = %d, id = %d, name = %q", response.Code, service.profileID, service.profileName)
+	}
+
+	response = httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPut, "/api/v1/admin/profile/password", strings.NewReader(`{"currentPassword":"old","password":"new-long-password"}`)))
+	assertAdminError(t, response, http.StatusBadRequest, "validation_failed", "currentPassword")
+	if service.passwords != [2]string{"old", "new-long-password"} {
+		t.Fatalf("ChangePassword args = %#v", service.passwords)
+	}
+	if superAdminCalled {
+		t.Fatal("profile routes went through super admin middleware")
 	}
 }
 
@@ -177,6 +229,12 @@ type adminServiceStub struct {
 	changedAdmin Admin
 	changeError  error
 	deleteError  error
+	updateInput  UpdateInput
+	updateError  error
+	profileID    int64
+	profileName  string
+	passwords    [2]string
+	passwordErr  error
 }
 
 func (stub *adminServiceStub) Create(_ context.Context, input CreateInput) (Admin, error) {
@@ -199,4 +257,28 @@ func (stub *adminServiceStub) Delete(_ context.Context, callerID, targetID int64
 	stub.callerID = callerID
 	stub.targetID = targetID
 	return stub.deleteError
+}
+
+func (stub *adminServiceStub) Update(_ context.Context, callerID, targetID int64, input UpdateInput) (Admin, error) {
+	stub.callerID = callerID
+	stub.targetID = targetID
+	stub.updateInput = input
+	return stub.changedAdmin, stub.updateError
+}
+
+func (stub *adminServiceStub) Get(_ context.Context, adminID int64) (Admin, error) {
+	stub.profileID = adminID
+	return stub.changedAdmin, nil
+}
+
+func (stub *adminServiceStub) UpdateProfile(_ context.Context, adminID int64, name, _ string) (Admin, error) {
+	stub.profileID = adminID
+	stub.profileName = name
+	return stub.changedAdmin, nil
+}
+
+func (stub *adminServiceStub) ChangePassword(_ context.Context, adminID int64, current, next string) error {
+	stub.profileID = adminID
+	stub.passwords = [2]string{current, next}
+	return stub.passwordErr
 }

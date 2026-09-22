@@ -3,7 +3,9 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -70,7 +72,7 @@ func (service *Service) Login(ctx context.Context, login, password string) (stri
 		return "", Identity{}, ErrInvalidCredentials
 	}
 
-	identity := Identity{AdminID: adminID, Login: storedLogin, Name: name, Role: role}
+	identity := Identity{AdminID: adminID, Login: storedLogin, Name: name, Role: role, Stamp: passwordStamp(passwordHash)}
 	if !identity.Valid() {
 		return "", Identity{}, ErrInvalidCredentials
 	}
@@ -100,8 +102,8 @@ func (service *Service) Authenticate(ctx context.Context, token string) (Identit
 		return Identity{}, ErrInvalidSession
 	}
 	// The session snapshot can outlive a deleted or re-roled admin, so the role and name always come from the database.
-	adminID, _, name, _, role, err := service.credentials.FindCredentialsByLogin(ctx, identity.Login)
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && adminID != identity.AdminID) {
+	adminID, _, name, passwordHash, role, err := service.credentials.FindCredentialsByLogin(ctx, identity.Login)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (adminID != identity.AdminID || identity.Stamp != passwordStamp(passwordHash))) {
 		_ = service.sessions.Delete(ctx, token)
 		return Identity{}, ErrInvalidSession
 	}
@@ -128,6 +130,12 @@ func (service *Service) Logout(ctx context.Context, token string) error {
 
 func (identity Identity) Valid() bool {
 	return identity.AdminID > 0 && identity.Login != "" && (identity.Role == "admin" || identity.Role == "super_admin")
+}
+
+// passwordStamp - часть SHA-256 от bcrypt-хеша: в Redis не лежит сам хеш, а смену пароля видно.
+func passwordStamp(passwordHash string) string {
+	digest := sha256.Sum256([]byte(passwordHash))
+	return hex.EncodeToString(digest[:8])
 }
 
 func newSessionToken() (string, error) {
