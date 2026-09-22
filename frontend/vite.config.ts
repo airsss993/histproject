@@ -19,8 +19,12 @@ export default defineConfig({
   build: {
     // MapLibre весит ~1 МБ сам по себе и обновляется редко: отдельный чанк остаётся в кеше браузера между деплоями.
     chunkSizeWarningLimit: 1100,
-    rollupOptions: {
-      output: { manualChunks: { maplibre: ['maplibre-gl'] } },
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [{ name: 'maplibre', test: /node_modules[\\/](maplibre-gl|@maplibre|@mapbox)[\\/]/ }],
+        },
+      },
     },
   },
   resolve: {
