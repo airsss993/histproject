@@ -1,73 +1,37 @@
-# React + TypeScript + Vite
+# Фронтенд "Россия - страна Героев"
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Публичная карта событий, заявка на событие, вход автора, профиль и панель модерации.
+Vite 4, React 19, TypeScript, React Router, MapLibre GL.
 
-Currently, two official plugins are available:
+## Запуск
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev     # http://localhost:3000
+npm run build   # tsc + vite build в dist/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Dev-сервер проксирует `/api` на `http://127.0.0.1:8080` - это Caddy из
+`backend/docker-compose.dev.yml`. Адрес меняется переменной `VITE_API_PROXY`:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+VITE_API_PROXY=https://russia-heroes.ru npm run dev
 ```
+
+Клиент ходит в API по пути `${VITE_API_BASE}/api/v1`. По умолчанию `VITE_API_BASE`
+пустой, запросы идут на тот же домен.
+
+## Структура
+
+| Путь | Что там |
+|---|---|
+| `src/app/app.tsx` | точка входа и маршруты |
+| `src/pages/public` | карта, заявка, "О проекте", вход и регистрация, профиль, 404; клиент API в `api.ts` |
+| `src/pages/panel` | панель модерации `/admin`, свой клиент API в `api.ts` |
+| `src/shared/ui` | общие компоненты: кнопки, поля, чипы, аватар |
+| `public/` | логотип и границы регионов России (`russia-regions.geojson`) |
+
+Кнопки, поля и чипы берутся из `src/shared/ui`, новых под отдельный экран не заводим.
+Цвета, типографика и правила компонентов - в `docs/design-system.html` в корне репозитория.
+
+Линтера и тестов нет, проверка перед коммитом - `npm run build`.
