@@ -171,3 +171,24 @@ func TestRepositoryStoresBotAndRecipients(t *testing.T) {
 		t.Fatalf("BotToken() after delete = %q, %v", token, err)
 	}
 }
+
+func TestRepositoryStoresMailSender(t *testing.T) {
+	repository, _ := notificationRepositoryTestDatabase(t)
+	ctx := t.Context()
+
+	if from, err := repository.MailFrom(ctx); err != nil || from != "" {
+		t.Fatalf("empty MailFrom() = %q, %v", from, err)
+	}
+	if err := repository.SaveMailSender(ctx, "Старое", "old@example.test"); err != nil {
+		t.Fatalf("SaveMailSender() error = %v", err)
+	}
+	if err := repository.SaveMailSender(ctx, "", "news@example.test"); err != nil {
+		t.Fatalf("SaveMailSender() second error = %v", err)
+	}
+	if name, address, err := repository.MailSender(ctx); err != nil || name != "" || address != "news@example.test" {
+		t.Fatalf("MailSender() = %q, %q, %v", name, address, err)
+	}
+	if from, err := repository.MailFrom(ctx); err != nil || from != "<news@example.test>" {
+		t.Fatalf("MailFrom() = %q, %v", from, err)
+	}
+}

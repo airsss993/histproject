@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/mail"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -166,4 +167,37 @@ func (repository *Repository) DeleteRecipient(ctx context.Context, chatID int64)
 		return ErrRecipientNotFound
 	}
 	return nil
+}
+
+// MailSender - отправитель, заданный в панели. Пустой address - не задан.
+func (repository *Repository) MailSender(ctx context.Context) (string, string, error) {
+	var name, address string
+	err := repository.pool.QueryRow(ctx, `SELECT name, address FROM notifications.mail_sender`).Scan(&name, &address)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", "", nil
+	}
+	if err != nil {
+		return "", "", fmt.Errorf("read mail sender: %w", err)
+	}
+	return name, address, nil
+}
+
+func (repository *Repository) SaveMailSender(ctx context.Context, name, address string) error {
+	_, err := repository.pool.Exec(ctx, `
+		INSERT INTO notifications.mail_sender (name, address) VALUES ($1, $2)
+		ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, address = EXCLUDED.address, updated_at = NOW()
+	`, name, address)
+	if err != nil {
+		return fmt.Errorf("save mail sender: %w", err)
+	}
+	return nil
+}
+
+// MailFrom - заголовок From из отправителя панели для PostboxSender.WithFromOverride.
+func (repository *Repository) MailFrom(ctx context.Context) (string, error) {
+	name, address, err := repository.MailSender(ctx)
+	if err != nil || address == "" {
+		return "", err
+	}
+	return (&mail.Address{Name: name, Address: address}).String(), nil
 }

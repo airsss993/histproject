@@ -58,9 +58,10 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		NewSubmissionNotifier(queueClient),
 		cfg.SitePublicBaseURL,
 	)
+	notificationRepository := notifications.NewRepository(databaseClient.Pool())
 	userService := users.NewService(
 		users.NewRepository(databaseClient.Pool()), users.NewStore(redisClient.Client()),
-		NewCodeMailer(cfg, logger), authorWorks{service: submissionService}, cfg.SessionTTL,
+		NewCodeMailer(cfg, logger, notificationRepository), authorWorks{service: submissionService}, cfg.SessionTTL,
 	)
 	submissionHandler := submissions.NewHandler(
 		submissionService,
@@ -74,10 +75,10 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		cfg.MaxUploadBytes,
 	)
 	userHandler := users.NewHandler(userService, logger, cfg.CookieDomain)
-	botHandler := notifications.NewBotHandler(notifications.NewBot(notifications.NewRepository(databaseClient.Pool()), cfg.NotificationTimeout), logger)
+	botHandler := notifications.NewBotHandler(notifications.NewBot(notificationRepository, cfg.NotificationTimeout), logger)
 	return Modules{
 		auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, users: userHandler,
-		bot: botHandler, mail: NewMailHandler(cfg, logger, adminService), rateLimit: redisClient.Allow,
+		bot: botHandler, mail: NewMailHandler(cfg, logger, notificationRepository), rateLimit: redisClient.Allow,
 	}
 }
 

@@ -97,8 +97,10 @@ export const updateProfile = (body: { name: string; email: string }) => call<{ a
 export const changePassword = (currentPassword: string, password: string) =>
   call('PUT', '/admin/profile/password', { currentPassword, password })
 
-export interface MailStatus { configured: boolean; from?: string; recipients: string[] }
+// name, address и domain приходят, только если почта настроена. domain - подтверждённый в Postbox.
+export interface MailStatus { configured: boolean; name?: string; address?: string; domain?: string }
 export const getMail = () => call<{ mail: MailStatus }>('GET', '/admin/mail')
+export const setMailSender = (body: { name: string; address: string }) => call<{ mail: MailStatus }>('PUT', '/admin/mail/sender', body)
 export const testMail = (email: string) => call('POST', '/admin/mail/test', { email })
 
 export interface TelegramChat { chatId: number; title: string; username?: string }

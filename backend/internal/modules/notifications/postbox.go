@@ -30,6 +30,7 @@ type PostboxSender struct {
 	from         string
 	envelopeFrom string
 	timeout      time.Duration
+	override     func(context.Context) (string, error)
 }
 
 func NewPostboxSender(address, keyID, secret, from string, timeout time.Duration) (*PostboxSender, error) {
@@ -52,8 +53,38 @@ func NewPostboxSender(address, keyID, secret, from string, timeout time.Duration
 	}, nil
 }
 
+// WithFromOverride задаёт источник отправителя, который читается перед каждым письмом.
+// Пустая строка из него - письмо уходит от from, переданного в NewPostboxSender.
+func (sender *PostboxSender) WithFromOverride(override func(context.Context) (string, error)) *PostboxSender {
+	sender.override = override
+	return sender
+}
+
+// fromHeader отдаёт заголовок From и адрес для MAIL FROM.
+func (sender *PostboxSender) fromHeader(ctx context.Context) (string, string, error) {
+	if sender.override == nil {
+		return sender.from, sender.envelopeFrom, nil
+	}
+	custom, err := sender.override(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("read mail sender: %w", err)
+	}
+	if custom == "" {
+		return sender.from, sender.envelopeFrom, nil
+	}
+	parsed, err := mail.ParseAddress(custom)
+	if err != nil {
+		return "", "", ErrInvalidSenderConfig
+	}
+	return parsed.String(), parsed.Address, nil
+}
+
 func (sender *PostboxSender) Send(ctx context.Context, message Email) error {
-	letter, err := buildLetter(sender.from, message)
+	from, envelopeFrom, err := sender.fromHeader(ctx)
+	if err != nil {
+		return err
+	}
+	letter, err := buildLetter(from, message)
 	if err != nil {
 		return err
 	}
@@ -85,7 +116,7 @@ func (sender *PostboxSender) Send(ctx context.Context, message Email) error {
 	if err := client.Auth(smtp.PlainAuth("", sender.keyID, sender.secret, sender.host)); err != nil {
 		return smtpFailure("авторизация", err)
 	}
-	if err := deliverLetter(client, sender.envelopeFrom, message.To, letter); err != nil {
+	if err := deliverLetter(client, envelopeFrom, message.To, letter); err != nil {
 		return err
 	}
 	return client.Quit()
