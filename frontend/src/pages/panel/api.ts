@@ -87,6 +87,19 @@ export const createModerator = (body: { login: string; name: string; password: s
   call<{ admin: Moderator }>('POST', '/admin/admins', body)
 export const changeRole = (id: number, role: Role) => call<{ admin: Moderator }>('PATCH', `/admin/admins/${id}/role`, { role })
 export const deleteModerator = (id: number) => call('DELETE', `/admin/admins/${id}`)
+// Пустой password оставляет прежний пароль.
+export const updateModerator = (id: number, body: { name: string; email: string; password: string }) =>
+  call<{ admin: Moderator }>('PATCH', `/admin/admins/${id}`, body)
+
+export const getProfile = () => call<{ admin: Moderator }>('GET', '/admin/profile')
+export const updateProfile = (body: { name: string; email: string }) => call<{ admin: Moderator }>('PATCH', '/admin/profile', body)
+// После смены пароля все сессии учётки, включая текущую, недействительны.
+export const changePassword = (currentPassword: string, password: string) =>
+  call('PUT', '/admin/profile/password', { currentPassword, password })
+
+export interface MailStatus { configured: boolean; from?: string; recipients: string[] }
+export const getMail = () => call<{ mail: MailStatus }>('GET', '/admin/mail')
+export const testMail = (email: string) => call('POST', '/admin/mail/test', { email })
 
 export interface TelegramChat { chatId: number; title: string; username?: string }
 export interface BotStatus { configured: boolean; username?: string; recipients: TelegramChat[] }
