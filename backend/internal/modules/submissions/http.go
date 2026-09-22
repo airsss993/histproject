@@ -32,6 +32,12 @@ type CreateLimiter interface {
 }
 
 type ActorReader func(context.Context) (Actor, bool)
+
+// AuthorReader отдаёт email вошедшего посетителя. Без сессии - ErrUnauthorized.
+type AuthorReader func(*http.Request) (string, error)
+
+var ErrUnauthorized = errors.New("visitor session required")
+
 type Middleware func(http.Handler) http.Handler
 
 type Handler struct {
@@ -39,11 +45,12 @@ type Handler struct {
 	limiter        CreateLimiter
 	logger         *slog.Logger
 	actorReader    ActorReader
+	authorReader   AuthorReader
 	maxUploadBytes int64
 }
 
-func NewHandler(service HTTPService, limiter CreateLimiter, logger *slog.Logger, actorReader ActorReader, maxUploadBytes int64) *Handler {
-	return &Handler{service: service, limiter: limiter, logger: logger, actorReader: actorReader, maxUploadBytes: maxUploadBytes}
+func NewHandler(service HTTPService, limiter CreateLimiter, logger *slog.Logger, actorReader ActorReader, authorReader AuthorReader, maxUploadBytes int64) *Handler {
+	return &Handler{service: service, limiter: limiter, logger: logger, actorReader: actorReader, authorReader: authorReader, maxUploadBytes: maxUploadBytes}
 }
 
 func (handler *Handler) Register(mux *http.ServeMux, protectAdmin, protectSuperAdmin Middleware) {
@@ -57,6 +64,12 @@ func (handler *Handler) Register(mux *http.ServeMux, protectAdmin, protectSuperA
 }
 
 func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
+	// Сессию проверяем до чтения тела: гость не должен заливать архив, который всё равно отвергнем.
+	email, err := handler.authorReader(r)
+	if err != nil {
+		handler.writeError(w, r, err)
+		return
+	}
 	controller := http.NewResponseController(w)
 	_ = controller.SetReadDeadline(time.Now().Add(uploadTimeout))
 	_ = controller.SetWriteDeadline(time.Now().Add(uploadTimeout))
@@ -83,7 +96,7 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 	longitude, longitudeErr := strconv.ParseFloat(strings.TrimSpace(r.FormValue("longitude")), 64)
 	input := CreateInput{
 		Title: r.FormValue("title"), Description: r.FormValue("description"), EventDate: eventDate,
-		EventType: r.FormValue("eventType"), Email: r.FormValue("email"),
+		EventType: r.FormValue("eventType"), Email: email,
 		TelegramUsername: r.FormValue("telegramUsername"), Latitude: latitude, Longitude: longitude, Archive: archive,
 	}
 	if archiveHeader != nil {
@@ -261,6 +274,8 @@ func (handler *Handler) writeError(w http.ResponseWriter, r *http.Request, err e
 	switch {
 	case errors.As(err, &validationError):
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", validationError.Fields)
+	case errors.Is(err, ErrUnauthorized):
+		_ = httpserver.WriteError(w, http.StatusUnauthorized, "unauthorized", "Войдите, чтобы предложить событие", nil)
 	case errors.Is(err, ErrSubmissionNotFound):
 		_ = httpserver.WriteError(w, http.StatusNotFound, "submission_not_found", "Заявка не найдена", nil)
 	case errors.Is(err, ErrInvalidTransition):

@@ -16,7 +16,7 @@ import (
 
 func TestHTTPCreateParsesMultipartAndReturnsProcessingSubmission(t *testing.T) {
 	service := &submissionHTTPServiceStub{created: Submission{ID: 44, Status: StatusProcessing}}
-	handler := NewHandler(service, nil, discardSubmissionLogger(), nil, 52_428_800)
+	handler := NewHandler(service, nil, discardSubmissionLogger(), nil, testAuthorReader, 52_428_800)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 	body, contentType := submissionMultipart(t, validSubmissionForm(), "site.zip", []byte("zip"))
@@ -32,6 +32,9 @@ func TestHTTPCreateParsesMultipartAndReturnsProcessingSubmission(t *testing.T) {
 	if service.createInput.Title != "Event" || service.createInput.EventType != "military" || service.createInput.ArchiveName != "site.zip" ||
 		service.createInput.Latitude != 55.75 || service.createInput.Longitude != 37.62 {
 		t.Fatalf("create input = %#v", service.createInput)
+	}
+	if service.createInput.Email != "author@example.test" {
+		t.Fatalf("email = %q, want account email instead of form value", service.createInput.Email)
 	}
 	if string(service.archive) != "zip" {
 		t.Fatalf("archive = %q", service.archive)
@@ -50,9 +53,28 @@ func TestHTTPCreateParsesMultipartAndReturnsProcessingSubmission(t *testing.T) {
 	}
 }
 
+func TestHTTPCreateRequiresVisitorSession(t *testing.T) {
+	service := &submissionHTTPServiceStub{}
+	guest := func(*http.Request) (string, error) { return "", ErrUnauthorized }
+	handler := NewHandler(service, nil, discardSubmissionLogger(), nil, guest, 52_428_800)
+	mux := http.NewServeMux()
+	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
+	body, contentType := submissionMultipart(t, validSubmissionForm(), "site.zip", []byte("zip"))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/submissions", body)
+	request.Header.Set("Content-Type", contentType)
+	response := httptest.NewRecorder()
+
+	mux.ServeHTTP(response, request)
+
+	assertSubmissionError(t, response, http.StatusUnauthorized, "unauthorized")
+	if service.createCalled {
+		t.Fatal("service.Create was called without session")
+	}
+}
+
 func TestHTTPCreateLimitsBodyBeforeMultipartParsing(t *testing.T) {
 	service := &submissionHTTPServiceStub{}
-	handler := NewHandler(service, nil, discardSubmissionLogger(), nil, 64)
+	handler := NewHandler(service, nil, discardSubmissionLogger(), nil, testAuthorReader, 64)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 	body, contentType := submissionMultipart(t, validSubmissionForm(), "site.zip", bytes.Repeat([]byte("x"), 2<<20))
@@ -79,7 +101,6 @@ func TestHTTPCreateValidatesPublicFields(t *testing.T) {
 		{name: "required description", mutate: func(values map[string]string) { values["description"] = "" }, filename: "site.zip", field: "description"},
 		{name: "date", mutate: func(values map[string]string) { values["eventDate"] = "02.01.2020" }, filename: "site.zip", field: "eventDate"},
 		{name: "event type", mutate: func(values map[string]string) { values["eventType"] = "unknown" }, filename: "site.zip", field: "eventType"},
-		{name: "email", mutate: func(values map[string]string) { values["email"] = "not-an-email" }, filename: "site.zip", field: "email"},
 		{name: "telegram", mutate: func(values map[string]string) { values["telegramUsername"] = "bad name" }, filename: "site.zip", field: "telegramUsername"},
 		{name: "required latitude", mutate: func(values map[string]string) { delete(values, "latitude") }, filename: "site.zip", field: "latitude"},
 		{name: "longitude range", mutate: func(values map[string]string) { values["longitude"] = "181" }, filename: "site.zip", field: "longitude"},
@@ -90,7 +111,7 @@ func TestHTTPCreateValidatesPublicFields(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := &submissionHTTPServiceStub{}
-			handler := NewHandler(service, nil, discardSubmissionLogger(), nil, 52_428_800)
+			handler := NewHandler(service, nil, discardSubmissionLogger(), nil, testAuthorReader, 52_428_800)
 			mux := http.NewServeMux()
 			handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 			values := validSubmissionForm()
@@ -113,7 +134,7 @@ func TestHTTPCreateValidatesPublicFields(t *testing.T) {
 func TestHTTPCreateAppliesRateLimitWithoutContactData(t *testing.T) {
 	service := &submissionHTTPServiceStub{}
 	limiter := &submissionLimiterStub{allowed: false}
-	handler := NewHandler(service, limiter, discardSubmissionLogger(), nil, 52_428_800)
+	handler := NewHandler(service, limiter, discardSubmissionLogger(), nil, testAuthorReader, 52_428_800)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 	body, contentType := submissionMultipart(t, validSubmissionForm(), "site.zip", []byte("zip"))
@@ -139,7 +160,7 @@ func TestHTTPListAndDetailFormatAdminResponses(t *testing.T) {
 		page:   SubmissionPage{Items: []Submission{{ID: 8, Title: "Event", EventDate: date, EventType: "military", Status: StatusReview}}, Page: 2, PageSize: 10, Total: 11},
 		detail: Submission{ID: 8, Title: "Event", EventDate: date, EventType: "military", Email: "author@example.test", TelegramUsername: "author", Status: StatusReview},
 	}
-	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), 52_428_800)
+	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), testAuthorReader, 52_428_800)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 
@@ -158,7 +179,7 @@ func TestHTTPListAndDetailFormatAdminResponses(t *testing.T) {
 
 func TestHTTPListRejectsMalformedPagination(t *testing.T) {
 	service := &submissionHTTPServiceStub{}
-	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), 52_428_800)
+	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), testAuthorReader, 52_428_800)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 	for _, page := range []string{"many", "0"} {
@@ -170,7 +191,7 @@ func TestHTTPListRejectsMalformedPagination(t *testing.T) {
 
 func TestHTTPModerationPassesActorAndInput(t *testing.T) {
 	service := &submissionHTTPServiceStub{}
-	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), 52_428_800)
+	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), testAuthorReader, 52_428_800)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 
@@ -200,7 +221,7 @@ func TestHTTPModerationPassesActorAndInput(t *testing.T) {
 
 func TestHTTPPublishMapsCoordinateValidation(t *testing.T) {
 	service := &submissionHTTPServiceStub{publishError: &ValidationError{Fields: map[string]string{"latitude": "От -90 до 90"}}}
-	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), 52_428_800)
+	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), testAuthorReader, 52_428_800)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 	response := httptest.NewRecorder()
@@ -212,7 +233,7 @@ func TestHTTPPublishMapsCoordinateValidation(t *testing.T) {
 
 func TestHTTPAuditUsesSuperAdminProtection(t *testing.T) {
 	service := &submissionHTTPServiceStub{auditPage: AuditPage{Items: []AuditEntry{{ID: 1, SubmissionID: 8, SubmissionTitle: "Event", Action: "reviewed"}}, Page: 1, PageSize: 20, Total: 1}}
-	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), 52_428_800)
+	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), testAuthorReader, 52_428_800)
 	mux := http.NewServeMux()
 	adminCalls := 0
 	superCalls := 0
@@ -236,7 +257,7 @@ func TestHTTPAuditUsesSuperAdminProtection(t *testing.T) {
 
 func TestHTTPReturnsGenericInternalError(t *testing.T) {
 	service := &submissionHTTPServiceStub{getError: errors.New("database password leaked")}
-	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), 52_428_800)
+	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), testAuthorReader, 52_428_800)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 	response := httptest.NewRecorder()
@@ -251,7 +272,7 @@ func TestHTTPReturnsGenericInternalError(t *testing.T) {
 
 func TestHTTPMapsNotFoundAndInvalidTransition(t *testing.T) {
 	service := &submissionHTTPServiceStub{getError: ErrSubmissionNotFound, reviewError: ErrInvalidTransition}
-	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), 52_428_800)
+	handler := NewHandler(service, nil, discardSubmissionLogger(), testActorReader(), testAuthorReader, 52_428_800)
 	mux := http.NewServeMux()
 	handler.Register(mux, passSubmissionMiddleware, passSubmissionMiddleware)
 
@@ -350,7 +371,7 @@ func (stub *submissionLimiterStub) Allow(_ context.Context, remoteAddress string
 func validSubmissionForm() map[string]string {
 	return map[string]string{
 		"title": "Event", "description": "Description", "eventDate": "2020-01-02",
-		"eventType": "military", "email": "author@example.test", "telegramUsername": "author_name",
+		"eventType": "military", "email": "typo@example.test", "telegramUsername": "author_name",
 		"latitude": "55.75", "longitude": "37.62",
 	}
 }
@@ -436,3 +457,5 @@ func assertSubmissionError(t *testing.T, response *httptest.ResponseRecorder, st
 		t.Fatalf("error code = %q, want %q", payload.Error.Code, code)
 	}
 }
+
+func testAuthorReader(*http.Request) (string, error) { return "author@example.test", nil }
