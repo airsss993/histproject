@@ -108,6 +108,8 @@
     .color-gold-soft { background: var(--gold-soft); }
     .color-muted { background: var(--muted); }
     .color-danger { background: var(--danger); }
+    .color-success { background: var(--success); }
+    .color-info { background: var(--info); }
 
     .type-specimen { padding: 28px 0; border-top: 1px solid var(--line-soft); display: grid; grid-template-columns: 160px 1fr; gap: 28px; align-items: baseline; }
     .type-specimen small { color: var(--dim); font-size: 12px; }
@@ -138,6 +140,16 @@
     .btn:hover { background: var(--gold-soft); }
     .btn.ghost { color: var(--gold-soft); border-color: var(--gold-line); background: rgba(12,16,35,.48); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
     .btn.ghost:hover { color: var(--gold); border-color: var(--gold); background: var(--gold-wash); }
+    .btn.light {
+      color: var(--line); border-color: rgba(255,255,255,.5);
+      background: radial-gradient(90% 120% at 8% -10%, rgba(80,66,38,.45), transparent 50%), radial-gradient(70% 110% at 96% 120%, rgba(60,48,26,.6), transparent 55%), linear-gradient(#ede3cb, #c7ae7f);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 0 18px rgba(216,201,162,.35), 0 6px 18px rgba(0,0,20,.45);
+    }
+    .btn.light:hover { background: radial-gradient(90% 120% at 8% -10%, rgba(80,66,38,.45), transparent 50%), radial-gradient(70% 110% at 96% 120%, rgba(60,48,26,.6), transparent 55%), linear-gradient(#ede3cb, #c7ae7f); filter: brightness(1.08); }
+    .btn.pill { border-radius: 999px; padding: 11px 20px; font-size: 14px; }
+    .hnav { display: inline-flex; align-self: flex-start; align-items: center; gap: 4px; padding: 5px 5px 5px 10px; border-radius: 999px; border: 1px solid var(--line-soft); background: rgba(12,16,35,.91); box-shadow: var(--shadow); }
+    .hnav .btn.text { min-height: 0; padding: 11px 14px; font-size: 14px; }
+    .hnav .btn { white-space: nowrap; }
     .btn.text { color: var(--gold-soft); border-color: transparent; background: transparent; box-shadow: none; }
     .btn.danger { color: #fff; border-color: var(--danger); background: var(--danger); }
     .btn:disabled { opacity: .45; cursor: default; }
@@ -163,6 +175,46 @@
     .badge.rejected { color: var(--danger); border-color: rgba(196,111,98,.5); }
     .badge.published { color: var(--success); border-color: rgba(143,199,155,.4); }
     .badge.processing { color: var(--muted); border-color: var(--line); }
+
+    .st { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid; border-radius: 999px; font-size: 13px; white-space: nowrap; }
+    .st svg { width: 14px; height: 14px; }
+    .st.wait { color: var(--muted); border-color: var(--line); background: rgba(129,148,174,.12); }
+    .st.work { color: var(--gold-soft); border-color: var(--gold-line); background: var(--gold-wash); }
+    .st.ok { color: #8fc7a0; border-color: rgba(143,199,160,.45); background: rgba(143,199,160,.12); }
+    .st.bad { color: var(--danger); border-color: rgba(196,111,98,.45); background: rgba(196,111,98,.12); }
+
+    .profile-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 24px; align-items: center; }
+    .avatar { width: 88px; height: 88px; border-radius: 28px; box-shadow: 0 0 0 1px var(--gold-line), 0 10px 30px rgba(0,0,20,.5); }
+    .stats { display: flex; gap: 10px; margin: 0; }
+    .stats div { min-width: 104px; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: 16px; text-align: center; }
+    .stats dt { color: var(--dim); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+    .stats dd { margin: 0; color: var(--gold); font-size: 30px; line-height: 1.1; }
+    .rail { grid-column: 1 / -1; }
+    .rail-pins { position: relative; height: 20px; border-bottom: 1px dashed var(--line-soft); }
+    .rail-pins i { position: absolute; bottom: 2px; width: 10px; height: 10px; border-radius: 50% 50% 50% 0; background: var(--gold); transform: translateX(-50%) rotate(-45deg); }
+    .rail-scale { display: flex; margin-top: 8px; }
+    .rail-scale span { flex: 1; text-align: center; color: var(--dim); font-size: 12px; letter-spacing: .06em; }
+    .fchips .chip { display: inline-flex; align-items: center; gap: 9px; padding: 5px 14px 5px 5px; }
+    .fchips .chip i { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 9px; background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px var(--line-soft); }
+    .fchips .chip.on i { background: var(--gold-wash); box-shadow: inset 0 0 0 1px var(--gold-line); }
+    .fchips .chip svg { width: 14px; height: 14px; }
+    .fchips .chip b { font-weight: 400; opacity: .6; }
+    .comment {
+      position: relative; isolation: isolate; padding: 11px 16px 11px 28px; border-radius: 14px; color: var(--text-2); font-size: 13px; line-height: 20px;
+      background: radial-gradient(120% 140% at 0% 0%, rgba(196,111,98,.16), transparent 55%), rgba(8,8,20,.55);
+      box-shadow: inset 14px 0 22px -16px rgba(196,111,98,.55), inset 0 10px 18px -16px rgba(196,111,98,.45), 0 0 26px -12px rgba(196,111,98,.45);
+    }
+    .comment::after {
+      content: ""; position: absolute; inset: 0; z-index: -1; padding: 1px; border-radius: inherit;
+      background: linear-gradient(115deg, rgba(196,111,98,.85), rgba(196,111,98,.25) 35%, rgba(255,255,255,.06) 75%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+    }
+    .comment::before { content: ""; position: absolute; left: 13px; top: 11px; bottom: 11px; width: 2px; border-radius: 2px; background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+    .tile { border-radius: 22px; overflow: hidden; }
+    .tile-shot { display: block; aspect-ratio: 16 / 7; background: repeating-linear-gradient(135deg, #0c1023 0 7px, #081835 7px 14px); -webkit-mask-image: linear-gradient(180deg, #000 52%, transparent 97%); mask-image: linear-gradient(180deg, #000 52%, transparent 97%); }
+    .tile-body { padding: 14px 16px 16px; }
+    .tile-body strong { display: block; font-weight: 400; font-size: 19px; }
+    .tile-body span { color: var(--dim); font-size: 13px; }
 
     .map-demo { position: relative; min-height: 530px; overflow: hidden; background: var(--sea); }
     .map-demo::before {
@@ -225,6 +277,9 @@
       .palette, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .grid-3 { grid-template-columns: 1fr; }
       .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .profile-head { grid-template-columns: auto minmax(0, 1fr); }
+      .stats { grid-column: 1 / -1; }
+      .stats div { flex: 1; min-width: 0; }
     }
     @media (max-width: 640px) {
       .shell { width: min(100% - 32px, 1240px); }
@@ -240,6 +295,10 @@
       .map-demo { min-height: 690px; }
       .event-card { left: 16px; right: 16px; bottom: 16px; width: auto; }
       .event-visual { height: 132px; }
+      .hnav { padding: 2px; }
+      .hnav .btn.text { padding: 8px 12px; }
+      .hnav .btn.light { display: none; }
+      .rail-scale span:nth-child(even) { visibility: hidden; }
       footer .shell { flex-direction: column; }
     }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
@@ -259,7 +318,7 @@
         <span>Россия - страна Героев</span>
       </a>
       <nav class="nav" aria-label="Разделы дизайн-системы">
-        <a href="#foundation">Основа</a><a href="#type">Шрифт</a><a href="#components">Компоненты</a><a href="#patterns">Паттерны</a><a href="#rules">Правила</a>
+        <a href="#foundation">Основа</a><a href="#type">Шрифт</a><a href="#components">Компоненты</a><a href="#patterns">Паттерны</a><a href="#profile">Профиль</a><a href="#rules">Правила</a>
       </nav>
     </div>
   </header>
@@ -267,7 +326,7 @@
   <main id="top" class="shell">
     <div class="kicker">Дизайн-система текущего продукта</div>
     <h1>Histography</h1>
-    <p class="lead">Единый визуальный язык публичной карты, формы заявки и панели модерации. Система собрана по состоянию интерфейса на 20 сентября 2026 года.</p>
+    <p class="lead">Единый визуальный язык публичной карты, формы заявки, входа, профиля автора и панели модерации. Система собрана по состоянию интерфейса на 22 сентября 2026 года.</p>
     <div class="meta"><span>Темная карта</span><span>Стеклянные поверхности</span><span>Песочное золото</span><span>Tenor Sans</span></div>
 
     <section id="foundation">
@@ -281,6 +340,8 @@
         <div class="swatch color-gold-soft light"><strong>Светлое золото</strong><code>#D8C9A2</code></div>
         <div class="swatch color-muted"><strong>Вторичный текст</strong><code>#8194AE</code></div>
         <div class="swatch color-danger"><strong>Ошибка</strong><code>#C46F62</code></div>
+        <div class="swatch color-success light"><strong>Опубликовано</strong><code>#8FC79B</code></div>
+        <div class="swatch color-info light"><strong>Новая заявка</strong><code>#9CC3F0</code></div>
       </div>
     </section>
 
@@ -308,7 +369,8 @@
           <h3>Кнопки</h3>
           <div class="row"><button type="button" class="btn">Опубликовать</button><button type="button" class="btn ghost">Предпросмотр</button><button type="button" class="btn text">Отмена</button></div>
           <div class="row"><button type="button" class="btn danger">Отклонить</button><button type="button" class="btn" disabled>Недоступно</button></div>
-          <p class="note">Одна залитая кнопка на смысловой блок. Красный цвет нужен только для ошибки и необратимого действия.</p>
+          <div class="hnav"><button type="button" class="btn text">О проекте</button><button type="button" class="btn text">Войти</button><button type="button" class="btn light pill">Предложить событие</button></div>
+          <p class="note">Одна залитая кнопка на смысловой блок. Красный цвет нужен только для ошибки и необратимого действия. Пункты шапки собраны в стеклянную таблетку; светлая кнопка с бликом - только для главного действия в шапке, в открытом состоянии она остаётся светлой и получает золотую рамку. На телефоне этой кнопки в шапке нет.</p>
         </div>
         <div class="panel stack">
           <h3>Поля</h3>
@@ -324,6 +386,8 @@
           <h3>Статусы</h3>
           <div class="badges"><span class="badge processing">Обрабатывается</span><span class="badge new">Новая</span><span class="badge review">На проверке</span><span class="badge rejected">Отклонена</span><span class="badge published">Опубликована</span></div>
           <p class="note">Статус всегда подписан текстом. Цвет помогает быстро просмотреть список, но не заменяет название.</p>
+          <div class="badges"><span class="st wait"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Ждёт проверки</span><span class="st work"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>На проверке</span><span class="st ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-10"/></svg>Опубликовано</span><span class="st bad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>Отклонена</span></div>
+          <p class="note">Автор видит залитые чипы с иконкой и формулировками для себя: "Собираем сайт", "Ждёт проверки", "На проверке", "Опубликовано", "Отклонена". Модератору в панели достаточно контурной метки.</p>
         </div>
       </div>
     </section>
@@ -343,12 +407,34 @@
     </section>
 
     <section>
-      <div class="section-head"><h2>Рабочие списки</h2><p>В панели модератора плотность выше, чем на публичных экранах. Строка показывает название, статус и короткие факты. Выбранная заявка выделяется рамкой без яркой заливки.</p></div>
+      <div class="section-head"><h2>Рабочие списки</h2><p>В панели модератора плотность выше, чем на публичных экранах. Строка показывает название, статус и короткие факты. Выбранная заявка выделяется рамкой без яркой заливки. Заявка везде называется публичным кодом RH-, автор - кодом RHU-; числовой id в интерфейсе не показывается.</p></div>
       <div class="panel list-demo">
-        <div class="list-row active"><div><span>Подвиг экипажа танка КВ</span><span class="badge review">На проверке</span></div><small>#184 - Военная история - прислана 19.09.2026</small></div>
-        <div class="list-row"><div><span>Основание первого университета</span><span class="badge new">Новая</span></div><small>#183 - Политическая история - прислана 18.09.2026</small></div>
-        <div class="list-row"><div><span>Освобождение города</span><span class="badge published">Опубликована</span></div><small>#179 - Военная история - прислана 17.09.2026</small></div>
+        <div class="list-row active"><div><span>Подвиг экипажа танка КВ</span><span class="badge review">На проверке</span></div><small>RH-7K2QXM - Военная история - прислана 19.09.2026</small></div>
+        <div class="list-row"><div><span>Основание первого университета</span><span class="badge new">Новая</span></div><small>RH-4D9VNA - Политическая история - прислана 18.09.2026</small></div>
+        <div class="list-row"><div><span>Освобождение города</span><span class="badge published">Опубликована</span></div><small>RH-1T8GEW - Военная история - прислана 17.09.2026</small></div>
       </div>
+    </section>
+
+    <section id="profile">
+      <div class="section-head"><h2>Профиль автора</h2><p>Страница автора собирает его события. Аватарок пользователи не загружают: узор 5x5 строится по коду RHU- и всегда одинаков для одного человека. Шкала веков показывает, где на оси времени лежат опубликованные события.</p></div>
+      <div class="panel stack">
+        <div class="profile-head">
+          <svg class="avatar" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="26" fill="#0c1023"/><rect width="100" height="100" rx="26" fill="#8194ae" opacity=".1"/><g fill="#8194ae"><rect x="3" y="3" width="14" height="14" rx="4"/><rect x="83" y="3" width="14" height="14" rx="4"/><rect x="23" y="23" width="14" height="14" rx="4"/><rect x="63" y="23" width="14" height="14" rx="4"/><rect x="43" y="43" width="14" height="14" rx="4"/><rect x="3" y="63" width="14" height="14" rx="4"/><rect x="83" y="63" width="14" height="14" rx="4"/><rect x="23" y="83" width="14" height="14" rx="4"/><rect x="63" y="83" width="14" height="14" rx="4"/></g><g fill="#c7ae7f"><rect x="43" y="3" width="14" height="14" rx="4"/><rect x="3" y="43" width="14" height="14" rx="4"/><rect x="83" y="43" width="14" height="14" rx="4"/><rect x="43" y="83" width="14" height="14" rx="4"/></g></svg>
+          <div><h3>Иван Петров</h3><p class="note">RHU-9F3KQD</p></div>
+          <dl class="stats"><div><dt>Опубликовано</dt><dd>3</dd></div><div><dt>В работе</dt><dd>1</dd></div></dl>
+          <div class="rail" aria-hidden="true"><div class="rail-pins"><i style="left:61%"></i><i style="left:88%"></i><i style="left:95%"></i></div><div class="rail-scale"><span>IX</span><span>X</span><span>XI</span><span>XII</span><span>XIII</span><span>XIV</span><span>XV</span><span>XVI</span><span>XVII</span><span>XVIII</span><span>XIX</span><span>XX</span><span>XXI</span></div></div>
+        </div>
+        <div class="chips fchips"><button type="button" class="chip on"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg></i>Все <b>4</b></button><button type="button" class="chip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-10"/></svg></i>Опубликованы <b>3</b></button><button type="button" class="chip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></i>В работе <b>1</b></button><button type="button" class="chip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></i>Отклонены <b>0</b></button></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:16px; align-items:start">
+        <div class="panel stack">
+          <h3>Комментарий модератора</h3>
+          <p class="comment">В архиве нет index.html в корне. Пересоберите архив и отправьте заявку заново.</p>
+          <p class="note">Плашка под отклонённой заявкой: градиентная рамка ярче у левого верхнего угла, полоска тона внутри с отступом от рамки, мягкое свечение наружу. Боковую полосу-рамку не использовать.</p>
+        </div>
+        <article class="card tile"><span class="tile-shot"></span><div class="tile-body"><strong>Битва за Москву</strong><span>Военная история - 1941</span></div></article>
+      </div>
+      <p class="note" style="margin-top:12px">Опубликованные события показываются витриной: крупное превью сайта гаснет книзу маской на самой картинке, подпись под ним, ссылка работает по всей плитке. Незавершённые заявки видит только автор, строкой со статусом и полосой пути.</p>
     </section>
 
     <section id="rules">
@@ -364,6 +450,6 @@
     </section>
   </main>
 
-  <footer><div class="shell"><span>Histography design system</span><span>Срез интерфейса от 20.09.2026</span></div></footer>
+  <footer><div class="shell"><span>Histography design system</span><span>Срез интерфейса от 22.09.2026</span></div></footer>
 </body>
 </html>
