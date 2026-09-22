@@ -166,11 +166,13 @@
   .pf-shot { width: 96px; height: 72px; }
   .pf-card-side { grid-column: 2; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; }
   .pf-header, .pf-main { padding-left: 16px; padding-right: 16px; }
-  /* На узком экране кнопка встаёт под текст, а не жмёт его в колонку. */
+  /* На узком экране кнопка встаёт под текст, а не жмёт его в колонку: полоса и заглушка. */
   .pf-strip { flex-wrap: wrap; padding: 14px; }
   .pf-strip svg { display: none; }
   .pf-strip .pm-grow { display: none; }
   .pf-strip .pm-btn { width: 100%; }
+  .pf-note { flex-wrap: wrap; padding: 18px; }
+  .pf-note .pm-btn { width: 100%; }
   .pf-track { flex-direction: column; align-items: stretch; gap: 6px; }
   .pf-track i { flex: none; }
   /* Без наведения подпись-ссылку надо показывать сразу. */
