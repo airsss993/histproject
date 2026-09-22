@@ -131,3 +131,43 @@ func resetNotificationDatabase(t *testing.T, ctx context.Context, db *sql.DB) {
 		t.Fatalf("reset database: %v", err)
 	}
 }
+
+func TestRepositoryStoresBotAndRecipients(t *testing.T) {
+	repository, _ := notificationRepositoryTestDatabase(t)
+	ctx := t.Context()
+
+	if token, username, err := repository.BotToken(ctx); err != nil || token != "" || username != "" {
+		t.Fatalf("empty BotToken() = %q, %q, %v", token, username, err)
+	}
+	if err := repository.SaveBot(ctx, "1:old", "old_bot"); err != nil {
+		t.Fatalf("SaveBot() error = %v", err)
+	}
+	if err := repository.SaveBot(ctx, "1:new", "new_bot"); err != nil {
+		t.Fatalf("second SaveBot() error = %v", err)
+	}
+	if token, username, err := repository.BotToken(ctx); err != nil || token != "1:new" || username != "new_bot" {
+		t.Fatalf("BotToken() = %q, %q, %v", token, username, err)
+	}
+
+	for _, chat := range []TelegramChat{{ID: 5, Title: "Иван"}, {ID: -100, Title: "Группа"}, {ID: 5, Title: "Иван Петров", Username: "ivan"}} {
+		if err := repository.SaveRecipient(ctx, chat); err != nil {
+			t.Fatalf("SaveRecipient(%d) error = %v", chat.ID, err)
+		}
+	}
+	recipients, err := repository.Recipients(ctx)
+	if err != nil || len(recipients) != 2 || recipients[0] != (TelegramChat{ID: 5, Title: "Иван Петров", Username: "ivan"}) {
+		t.Fatalf("Recipients() = %#v, %v", recipients, err)
+	}
+	if err := repository.DeleteRecipient(ctx, 5); err != nil {
+		t.Fatalf("DeleteRecipient() error = %v", err)
+	}
+	if err := repository.DeleteRecipient(ctx, 5); !errors.Is(err, ErrRecipientNotFound) {
+		t.Fatalf("repeat DeleteRecipient() error = %v", err)
+	}
+	if err := repository.DeleteBot(ctx); err != nil {
+		t.Fatalf("DeleteBot() error = %v", err)
+	}
+	if token, _, err := repository.BotToken(ctx); err != nil || token != "" {
+		t.Fatalf("BotToken() after delete = %q, %v", token, err)
+	}
+}

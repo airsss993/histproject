@@ -5,7 +5,7 @@ import { MapView, type MapHandle } from '../public/MapView.tsx'
 import { TYPES, TYPE_LABEL, formatDate, type ApiResult, type EventType } from '../public/api.ts'
 import { Field } from '../../shared/ui/Field.tsx'
 import * as api from './api.ts'
-import type { AuditEntry, Me, Moderator, Page, Role, Status, Submission } from './api.ts'
+import type { AuditEntry, Me, Moderator, Page, Role, Status, Submission, TelegramChat } from './api.ts'
 import '../public/public.css'
 import './panel.css'
 
@@ -80,7 +80,7 @@ const Login: React.FC<{ onDone: (me: Me) => void }> = ({ onDone }) => {
   )
 }
 
-type Tab = 'submissions' | 'history' | 'moderators'
+type Tab = 'submissions' | 'history' | 'moderators' | 'bot'
 
 const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => {
   const navigate = useNavigate()
@@ -88,7 +88,7 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
   const [params, setParams] = useSearchParams()
   const superAdmin = me.role === 'super_admin'
   const tabs: [Tab, string][] = superAdmin
-    ? [['submissions', 'Заявки'], ['history', 'История'], ['moderators', 'Модераторы']]
+    ? [['submissions', 'Заявки'], ['history', 'История'], ['moderators', 'Модераторы'], ['bot', 'Бот']]
     : [['submissions', 'Заявки']]
   const tab = tabs.find(([t]) => t === params.get('tab'))?.[0] ?? 'submissions'
 
@@ -111,6 +111,7 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
         {tab === 'submissions' && <Submissions mobile={mobile} />}
         {tab === 'history' && <History />}
         {tab === 'moderators' && <Moderators me={me} />}
+        {tab === 'bot' && <Bot />}
       </main>
     </div>
   )
@@ -461,3 +462,132 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
   )
 }
 
+const NO_CANDIDATES = () => Promise.resolve<ApiResult<{ items: TelegramChat[] }>>({ ok: true, data: { items: [] } })
+
+// Кто получает уведомления бота: доступ выдаётся тем, кто сам написал боту.
+const Bot: React.FC = () => {
+  const expired = React.useContext(ExpiredContext)
+  const state = useLoad(() => api.getBot(), [])
+  const bot = state.data?.bot
+  const candidates = useLoad(bot?.configured ? api.listBotCandidates : NO_CANDIDATES, [bot?.configured])
+  const [token, setToken] = useState('')
+  const [tokenError, setTokenError] = useState('')
+  // Итог действия показывается у блока, где его сделали: у токена или у списка получателей.
+  const [note, setNote] = useState<{ text: string; bad: boolean; at: 'token' | 'list' } | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const act = async (at: 'token' | 'list', action: () => Promise<ApiResult>, done?: string) => {
+    setBusy(true)
+    setNote(null)
+    const res = await action()
+    setBusy(false)
+    if (res.ok) {
+      state.reload()
+      candidates.reload()
+      if (done) setNote({ text: done, bad: false, at })
+      return true
+    }
+    if (res.status === 401) expired()
+    else if (res.fields?.token) setTokenError(res.fields.token)
+    else setNote({ text: api.problem(res), bad: true, at })
+    return false
+  }
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setTokenError('')
+    if (!token.trim()) return setTokenError('Вставьте токен')
+    if (await act('token', () => api.setBotToken(token.trim()), 'Токен сохранён')) setToken('')
+  }
+
+  if (!bot) {
+    return (
+      <section className="ad-narrow">
+        <h1 className="ad-title">Бот</h1>
+        {state.error
+          ? <p className="ad-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
+          : <p className="ad-dim">Загружаем...</p>}
+      </section>
+    )
+  }
+  const noteLine = note && <p className={note.bad ? 'ad-error' : 'ad-dim'} role={note.bad ? 'alert' : 'status'}>{note.text}</p>
+  const link = bot.username && <a href={`https://t.me/${bot.username}`} target="_blank" rel="noopener noreferrer">@{bot.username}</a>
+
+  return (
+    <section className="ad-narrow">
+      <h1 className="ad-title">Бот</h1>
+      <p className="ad-dim">Telegram-бот пишет о новых заявках и о заявках, готовых к проверке. Сообщения получают только чаты из списка ниже.</p>
+      <form className="ad-card ad-form" onSubmit={save} noValidate>
+        <h3>Токен</h3>
+        <p className="ad-dim">
+          {bot.configured
+            ? <>Подключён {link}. Новый токен заменит текущий, получатели сохранятся.</>
+            : 'Бот не подключён. Создайте бота у @BotFather командой /newbot и вставьте токен, который он пришлёт.'}
+        </p>
+        <Field label="Токен из @BotFather" error={tokenError}>
+          <input type="password" value={token} autoComplete="off" spellCheck={false} maxLength={200} placeholder="123456789:AA..."
+            onChange={e => { setToken(e.target.value); setTokenError('') }} />
+        </Field>
+        {note?.at === 'token' && noteLine}
+        <div className="ad-actions">
+          <button className="pm-btn" disabled={busy}>Сохранить</button>
+          {bot.configured && (
+            <button type="button" className="pm-btn-text danger" disabled={busy}
+              onClick={() => confirm('Отключить бота? Уведомления в Telegram перестанут приходить.') && act('token', () => api.setBotToken(''), 'Бот отключён')}>Отключить</button>
+          )}
+        </div>
+      </form>
+
+      {bot.configured && (
+        <>
+          <h3>Получают уведомления</h3>
+          {bot.recipients.length ? (
+            <ul className="ad-rows">
+              {bot.recipients.map(c => (
+                <li key={c.chatId} className="ad-row ad-mod">
+                  <ChatName chat={c} />
+                  <button type="button" className="pm-btn-text danger" disabled={busy}
+                    onClick={() => confirm(`Закрыть доступ для ${c.title}? Уведомления туда больше не придут.`) && act('list', () => api.revokeBot(c.chatId))}>Закрыть доступ</button>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="ad-dim">Пока никто. Выдайте доступ тем, кто написал боту.</p>}
+          {note?.at === 'list' && noteLine}
+          {bot.recipients.length > 0 && (
+            <div className="ad-actions">
+              <button type="button" className="pm-btn-ghost" disabled={busy} onClick={() => act('list', api.testBot, 'Проверка дошла до всех получателей')}>Отправить проверку</button>
+            </div>
+          )}
+
+          <h3>Написали боту</h3>
+          <p className="ad-dim">
+            Человек открывает {link} в Telegram и нажимает Start. Чтобы уведомления шли в группу, добавьте бота в неё.
+            Потом обновите список: Telegram помнит обращения к боту сутки.
+          </p>
+          <Rows state={candidates} empty="За последние сутки боту никто не писал">
+            {(data: { items: TelegramChat[] }) => (
+              <ul className="ad-rows">
+                {data.items.map(c => (
+                  <li key={c.chatId} className="ad-row ad-mod">
+                    <ChatName chat={c} />
+                    <button type="button" className="pm-btn-ghost" disabled={busy} onClick={() => act('list', () => api.grantBot(c.chatId), `${c.title} получает уведомления`)}>Дать доступ</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Rows>
+          <div className="ad-actions">
+            <button type="button" className="pm-btn-text" disabled={candidates.loading} onClick={candidates.reload}>{candidates.loading ? 'Обновляем...' : 'Обновить список'}</button>
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
+const ChatName: React.FC<{ chat: TelegramChat }> = ({ chat }) => (
+  <span className="ad-grow-col">
+    <b>{chat.title}</b>
+    <span className="ad-dim">{chat.username ? `@${chat.username}` : chat.chatId < 0 ? 'группа или канал' : 'без username'}</span>
+  </span>
+)

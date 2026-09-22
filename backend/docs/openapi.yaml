@@ -17,6 +17,7 @@ tags:
   - name: Submissions
   - name: Admins
   - name: Audit
+  - name: Bot
 paths:
   /healthz:
     get:
@@ -581,6 +582,126 @@ paths:
                 $ref: "#/components/schemas/AuditPage"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /api/v1/admin/bot:
+    get:
+      tags: [Bot]
+      operationId: getBot
+      description: Только super_admin. Токен бота наружу не отдаётся.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          $ref: "#/components/responses/BotStatus"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/v1/admin/bot/token:
+    put:
+      tags: [Bot]
+      operationId: setBotToken
+      description: Проверяет токен через getMe и сохраняет. Пустая строка отключает бота, получатели остаются.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          $ref: "#/components/responses/BotStatus"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/TelegramUnavailable"
+  /api/v1/admin/bot/candidates:
+    get:
+      tags: [Bot]
+      operationId: listBotCandidates
+      description: Чаты, писавшие боту за последние сутки (getUpdates) и ещё не получившие доступ.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Кандидаты в получатели
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TelegramChat"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "502":
+          $ref: "#/components/responses/TelegramUnavailable"
+  /api/v1/admin/bot/recipients:
+    post:
+      tags: [Bot]
+      operationId: grantBotRecipient
+      description: Выдаёт чату доступ к уведомлениям. Имя чата берётся у Telegram (getChat).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chatId]
+              properties:
+                chatId:
+                  type: integer
+                  format: int64
+      responses:
+        "200":
+          $ref: "#/components/responses/BotStatus"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "502":
+          $ref: "#/components/responses/TelegramUnavailable"
+  /api/v1/admin/bot/recipients/{chatId}:
+    delete:
+      tags: [Bot]
+      operationId: revokeBotRecipient
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          $ref: "#/components/responses/BotStatus"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/admin/bot/test:
+    post:
+      tags: [Bot]
+      operationId: sendBotTest
+      description: Проверочное сообщение всем получателям. 502 telegram_chat_unavailable перечисляет, до кого не дошло.
+      security:
+        - sessionCookie: []
+      responses:
+        "204":
+          description: Дошло всем
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "502":
+          $ref: "#/components/responses/TelegramUnavailable"
 components:
   securitySchemes:
     sessionCookie:
@@ -672,6 +793,22 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+    TelegramUnavailable:
+      description: Telegram не отвечает или не доставил сообщение
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BotStatus:
+      description: Состояние бота
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [bot]
+            properties:
+              bot:
+                $ref: "#/components/schemas/BotStatus"
     SubmissionResult:
       description: Состояние заявки изменено
       content:
@@ -829,6 +966,30 @@ components:
               type: string
             role:
               $ref: "#/components/schemas/AdminRole"
+    TelegramChat:
+      type: object
+      required: [chatId, title]
+      properties:
+        chatId:
+          type: integer
+          format: int64
+        title:
+          type: string
+        username:
+          type: string
+    BotStatus:
+      type: object
+      required: [configured, recipients]
+      properties:
+        configured:
+          type: boolean
+        username:
+          type: string
+          description: Имя бота из getMe
+        recipients:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelegramChat"
     AdminRole:
       type: string
       enum: [admin, super_admin]

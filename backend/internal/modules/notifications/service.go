@@ -28,7 +28,8 @@ type EmailSender interface {
 }
 
 type TelegramSender interface {
-	Send(context.Context, string) error
+	Chats(context.Context) ([]int64, error)
+	Send(context.Context, int64, string) error
 }
 
 type Service struct {
@@ -90,10 +91,17 @@ func (service *Service) deliverToAdmins(ctx context.Context, eventKey string, ac
 		}
 	}
 	if service.telegram != nil {
+		chats, err := service.telegram.Chats(ctx)
+		if err != nil {
+			deliveryErr = errors.Join(deliveryErr, fmt.Errorf("load telegram recipients: %w", err))
+		}
 		message := adminTelegram(action, submission, service.adminPanelURL)
-		deliveryErr = errors.Join(deliveryErr, service.deliver(ctx, eventKey, ChannelTelegram, func(ctx context.Context) error {
-			return service.telegram.Send(ctx, message)
-		}))
+		// Журнал доставки ведётся по каждому чату: повтор после сбоя не шлёт дубль тем, до кого уже дошло.
+		for _, chatID := range chats {
+			deliveryErr = errors.Join(deliveryErr, service.deliver(ctx, fmt.Sprintf("%s:%d", eventKey, chatID), ChannelTelegram, func(ctx context.Context) error {
+				return service.telegram.Send(ctx, chatID, message)
+			}))
+		}
 	}
 	return deliveryErr
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/airsss993/histproject/backend/internal/modules/admins"
 	"github.com/airsss993/histproject/backend/internal/modules/auth"
 	"github.com/airsss993/histproject/backend/internal/modules/events"
+	"github.com/airsss993/histproject/backend/internal/modules/notifications"
 	"github.com/airsss993/histproject/backend/internal/modules/submissions"
 	"github.com/airsss993/histproject/backend/internal/modules/users"
 	"github.com/airsss993/histproject/backend/internal/platform/config"
@@ -26,6 +27,7 @@ type Modules struct {
 	events      *events.Handler
 	submissions *submissions.Handler
 	users       *users.Handler
+	bot         *notifications.BotHandler
 	rateLimit   httpserver.ClientRateLimiter
 }
 
@@ -71,7 +73,11 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		cfg.MaxUploadBytes,
 	)
 	userHandler := users.NewHandler(userService, logger, cfg.CookieDomain)
-	return Modules{auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, users: userHandler, rateLimit: redisClient.Allow}
+	botHandler := notifications.NewBotHandler(notifications.NewBot(notifications.NewRepository(databaseClient.Pool()), cfg.NotificationTimeout), logger)
+	return Modules{
+		auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, users: userHandler,
+		bot: botHandler, rateLimit: redisClient.Allow,
+	}
 }
 
 func (modules Modules) Register(mux *http.ServeMux) {
@@ -90,6 +96,9 @@ func (modules Modules) Register(mux *http.ServeMux) {
 	modules.submissions.Register(mux, adminOnly, superAdminOnly)
 	if modules.users != nil {
 		modules.users.Register(mux)
+	}
+	if modules.bot != nil {
+		modules.bot.Register(mux, superAdminOnly)
 	}
 }
 

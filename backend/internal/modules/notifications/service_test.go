@@ -211,7 +211,11 @@ type telegramSenderStub struct {
 	err      error
 }
 
-func (stub *telegramSenderStub) Send(_ context.Context, message string) error {
+func (stub *telegramSenderStub) Chats(context.Context) ([]int64, error) {
+	return []int64{-100123}, nil
+}
+
+func (stub *telegramSenderStub) Send(_ context.Context, _ int64, message string) error {
 	stub.messages = append(stub.messages, message)
 	return stub.err
 }

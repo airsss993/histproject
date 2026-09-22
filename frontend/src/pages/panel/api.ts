@@ -87,6 +87,16 @@ export const createModerator = (body: { login: string; password: string; email: 
 export const changeRole = (id: number, role: Role) => call<{ admin: Moderator }>('PATCH', `/admin/admins/${id}/role`, { role })
 export const deleteModerator = (id: number) => call('DELETE', `/admin/admins/${id}`)
 
+export interface TelegramChat { chatId: number; title: string; username?: string }
+export interface BotStatus { configured: boolean; username?: string; recipients: TelegramChat[] }
+
+export const getBot = () => call<{ bot: BotStatus }>('GET', '/admin/bot')
+export const setBotToken = (token: string) => call<{ bot: BotStatus }>('PUT', '/admin/bot/token', { token })
+export const listBotCandidates = () => call<{ items: TelegramChat[] }>('GET', '/admin/bot/candidates')
+export const grantBot = (chatId: number) => call<{ bot: BotStatus }>('POST', '/admin/bot/recipients', { chatId })
+export const revokeBot = (chatId: number) => call<{ bot: BotStatus }>('DELETE', `/admin/bot/recipients/${chatId}`)
+export const testBot = () => call('POST', '/admin/bot/test')
+
 export function problem(res: Extract<ApiResult, { ok: false }>) {
   if (res.status === 0) return 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.'
   if (res.status === 429) return `Слишком много попыток. Попробуйте через ${res.retryAfter ?? 60} с.`
