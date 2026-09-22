@@ -97,3 +97,73 @@ func truncateError(message string) string {
 	}
 	return string(runes)
 }
+
+func (repository *Repository) BotToken(ctx context.Context) (string, string, error) {
+	var token, username string
+	err := repository.pool.QueryRow(ctx, `SELECT token, username FROM notifications.telegram_bot`).Scan(&token, &username)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", "", nil
+	}
+	if err != nil {
+		return "", "", fmt.Errorf("read bot token: %w", err)
+	}
+	return token, username, nil
+}
+
+func (repository *Repository) SaveBot(ctx context.Context, token, username string) error {
+	_, err := repository.pool.Exec(ctx, `
+		INSERT INTO notifications.telegram_bot (token, username) VALUES ($1, $2)
+		ON CONFLICT (id) DO UPDATE SET token = EXCLUDED.token, username = EXCLUDED.username, updated_at = NOW()
+	`, token, username)
+	if err != nil {
+		return fmt.Errorf("save bot token: %w", err)
+	}
+	return nil
+}
+
+func (repository *Repository) DeleteBot(ctx context.Context) error {
+	if _, err := repository.pool.Exec(ctx, `DELETE FROM notifications.telegram_bot`); err != nil {
+		return fmt.Errorf("delete bot token: %w", err)
+	}
+	return nil
+}
+
+func (repository *Repository) Recipients(ctx context.Context) ([]TelegramChat, error) {
+	rows, err := repository.pool.Query(ctx, `
+		SELECT chat_id, title, username FROM notifications.telegram_recipients ORDER BY created_at, chat_id
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("list telegram recipients: %w", err)
+	}
+	recipients, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (TelegramChat, error) {
+		var chat TelegramChat
+		err := row.Scan(&chat.ID, &chat.Title, &chat.Username)
+		return chat, err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("scan telegram recipients: %w", err)
+	}
+	return recipients, nil
+}
+
+func (repository *Repository) SaveRecipient(ctx context.Context, chat TelegramChat) error {
+	_, err := repository.pool.Exec(ctx, `
+		INSERT INTO notifications.telegram_recipients (chat_id, title, username) VALUES ($1, $2, $3)
+		ON CONFLICT (chat_id) DO UPDATE SET title = EXCLUDED.title, username = EXCLUDED.username
+	`, chat.ID, chat.Title, chat.Username)
+	if err != nil {
+		return fmt.Errorf("save telegram recipient: %w", err)
+	}
+	return nil
+}
+
+func (repository *Repository) DeleteRecipient(ctx context.Context, chatID int64) error {
+	commandTag, err := repository.pool.Exec(ctx, `DELETE FROM notifications.telegram_recipients WHERE chat_id = $1`, chatID)
+	if err != nil {
+		return fmt.Errorf("delete telegram recipient: %w", err)
+	}
+	if commandTag.RowsAffected() == 0 {
+		return ErrRecipientNotFound
+	}
+	return nil
+}

@@ -105,8 +105,6 @@ func TestLoadFromRequiresProductionSecrets(t *testing.T) {
 		"POSTBOX_KEY_ID",
 		"POSTBOX_SECRET",
 		"EMAIL_FROM",
-		"TG_BOT_TOKEN",
-		"TG_ADMIN_CHAT_ID",
 		"ADMIN_PANEL_URL",
 		"NOTIFICATION_TIMEOUT",
 		"COOKIE_DOMAIN",
@@ -137,8 +135,6 @@ func TestLoadFromRequiresProductionSecrets(t *testing.T) {
 				"POSTBOX_KEY_ID":         "postbox-key-id",
 				"POSTBOX_SECRET":         "postbox-secret",
 				"EMAIL_FROM":             "info@russia-heroes.ru",
-				"TG_BOT_TOKEN":           "bot-token",
-				"TG_ADMIN_CHAT_ID":       "-100123",
 				"ADMIN_PANEL_URL":        "https://example.com/admin",
 				"NOTIFICATION_TIMEOUT":   "10s",
 				"COOKIE_DOMAIN":          "example.com",
@@ -219,11 +215,6 @@ func TestLoadFromRejectsInvalidValues(t *testing.T) {
 			name:   "incomplete Postbox config",
 			values: map[string]string{"POSTBOX_KEY_ID": "key-id", "POSTBOX_SECRET": "key-secret"},
 			field:  "EMAIL_FROM",
-		},
-		{
-			name:   "incomplete Telegram config",
-			values: map[string]string{"TG_BOT_TOKEN": "token"},
-			field:  "TG_ADMIN_CHAT_ID",
 		},
 	}
 

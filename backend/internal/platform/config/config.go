@@ -44,8 +44,6 @@ type Config struct {
 	PostboxKeyID        string
 	PostboxSecret       string
 	EmailFrom           string
-	TelegramBotToken    string
-	TelegramAdminChatID string
 	AdminPanelURL       string
 	NotificationTimeout time.Duration
 	CookieDomain        string
@@ -59,29 +57,27 @@ func Load() (Config, error) {
 func LoadFrom(getenv func(string) string) (Config, error) {
 	environment := valueOrDefault(getenv, "APP_ENV", development)
 	cfg := Config{
-		Environment:         environment,
-		ServerAddress:       valueOrDefault(getenv, "SERVER_ADDRESS", ":7666"),
-		DatabaseURL:         strings.TrimSpace(getenv("DATABASE_URL")),
-		RedisAddress:        strings.TrimSpace(getenv("REDIS_ADDRESS")),
-		RedisPassword:       strings.TrimSpace(getenv("REDIS_PASSWORD")),
-		MinIOEndpoint:       strings.TrimSpace(getenv("MINIO_ENDPOINT")),
-		MinIOAccessKey:      strings.TrimSpace(getenv("MINIO_ACCESS_KEY")),
-		MinIOSecretKey:      strings.TrimSpace(getenv("MINIO_SECRET_KEY")),
-		MinIOArchiveBucket:  strings.TrimSpace(getenv("MINIO_ARCHIVE_BUCKET")),
-		MinIOSiteBucket:     strings.TrimSpace(getenv("MINIO_SITE_BUCKET")),
-		ChromeURL:           strings.TrimSpace(getenv("CHROME_URL")),
-		SiteRenderBaseURL:   strings.TrimRight(strings.TrimSpace(getenv("SITE_RENDER_BASE_URL")), "/"),
-		SitePreviewBaseURL:  strings.TrimRight(strings.TrimSpace(getenv("SITE_PREVIEW_BASE_URL")), "/"),
-		SitePublicBaseURL:   strings.TrimRight(strings.TrimSpace(getenv("SITE_PUBLIC_BASE_URL")), "/"),
-		PostboxAddress:      valueOrDefault(getenv, "POSTBOX_SMTP_ADDRESS", defaultPostboxAddress),
-		PostboxKeyID:        strings.TrimSpace(getenv("POSTBOX_KEY_ID")),
-		PostboxSecret:       strings.TrimSpace(getenv("POSTBOX_SECRET")),
-		EmailFrom:           strings.TrimSpace(getenv("EMAIL_FROM")),
-		TelegramBotToken:    strings.TrimSpace(getenv("TG_BOT_TOKEN")),
-		TelegramAdminChatID: strings.TrimSpace(getenv("TG_ADMIN_CHAT_ID")),
-		AdminPanelURL:       strings.TrimRight(strings.TrimSpace(getenv("ADMIN_PANEL_URL")), "/"),
-		CookieDomain:        strings.TrimSpace(getenv("COOKIE_DOMAIN")),
-		CORSOrigins:         splitList(getenv("CORS_ALLOWED_ORIGINS")),
+		Environment:        environment,
+		ServerAddress:      valueOrDefault(getenv, "SERVER_ADDRESS", ":7666"),
+		DatabaseURL:        strings.TrimSpace(getenv("DATABASE_URL")),
+		RedisAddress:       strings.TrimSpace(getenv("REDIS_ADDRESS")),
+		RedisPassword:      strings.TrimSpace(getenv("REDIS_PASSWORD")),
+		MinIOEndpoint:      strings.TrimSpace(getenv("MINIO_ENDPOINT")),
+		MinIOAccessKey:     strings.TrimSpace(getenv("MINIO_ACCESS_KEY")),
+		MinIOSecretKey:     strings.TrimSpace(getenv("MINIO_SECRET_KEY")),
+		MinIOArchiveBucket: strings.TrimSpace(getenv("MINIO_ARCHIVE_BUCKET")),
+		MinIOSiteBucket:    strings.TrimSpace(getenv("MINIO_SITE_BUCKET")),
+		ChromeURL:          strings.TrimSpace(getenv("CHROME_URL")),
+		SiteRenderBaseURL:  strings.TrimRight(strings.TrimSpace(getenv("SITE_RENDER_BASE_URL")), "/"),
+		SitePreviewBaseURL: strings.TrimRight(strings.TrimSpace(getenv("SITE_PREVIEW_BASE_URL")), "/"),
+		SitePublicBaseURL:  strings.TrimRight(strings.TrimSpace(getenv("SITE_PUBLIC_BASE_URL")), "/"),
+		PostboxAddress:     valueOrDefault(getenv, "POSTBOX_SMTP_ADDRESS", defaultPostboxAddress),
+		PostboxKeyID:       strings.TrimSpace(getenv("POSTBOX_KEY_ID")),
+		PostboxSecret:      strings.TrimSpace(getenv("POSTBOX_SECRET")),
+		EmailFrom:          strings.TrimSpace(getenv("EMAIL_FROM")),
+		AdminPanelURL:      strings.TrimRight(strings.TrimSpace(getenv("ADMIN_PANEL_URL")), "/"),
+		CookieDomain:       strings.TrimSpace(getenv("COOKIE_DOMAIN")),
+		CORSOrigins:        splitList(getenv("CORS_ALLOWED_ORIGINS")),
 	}
 	if environment != production {
 		applyDevelopmentDefaults(&cfg)
@@ -175,9 +171,6 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 	}
 	if (cfg.PostboxKeyID == "") != (cfg.PostboxSecret == "") || (cfg.PostboxKeyID == "") != (cfg.EmailFrom == "") {
 		return Config{}, errors.New("POSTBOX_KEY_ID, POSTBOX_SECRET и EMAIL_FROM должны быть указаны вместе")
-	}
-	if (cfg.TelegramBotToken == "") != (cfg.TelegramAdminChatID == "") {
-		return Config{}, errors.New("TG_BOT_TOKEN и TG_ADMIN_CHAT_ID должны быть указаны вместе")
 	}
 
 	return cfg, nil
@@ -306,8 +299,6 @@ func validateProduction(cfg Config) error {
 		{"POSTBOX_KEY_ID", cfg.PostboxKeyID},
 		{"POSTBOX_SECRET", cfg.PostboxSecret},
 		{"EMAIL_FROM", cfg.EmailFrom},
-		{"TG_BOT_TOKEN", cfg.TelegramBotToken},
-		{"TG_ADMIN_CHAT_ID", cfg.TelegramAdminChatID},
 		{"ADMIN_PANEL_URL", cfg.AdminPanelURL},
 		{"COOKIE_DOMAIN", cfg.CookieDomain},
 	}
