@@ -19,6 +19,7 @@ tags:
   - name: Profile
   - name: Audit
   - name: Bot
+  - name: Mail
 paths:
   /healthz:
     get:
@@ -803,6 +804,57 @@ paths:
           $ref: "#/components/responses/Conflict"
         "502":
           $ref: "#/components/responses/TelegramUnavailable"
+  /api/v1/admin/mail:
+    get:
+      tags: [Mail]
+      operationId: getMail
+      description: Только super_admin. Postbox задаётся env-переменными, ключи наружу не отдаются.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Состояние почты
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mail]
+                properties:
+                  mail:
+                    $ref: "#/components/schemas/MailStatus"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/v1/admin/mail/test:
+    post:
+      tags: [Mail]
+      operationId: sendMailTest
+      description: Проверочное письмо на указанный адрес. 409 mail_not_configured - Postbox не настроен, 502 mail_unavailable - Postbox не принял письмо, в тексте этап и код SMTP.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "204":
+          description: Postbox принял письмо
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "502":
+          description: Postbox не принял письмо
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   securitySchemes:
     sessionCookie:
@@ -1104,6 +1156,20 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TelegramChat"
+    MailStatus:
+      type: object
+      required: [configured, recipients]
+      properties:
+        configured:
+          type: boolean
+        from:
+          type: string
+          description: Адрес отправителя (EMAIL_FROM), только если почта настроена
+        recipients:
+          type: array
+          description: Почты модераторов, которые получают письма о заявках
+          items:
+            type: string
     AdminRole:
       type: string
       enum: [admin, super_admin]
