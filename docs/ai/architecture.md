@@ -17,7 +17,7 @@
 | Redis | | сессии, rate limit, очередь Asynq |
 | MinIO | | buckets `archives` (ZIP как пришёл) и `sites` (распакованные сайты и превью) |
 | headless Chrome | | скриншот превью опубликованного сайта |
-| Postbox (SMTP), Telegram | | email автору заявки и админам, сообщение в чат админов |
+| Postbox (SMTP), Telegram | | email автору заявки и админам, сообщения админам в Telegram. Токен бота и получатели - в базе (`notifications.telegram_*`), их меняет супер-админ во вкладке "Бот", env для бота нет |
 
 Модули бекенда: `auth` (сессии админов), `admins`, `users` (публичные пользователи),
 `events`, `submissions`, `sites` (архив -> сайт), `notifications`.
