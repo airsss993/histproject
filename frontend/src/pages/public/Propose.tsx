@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { GLYPH, MapView, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { Presence, useLeaving } from './presence.tsx'
 import { submitProposal, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType } from './api.ts'
+import { useNavigate } from 'react-router-dom'
 import './propose.css'
 
 // Раскладка по форме создания метки из trudovaya-slava, значения из валидации POST /api/v1/submissions.
@@ -99,7 +100,9 @@ const noop = () => undefined
 
 // email - почта аккаунта: форму открывают только вошедшим, статус заявки уходит туда.
 export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: boolean; onClose: () => void }> = ({ open, email, mobile, onClose }) => {
+  const navigate = useNavigate()
   const [d, setD] = useState<Draft>(EMPTY)
+  const [ready, setReady] = useState(false) // автор подтвердил, что архив сайта уже есть
   const [phase, setPhase] = useState<Phase>({ k: 'form' })
   const [shown, setShown] = useState<Set<Field>>(new Set())
   const [server, setServer] = useState<Errors>({})
@@ -161,7 +164,7 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
     show('place')
   }
 
-  const reset = () => { setD(EMPTY); setPhase({ k: 'form' }); setShown(new Set()); setServer({}); setStep(0); setReached(0); setQuery('') }
+  const reset = () => { setReady(false); setD(EMPTY); setPhase({ k: 'form' }); setShown(new Set()); setServer({}); setStep(0); setReached(0); setQuery('') }
   // Защёлку выставляем при каждом закрытии: иначе, если окно успели открыть заново до конца
   // анимации ухода, она осталась бы взведённой и стёрла следующий черновик.
   const close = () => {
@@ -287,6 +290,25 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
         <button type="button" className="pp-nav" onClick={() => setPhase({ k: 'form' })}><Chip d={ARROW} back />Назад к заявке</button>
         <button type="button" className="pp-nav pp-next" onClick={pRun}>{pLabel}<Chip d={ARROW} /></button>
       </>
+    )
+  } else if (!ready && phase.k === 'form') {
+    // Без готового сайта заявку не собрать: сначала спрашиваем, при "нет" ведём на инструкцию.
+    head = { title: 'Сайт события готов?', sub: 'К заявке прикладывается ZIP-архив сайта о событии. Если сайта ещё нет, инструкция поможет его сделать.', icon: STEPS[stepOf('archive')].icon }
+    body = (
+      <div className="pp-choices">
+        {[
+          { title: 'Да, сайт готов', sub: 'Заполнить заявку и приложить архив', run: () => setReady(true) },
+          { title: 'Нет, сайта пока нет', sub: 'Инструкция: как сделать сайт за 8 шагов', run: () => navigate('/guide') },
+        ].map(c => (
+          <button key={c.title} type="button" className="pp-choice" style={{ '--c': 'var(--gold)' } as React.CSSProperties} onClick={c.run}>
+            <span className="pm-grow">
+              <span className="pp-choice-title">{c.title}</span>
+              <span className="pp-choice-sub">{c.sub}</span>
+            </span>
+            <span className="pp-arrow"><Glyph d={ARROW} /></span>
+          </button>
+        ))}
+      </div>
     )
   } else {
     head = STEPS[step]
@@ -427,12 +449,12 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
         <input ref={fileRef} type="file" accept=".zip,application/zip" hidden onChange={e => pickFile(e.target.files?.[0])} />
         <button type="button" className="pp-x pp-close" aria-label="Закрыть" disabled={sending} onClick={close}>×</button>
         <div className="pp-head">
-          <div className="pp-steps" aria-label={`Шаг ${step + 1} из ${STEPS.length}`}>
+          {(ready || !form) && <div className="pp-steps" aria-label={`Шаг ${step + 1} из ${STEPS.length}`}>
             {STEPS.map((s, i) => (
               <button key={s.title} type="button" aria-label={s.title} disabled={!form || sending || i > reached}
                 className={phase.k === 'done' || i < step ? 'done' : i === step ? 'on' : ''} onClick={() => setStep(i)}><i /></button>
             ))}
-          </div>
+          </div>}
           <div className={`pp-hero${head.tone ? ` ${head.tone}` : ''}`} key={head.icon}>
             <span className="pp-hero-back" />
             <span className="pp-hero-glass"><Glyph d={head.icon} /></span>
@@ -442,7 +464,7 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
         </div>
         <div className="pp-body">{body}</div>
         {/* На первом шаге вперёд ведёт сам выбор типа: кнопок нет. */}
-        {!(form && !sending && step === 0) && <div className="pp-foot">{foot}</div>}
+        {ready && !(form && !sending && step === 0) && <div className="pp-foot">{foot}</div>}
       </form>
     </div>
   )
