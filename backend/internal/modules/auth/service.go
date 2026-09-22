@@ -21,7 +21,7 @@ var (
 var dummyPasswordHash = []byte("$2a$10$7EqJtq98hPqEX7fNZaFWoO5rP7ARQkNua5kW7VZ6vKQZ8hS4TjK6e")
 
 type CredentialReader interface {
-	FindCredentialsByLogin(context.Context, string) (int64, string, string, string, error)
+	FindCredentialsByLogin(context.Context, string) (int64, string, string, string, string, error)
 }
 
 type SessionStore interface {
@@ -58,7 +58,7 @@ func (service *Service) Login(ctx context.Context, login, password string) (stri
 		return "", Identity{}, ErrInvalidCredentials
 	}
 
-	adminID, storedLogin, passwordHash, role, err := service.credentials.FindCredentialsByLogin(ctx, login)
+	adminID, storedLogin, name, passwordHash, role, err := service.credentials.FindCredentialsByLogin(ctx, login)
 	if errors.Is(err, pgx.ErrNoRows) {
 		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 		return "", Identity{}, ErrInvalidCredentials
@@ -70,7 +70,7 @@ func (service *Service) Login(ctx context.Context, login, password string) (stri
 		return "", Identity{}, ErrInvalidCredentials
 	}
 
-	identity := Identity{AdminID: adminID, Login: storedLogin, Role: role}
+	identity := Identity{AdminID: adminID, Login: storedLogin, Name: name, Role: role}
 	if !identity.Valid() {
 		return "", Identity{}, ErrInvalidCredentials
 	}
@@ -99,8 +99,8 @@ func (service *Service) Authenticate(ctx context.Context, token string) (Identit
 	if !identity.Valid() {
 		return Identity{}, ErrInvalidSession
 	}
-	// The session snapshot can outlive a deleted or re-roled admin, so the role always comes from the database.
-	adminID, _, _, role, err := service.credentials.FindCredentialsByLogin(ctx, identity.Login)
+	// The session snapshot can outlive a deleted or re-roled admin, so the role and name always come from the database.
+	adminID, _, name, _, role, err := service.credentials.FindCredentialsByLogin(ctx, identity.Login)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && adminID != identity.AdminID) {
 		_ = service.sessions.Delete(ctx, token)
 		return Identity{}, ErrInvalidSession
@@ -109,6 +109,7 @@ func (service *Service) Authenticate(ctx context.Context, token string) (Identit
 		return Identity{}, fmt.Errorf("authenticate admin: %w", err)
 	}
 	identity.Role = role
+	identity.Name = name
 	if !identity.Valid() {
 		return Identity{}, ErrInvalidSession
 	}

@@ -50,7 +50,7 @@ func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
 	t.Cleanup(pool.Close)
 	repository := NewRepository(pool)
 
-	adminID, login, passwordHash, role, err := repository.FindCredentialsByLogin(ctx, "root")
+	adminID, login, _, passwordHash, role, err := repository.FindCredentialsByLogin(ctx, "root")
 	if err != nil {
 		t.Fatalf("FindCredentialsByLogin() error = %v", err)
 	}
@@ -58,7 +58,7 @@ func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
 		t.Fatalf("credentials = (%d, %q, %q, %q)", adminID, login, passwordHash, role)
 	}
 
-	_, _, _, _, err = repository.FindCredentialsByLogin(ctx, "missing")
+	_, _, _, _, _, err = repository.FindCredentialsByLogin(ctx, "missing")
 	if !errors.Is(err, pgx.ErrNoRows) {
 		t.Fatalf("missing credentials error = %v, want pgx.ErrNoRows", err)
 	}

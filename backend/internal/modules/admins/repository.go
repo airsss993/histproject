@@ -18,26 +18,26 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-func (repository *Repository) FindCredentialsByLogin(ctx context.Context, login string) (int64, string, string, string, error) {
+func (repository *Repository) FindCredentialsByLogin(ctx context.Context, login string) (int64, string, string, string, string, error) {
 	var adminID int64
-	var storedLogin, passwordHash, role string
+	var storedLogin, name, passwordHash, role string
 	err := repository.pool.QueryRow(ctx, `
-		SELECT id, login, password_hash, role::TEXT
+		SELECT id, login, name, password_hash, role::TEXT
 		FROM auth.admins
 		WHERE login = $1
-	`, login).Scan(&adminID, &storedLogin, &passwordHash, &role)
+	`, login).Scan(&adminID, &storedLogin, &name, &passwordHash, &role)
 	if err != nil {
-		return 0, "", "", "", fmt.Errorf("find admin credentials: %w", err)
+		return 0, "", "", "", "", fmt.Errorf("find admin credentials: %w", err)
 	}
-	return adminID, storedLogin, passwordHash, role, nil
+	return adminID, storedLogin, name, passwordHash, role, nil
 }
 
 func (repository *Repository) Create(ctx context.Context, input CreateRecord) (Admin, error) {
 	admin, err := scanAdmin(repository.pool.QueryRow(ctx, `
-		INSERT INTO auth.admins (login, password_hash, email, role)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, login, email, role::TEXT, created_at
-	`, input.Login, input.PasswordHash, input.Email, input.Role))
+		INSERT INTO auth.admins (login, name, password_hash, email, role)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, login, name, email, role::TEXT, created_at
+	`, input.Login, input.Name, input.PasswordHash, input.Email, input.Role))
 	if isUniqueViolation(err) {
 		return Admin{}, ErrLoginTaken
 	}
@@ -66,10 +66,10 @@ func (repository *Repository) CreateInitialSuperAdmin(ctx context.Context, input
 	}
 
 	admin, err := scanAdmin(tx.QueryRow(ctx, `
-		INSERT INTO auth.admins (login, password_hash, email, role)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, login, email, role::TEXT, created_at
-	`, input.Login, input.PasswordHash, input.Email, input.Role))
+		INSERT INTO auth.admins (login, name, password_hash, email, role)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, login, name, email, role::TEXT, created_at
+	`, input.Login, input.Name, input.PasswordHash, input.Email, input.Role))
 	if isUniqueViolation(err) {
 		return Admin{}, ErrLoginTaken
 	}
@@ -84,7 +84,7 @@ func (repository *Repository) CreateInitialSuperAdmin(ctx context.Context, input
 
 func (repository *Repository) List(ctx context.Context) ([]Admin, error) {
 	rows, err := repository.pool.Query(ctx, `
-		SELECT id, login, email, role::TEXT, created_at
+		SELECT id, login, name, email, role::TEXT, created_at
 		FROM auth.admins
 		ORDER BY created_at, id
 	`)
@@ -130,7 +130,7 @@ func (repository *Repository) ChangeRole(ctx context.Context, targetID int64, ro
 		UPDATE auth.admins
 		SET role = $1
 		WHERE id = $2
-		RETURNING id, login, email, role::TEXT, created_at
+		RETURNING id, login, name, email, role::TEXT, created_at
 	`, role, targetID))
 	if err != nil {
 		return Admin{}, fmt.Errorf("change admin role: %w", err)
@@ -188,7 +188,7 @@ type rowScanner interface {
 func scanAdmin(row rowScanner) (Admin, error) {
 	var admin Admin
 	var role string
-	if err := row.Scan(&admin.ID, &admin.Login, &admin.Email, &role, &admin.CreatedAt); err != nil {
+	if err := row.Scan(&admin.ID, &admin.Login, &admin.Name, &admin.Email, &role, &admin.CreatedAt); err != nil {
 		return Admin{}, err
 	}
 	admin.Role = Role(role)

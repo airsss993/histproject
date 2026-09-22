@@ -16,6 +16,7 @@ func (role Role) Valid() bool {
 type Admin struct {
 	ID        int64     `json:"id"`
 	Login     string    `json:"login"`
+	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Role      Role      `json:"role"`
 	CreatedAt time.Time `json:"createdAt"`

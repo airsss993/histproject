@@ -19,6 +19,7 @@ var ErrSessionNotFound = errors.New("session not found")
 type Identity struct {
 	AdminID int64  `json:"admin_id"`
 	Login   string `json:"login"`
+	Name    string `json:"name,omitempty"`
 	Role    string `json:"role"`
 }
 

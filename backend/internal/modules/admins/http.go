@@ -46,6 +46,7 @@ func (handler *Handler) Register(mux *http.ServeMux, protect Middleware) {
 func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		Login    string `json:"login"`
+		Name     string `json:"name"`
 		Password string `json:"password"`
 		Email    string `json:"email"`
 		Role     Role   `json:"role"`
@@ -57,6 +58,7 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 
 	admin, err := handler.service.Create(r.Context(), CreateInput{
 		Login:    request.Login,
+		Name:     request.Name,
 		Password: request.Password,
 		Email:    request.Email,
 		Role:     request.Role,

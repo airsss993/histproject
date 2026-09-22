@@ -159,15 +159,16 @@ func TestNewSessionTokenIsOpaqueAndRandom(t *testing.T) {
 type credentialReaderStub struct {
 	adminID        int64
 	login          string
+	name           string
 	passwordHash   string
 	role           string
 	err            error
 	requestedLogin string
 }
 
-func (stub *credentialReaderStub) FindCredentialsByLogin(_ context.Context, login string) (int64, string, string, string, error) {
+func (stub *credentialReaderStub) FindCredentialsByLogin(_ context.Context, login string) (int64, string, string, string, string, error) {
 	stub.requestedLogin = login
-	return stub.adminID, stub.login, stub.passwordHash, stub.role, stub.err
+	return stub.adminID, stub.login, stub.name, stub.passwordHash, stub.role, stub.err
 }
 
 type sessionStoreStub struct {

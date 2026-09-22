@@ -230,6 +230,7 @@ func sessionResponse(identity Identity) map[string]any {
 		"admin": map[string]any{
 			"id":    identity.AdminID,
 			"login": identity.Login,
+			"name":  identity.Name,
 			"role":  identity.Role,
 		},
 	}

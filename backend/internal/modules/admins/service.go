@@ -6,6 +6,7 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -22,6 +23,7 @@ var loginPattern = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 type CreateInput struct {
 	Login    string
+	Name     string
 	Password string
 	Email    string
 	Role     Role
@@ -29,6 +31,7 @@ type CreateInput struct {
 
 type CreateRecord struct {
 	Login        string
+	Name         string
 	PasswordHash string
 	Email        string
 	Role         Role
@@ -59,7 +62,7 @@ func NewService(store Store) *Service {
 }
 
 func (service *Service) Create(ctx context.Context, input CreateInput) (Admin, error) {
-	record, err := prepareCreateRecord(input)
+	record, err := prepareCreateRecord(input, true)
 	if err != nil {
 		return Admin{}, err
 	}
@@ -68,17 +71,19 @@ func (service *Service) Create(ctx context.Context, input CreateInput) (Admin, e
 
 func (service *Service) Bootstrap(ctx context.Context, input CreateInput) (Admin, error) {
 	input.Role = RoleSuperAdmin
-	record, err := prepareCreateRecord(input)
+	record, err := prepareCreateRecord(input, false)
 	if err != nil {
 		return Admin{}, err
 	}
 	return service.store.CreateInitialSuperAdmin(ctx, record)
 }
 
-func prepareCreateRecord(input CreateInput) (CreateRecord, error) {
+// Имя обязательно для новых модераторов; первый супер-админ из bootstrap-admin заводится без него.
+func prepareCreateRecord(input CreateInput, requireName bool) (CreateRecord, error) {
 	input.Login = strings.TrimSpace(input.Login)
+	input.Name = strings.TrimSpace(input.Name)
 	input.Email = strings.TrimSpace(input.Email)
-	if fields := validateCreate(input); len(fields) > 0 {
+	if fields := validateCreate(input, requireName); len(fields) > 0 {
 		return CreateRecord{}, &ValidationError{Fields: fields}
 	}
 
@@ -88,6 +93,7 @@ func prepareCreateRecord(input CreateInput) (CreateRecord, error) {
 	}
 	return CreateRecord{
 		Login:        input.Login,
+		Name:         input.Name,
 		PasswordHash: string(passwordHash),
 		Email:        input.Email,
 		Role:         input.Role,
@@ -115,10 +121,15 @@ func (service *Service) Delete(ctx context.Context, callerID, targetID int64) er
 	return service.store.Delete(ctx, targetID)
 }
 
-func validateCreate(input CreateInput) map[string]string {
+func validateCreate(input CreateInput, requireName bool) map[string]string {
 	fields := make(map[string]string)
 	if len(input.Login) < 3 || len(input.Login) > 100 || !loginPattern.MatchString(input.Login) {
 		fields["login"] = "От 3 до 100 латинских букв, цифр и символов ._-"
+	}
+	if requireName && input.Name == "" {
+		fields["name"] = "Введите имя"
+	} else if utf8.RuneCountInString(input.Name) > 100 {
+		fields["name"] = "Не более 100 символов"
 	}
 	if len(input.Password) < 12 || len(input.Password) > 72 {
 		fields["password"] = "От 12 до 72 байт: латинский символ занимает 1 байт, кириллический 2"
