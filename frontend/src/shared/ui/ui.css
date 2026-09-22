@@ -19,16 +19,16 @@
 .pm-root .pm-btn, .pm-root .pm-card-more { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 18px rgba(0, 0, 20, 0.35); }
 .pm-root .pm-btn { background: var(--gold); color: var(--ink); border: 1px solid var(--gold); }
 .pm-root .pm-btn:hover { background: var(--gold-soft); }
-/* Светлая: заливка с кромкой сверху, свет изнутри от нижнего края, кольцо и ореол вокруг, звёздочки перед текстом. */
+/* Светлая: медь слева, светлый крем в середине, золото справа; свет изнутри снизу, кольцо и двухцветный ореол, звёздочки перед текстом. */
 .pm-root .pm-btn-light {
   --light-bg:
-    radial-gradient(70% 90% at 50% 125%, #FFF3D6, rgba(255, 243, 214, 0) 68%),
-    linear-gradient(180deg, #D3BA87, #B39258);
+    radial-gradient(60% 90% at 50% 125%, rgba(255, 246, 225, 0.9), rgba(255, 246, 225, 0) 70%),
+    linear-gradient(90deg, #E8683C 0%, #F2A06C 24%, #FDEFD2 50%, #F5D57F 76%, #EDBE45 100%);
   --light-ring: rgba(199, 174, 127, 0.28);
   border: 1px solid rgba(255, 248, 230, 0.55); color: var(--line); background: var(--light-bg);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(255, 246, 222, 0.6),
-    0 0 0 4px var(--light-ring), 0 0 28px 4px rgba(199, 174, 127, 0.35);
+    0 0 0 4px var(--light-ring), -14px 0 28px rgba(217, 114, 79, 0.4), 14px 0 28px rgba(226, 182, 83, 0.4);
   transition: filter 160ms ease-out, box-shadow 200ms ease-out;
 }
 .pm-root .pm-btn-light::before {
@@ -39,7 +39,7 @@
   filter: brightness(1.06);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(255, 246, 222, 0.6),
-    0 0 0 4px var(--light-ring), 0 0 40px 8px rgba(199, 174, 127, 0.45);
+    0 0 0 4px var(--light-ring), -18px 0 40px rgba(217, 114, 79, 0.5), 18px 0 40px rgba(226, 182, 83, 0.5);
 }
 .pm-root .pm-btn-ghost { border: 1px solid var(--gold-line); color: var(--gold-soft); background: rgba(12, 16, 35, 0.45); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
 .pm-root .pm-btn-ghost:hover { border-color: var(--gold); background: var(--gold-wash); }
