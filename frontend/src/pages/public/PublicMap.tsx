@@ -60,12 +60,11 @@ const NavIcon: React.FC<{ d: string }> = ({ d }) => (
     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
 )
 
-// Меню шапки карты и профиля. onMap - пункт "Карта" текущий, клик по нему закрывает слои.
+// Меню шапки карты и профиля. На карту ведёт логотип, отдельного пункта нет.
 export const HeaderNav: React.FC<{
-  me: User | null; mobile: boolean; onLogout: () => void; onPropose: () => void; proposeOpen?: boolean; onMap?: () => void
-}> = ({ me, mobile, onLogout, onPropose, proposeOpen, onMap }) => (
+  me: User | null; mobile: boolean; onLogout: () => void; onPropose: () => void; proposeOpen?: boolean
+}> = ({ me, mobile, onLogout, onPropose, proposeOpen }) => (
   <nav className="pm-nav">
-    {!mobile && <Link to="/map" className={`pm-nav-item${onMap ? ' on' : ''}`} aria-current={onMap ? 'page' : undefined} onClick={onMap}>Карта</Link>}
     <Link to="/about" className="pm-nav-item">О проекте</Link>
     {me
       ? <>
@@ -215,7 +214,7 @@ export const PublicMap: React.FC = () => {
         <div role="banner" className="pm-header">
           <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
           <div className="pm-grow" />
-          <HeaderNav me={me} mobile={mobile} onLogout={logout} onPropose={propose} proposeOpen={proposeOpen} onMap={() => setLayer('none')} />
+          <HeaderNav me={me} mobile={mobile} onLogout={logout} onPropose={propose} proposeOpen={proposeOpen} />
         </div>
 
         <Presence>{!mobile && layer !== 'filters' && layer !== 'feed' && (
