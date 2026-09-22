@@ -1,8 +1,6 @@
 import React, { lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Provider } from 'react-redux'
-import { store } from './store.ts'
 
 // Страницы грузятся отдельными чанками: карта (MapLibre) не попадает в первый экран.
 const PublicMap = lazy(() => import('../pages/public/PublicMap.tsx').then(m => ({ default: m.PublicMap })))
@@ -16,9 +14,8 @@ const rootElement = document.getElementById('root');
   if (rootElement) {
     ReactDOM.createRoot(rootElement).render(
       <React.StrictMode>
-        <Provider store={store}>
-          <BrowserRouter>
-            <Suspense fallback={null}>
+        <BrowserRouter>
+          <Suspense fallback={null}>
             <Routes>
               <Route path="/" element={<Navigate to="/map" replace />} />
               <Route path="/app" element={<Navigate to="/map" replace />} />
@@ -31,9 +28,8 @@ const rootElement = document.getElementById('root');
               {['/log', '/adm', '/mad', '/his', '/mod'].map(p => <Route key={p} path={p} element={<Navigate to="/admin" replace />} />)}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </Provider>
+          </Suspense>
+        </BrowserRouter>
       </React.StrictMode>
     );
   }

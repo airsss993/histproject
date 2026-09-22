@@ -50,5 +50,5 @@ SPA /map -> GET /api/v1/events (постранично, pageSize <= 100, фро�
 ## Frontend
 
 Живой слой: `src/pages/public` и `src/pages/panel`, API-клиенты в их `api.ts`,
-UI-примитивы в `src/shared/ui`. Старый учебный слой `src/entities`, `src/features`
-подключён только через `src/app/store.ts` и ходит в несуществующее старое API.
+UI-примитивы в `src/shared/ui`. Глобального состояния нет: каждая страница держит своё
+в `useState`. Старые маршруты `/log`, `/adm`, `/mad`, `/his`, `/mod` редиректят на `/admin`.

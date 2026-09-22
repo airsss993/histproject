@@ -5,7 +5,7 @@
 
 | Каталог | Что это | Стек |
 |---|---|---|
-| `frontend/` | SPA с картой, формой заявки и панелями админа/модератора | Vite, React 19, TypeScript, Redux Toolkit, redux-saga, Leaflet, SCSS |
+| `frontend/` | SPA с картой, формой заявки и панелями админа/модератора | Vite, React 19, TypeScript, React Router, MapLibre GL |
 | `backend/` | API, обработка загружаемых архивов, уведомления | Go 1.26, PostgreSQL, MinIO, Redis, Docker |
 
 ## Запуск
