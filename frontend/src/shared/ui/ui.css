@@ -141,6 +141,35 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238194AE' stroke-width='1.6'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E") no-repeat right center; }
 .pm-root .pm-field select option { background: #0C1023; }
 .pm-root .pm-field:has(select) { cursor: pointer; }
+/* Раскрытый список - стекло как у меню шапки. Браузер без base-select показывает системный список. */
+@supports (appearance: base-select) {
+  .pm-root .pm-field select, .pm-root .pm-field select::picker(select) { appearance: base-select; }
+  .pm-root .pm-field select { display: flex; align-items: center; background: none; }
+  .pm-root .pm-field select::picker-icon {
+    content: ''; width: 12px; height: 8px; margin-left: auto; transition: rotate 200ms ease-out;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238194AE' stroke-width='1.6'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E") no-repeat center;
+  }
+  .pm-root .pm-field select:open::picker-icon { rotate: 180deg; }
+  /* Меню по ширине рамки поля: select стоит внутри неё с отступом 14px и рамкой 1px. */
+  .pm-root .pm-field select::picker(select) {
+    min-width: calc(anchor-size(width) + 30px); margin: 8px 0 8px -15px; padding: 6px; border-radius: 12px;
+    border: 1px solid; border-color: var(--rim); color: #fff;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01) 55%), rgba(12, 16, 35, 0.94);
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%);
+    opacity: 0; translate: 0 -4px;
+    transition: opacity 160ms ease-out, translate 160ms ease-out, overlay 160ms allow-discrete, display 160ms allow-discrete;
+  }
+  .pm-root .pm-field select:open::picker(select) { opacity: 1; translate: 0; }
+  @starting-style { .pm-root .pm-field select:open::picker(select) { opacity: 0; translate: 0 -4px; } }
+  .pm-root .pm-field select option {
+    padding: 10px 12px; border-radius: 8px; background: none; color: var(--text-2); font: 400 15px/22px var(--ui); cursor: pointer;
+    transition: background 120ms ease-out, color 120ms ease-out;
+  }
+  .pm-root .pm-field select option::checkmark { display: none; }
+  .pm-root .pm-field select option:is(:hover, :focus-visible) { background: var(--gold-wash); color: #fff; outline: none; }
+  .pm-root .pm-field select option:checked { color: var(--gold); }
+}
 
 /* Подпись и ошибка поля (Field.tsx) */
 .pm-form-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
