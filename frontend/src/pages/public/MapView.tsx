@@ -1,10 +1,14 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import type { FeatureCollection, Position } from 'geojson'
 import { TYPE_LABEL, yearOf, type EventType, type HistEvent } from './api.ts'
 import { LEAVE_MS, Presence } from './presence.tsx'
+
+// maplibre-gl 6 не находит свой воркер внутри бандла Vite: URL отдаём явно.
+maplibregl.setWorkerUrl(workerUrl)
 
 export const TYPE_COLOR: Record<EventType, string> = { political: '#8194AE', military: '#C7AE7F' }
 const CELL = 56
