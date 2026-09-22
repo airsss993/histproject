@@ -110,11 +110,19 @@
 .pm-logo { display: flex; align-items: center; gap: 14px; }
 .pm-logo-mark { flex: none; height: 48px; }
 .pm-logo-text { font: 500 14px var(--ui); letter-spacing: 0.16em; text-transform: uppercase; }
-.pm-user { display: flex; align-items: center; gap: 4px; }
-.pm-user-name { font: 400 14px var(--ui); color: var(--text-2); white-space: nowrap; }
-.pm-user-link { color: var(--text-2); display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 999px; transition: background 120ms ease-out; }
-.pm-user-link:hover { background: var(--gold-wash); }
-.pm-user-link svg { border-radius: 999px; }
+/* Профиль в меню: чип с аватаром и именем, рядом круглая кнопка выхода. Высота как у кнопок меню - 44px. */
+.pm-root :is(.pm-user, .pm-user-out) {
+  height: 44px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); border: 1px solid; border-color: var(--rim-in);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); color: var(--text-2);
+  transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+}
+.pm-root :is(.pm-user, .pm-user-out):hover { background: var(--gold-wash); border-color: var(--gold-line); color: #fff; }
+.pm-user { display: flex; align-items: center; gap: 10px; padding: 0 16px 0 6px; text-decoration: none; }
+.pm-user svg { flex: none; border-radius: 999px; }
+.pm-user-name { font: 400 14px var(--ui); white-space: nowrap; }
+.pm-root .pm-user-out { display: grid; place-items: center; width: 44px; flex: none; }
+.pm-root .pm-user-out:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, transparent); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.pm-root .pm-login { padding: 11px 18px 11px 14px; }
 
 .pm-badge {
   min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px;
@@ -372,8 +380,12 @@
 
 @media (max-width: 640px) {
   .pm-header { height: auto; padding: 14px 16px 0; }
-  .pm-root .pm-nav { padding: 2px; }
-  .pm-root .pm-nav > .pm-btn-text { padding: 8px 12px; }
+  .pm-root .pm-nav { gap: 2px; padding: 2px 2px 2px 4px; }
+  .pm-root .pm-nav-item { padding: 8px 10px; }
+  .pm-root :is(.pm-user, .pm-user-out) { height: 36px; }
+  .pm-root .pm-user { padding: 0 2px; }
+  .pm-root .pm-user-out { width: 36px; }
+  .pm-root .pm-login { padding: 8px 14px 8px 10px; }
   .pm-logo { gap: 12px; }
   .pm-logo-mark { height: 40px; }
   .pm-logo-text { font-size: 12px; letter-spacing: 0.14em; }

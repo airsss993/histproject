@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Logo, ROMAN, useIsMobile } from './PublicMap.tsx'
+import { HeaderNav, Logo, ROMAN, useIsMobile } from './PublicMap.tsx'
 import { PinShape } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
@@ -185,17 +185,7 @@ export const ProfilePage: React.FC = () => {
       <div role="banner" className="pf-header">
         <Logo short={mobile} onClick={() => navigate('/map')} />
         <div className="pm-grow" />
-        {!mobile && <Link to="/about" className="pm-btn-text">О проекте</Link>}
-        {me
-          ? <span className="pm-user">
-              <Link to={`/u/${me.publicId}`} className="pm-user-link" title="Мой профиль">
-                <Avatar seed={me.publicId} size={32} />
-                {!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
-              </Link>
-              <button type="button" className="pm-btn-text" onClick={() => { void logoutUser().then(() => navigate('/map')) }}>Выйти</button>
-            </span>
-          : <Link to="/login" className="pm-btn-text">Войти</Link>}
-        {!mobile && <Link to="/map?propose=1" className="pm-btn-ghost pm-pill">Предложить событие</Link>}
+        <HeaderNav me={me} mobile={mobile} onLogout={() => { void logoutUser().then(() => navigate('/map')) }} onPropose={() => navigate('/map?propose=1')} />
       </div>
 
       <main className="pf-main">

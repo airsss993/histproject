@@ -52,6 +52,34 @@ export const Logo: React.FC<{ short?: boolean; onClick?: () => void }> = ({ shor
   </button>
 )
 
+// Дверь и стрелка: внутрь - войти, наружу - выйти.
+const LOGIN = 'M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4 M4 12h11 M11 8l4 4-4 4'
+const LOGOUT = 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M9 12h11 M16 8l4 4-4 4'
+const NavIcon: React.FC<{ d: string }> = ({ d }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
+)
+
+// Меню шапки карты и профиля. onMap - пункт "Карта" текущий, клик по нему закрывает слои.
+export const HeaderNav: React.FC<{
+  me: User | null; mobile: boolean; onLogout: () => void; onPropose: () => void; proposeOpen?: boolean; onMap?: () => void
+}> = ({ me, mobile, onLogout, onPropose, proposeOpen, onMap }) => (
+  <nav className="pm-nav">
+    {!mobile && <Link to="/map" className={`pm-nav-item${onMap ? ' on' : ''}`} aria-current={onMap ? 'page' : undefined} onClick={onMap}>Карта</Link>}
+    <Link to="/about" className="pm-nav-item">О проекте</Link>
+    {me
+      ? <>
+          <Link to={`/u/${me.publicId}`} className="pm-user" title="Мой профиль">
+            <Avatar seed={me.publicId} size={30} />
+            {!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
+          </Link>
+          <button type="button" className="pm-user-out" onClick={onLogout} title="Выйти" aria-label="Выйти"><NavIcon d={LOGOUT} /></button>
+        </>
+      : <Link to="/login" className="pm-btn-ghost pm-pill pm-login"><NavIcon d={LOGIN} />Войти</Link>}
+    {!mobile && <button type="button" className={`pm-btn-light pm-pill${proposeOpen ? ' on' : ''}`} onClick={onPropose}>Предложить событие</button>}
+  </nav>
+)
+
 export const PublicMap: React.FC = () => {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
@@ -187,18 +215,7 @@ export const PublicMap: React.FC = () => {
         <div role="banner" className="pm-header">
           <Logo short={mobile} onClick={() => { setLayer('none'); navigate('/map') }} />
           <div className="pm-grow" />
-          <nav className="pm-nav">
-          <Link to="/about" className="pm-btn-text">О проекте</Link>
-          {me
-            ? <span className="pm-user">
-                <Link to={`/u/${me.publicId}`} className="pm-user-link" title="Мой профиль">
-                  <Avatar seed={me.publicId} size={32} />
-                  {!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
-                </Link>
-                <button type="button" className="pm-btn-text" onClick={logout}>Выйти</button></span>
-            : <Link to="/login" className="pm-btn-text">Войти</Link>}
-          {!mobile && <button type="button" className={`pm-btn-light pm-pill${proposeOpen ? ' on' : ''}`} onClick={propose}>Предложить событие</button>}
-          </nav>
+          <HeaderNav me={me} mobile={mobile} onLogout={logout} onPropose={propose} proposeOpen={proposeOpen} onMap={() => setLayer('none')} />
         </div>
 
         <Presence>{!mobile && layer !== 'filters' && layer !== 'feed' && (
