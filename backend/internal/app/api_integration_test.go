@@ -60,7 +60,7 @@ func TestAPIHTTPFlow(t *testing.T) {
 	if _, err := adminService.Bootstrap(ctx, admins.CreateInput{Login: "root", Password: "correct-password"}); err != nil {
 		t.Fatalf("bootstrap admin: %v", err)
 	}
-	if _, err := adminService.Create(ctx, admins.CreateInput{Login: "editor", Password: "editor-password", Role: admins.RoleAdmin}); err != nil {
+	if _, err := adminService.Create(ctx, admins.CreateInput{Login: "editor", Name: "Редактор", Password: "editor-password", Role: admins.RoleAdmin}); err != nil {
 		t.Fatalf("create editor: %v", err)
 	}
 	if _, err := databaseClient.Pool().Exec(ctx, `
@@ -231,7 +231,7 @@ func TestAPISubmissionFlow(t *testing.T) {
 	if _, err := adminService.Bootstrap(ctx, admins.CreateInput{Login: "root", Password: "correct-password"}); err != nil {
 		t.Fatalf("bootstrap admin: %v", err)
 	}
-	if _, err := adminService.Create(ctx, admins.CreateInput{Login: "editor", Password: "editor-password", Role: admins.RoleAdmin}); err != nil {
+	if _, err := adminService.Create(ctx, admins.CreateInput{Login: "editor", Name: "Редактор", Password: "editor-password", Role: admins.RoleAdmin}); err != nil {
 		t.Fatalf("create editor: %v", err)
 	}
 

@@ -30,6 +30,11 @@ func TestCreateValidatesInput(t *testing.T) {
 			field: "email",
 		},
 		{
+			name:  "name",
+			input: CreateInput{Login: "new-admin", Name: "  ", Password: "long-enough-password", Role: RoleAdmin},
+			field: "name",
+		},
+		{
 			name:  "role",
 			input: CreateInput{Login: "new-admin", Password: "long-enough-password", Email: "admin@example.test", Role: Role("root")},
 			field: "role",
@@ -64,6 +69,7 @@ func TestCreateHashesPasswordAndReturnsAdmin(t *testing.T) {
 
 	admin, err := service.Create(t.Context(), CreateInput{
 		Login:    " new-admin ",
+		Name:     " Иван Петров ",
 		Password: "long-enough-password",
 		Email:    " admin@example.test ",
 		Role:     RoleAdmin,
@@ -74,7 +80,7 @@ func TestCreateHashesPasswordAndReturnsAdmin(t *testing.T) {
 	if admin != store.createdAdmin {
 		t.Fatalf("Create() = %#v", admin)
 	}
-	if store.createInput.Login != "new-admin" || store.createInput.Email != "admin@example.test" {
+	if store.createInput.Login != "new-admin" || store.createInput.Name != "Иван Петров" || store.createInput.Email != "admin@example.test" {
 		t.Fatalf("normalized input = %#v", store.createInput)
 	}
 	if store.createInput.PasswordHash == "long-enough-password" {
