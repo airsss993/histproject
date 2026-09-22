@@ -82,37 +82,83 @@ const Login: React.FC<{ onDone: (me: Me) => void }> = ({ onDone }) => {
 
 type Tab = 'submissions' | 'history' | 'moderators' | 'bot'
 
+// Иконки меню: контур 24x24, stroke задаёт .pm-menu-item svg.
+const ICON: Record<Tab | 'map' | 'logout', string> = {
+  submissions: 'M4 13h4l1.5 3h5L16 13h4 M5.5 5h13L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-5z',
+  history: 'M12 7v5l3 2 M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4',
+  moderators: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20a6.5 6.5 0 0 1 13 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18.5 14.5A6.5 6.5 0 0 1 21.5 20',
+  bot: 'M21 4 3 11l6.5 2.5L18 7l-6.5 7.5L17 20z',
+  map: 'M15 6l-6 6 6 6',
+  logout: 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M20 12H9 M16 8l4 4-4 4',
+}
+const Icon: React.FC<{ name: keyof typeof ICON }> = ({ name }) => (
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d={ICON[name]} /></svg>
+)
+
 const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => {
   const navigate = useNavigate()
   const mobile = useIsMobile()
   const [params, setParams] = useSearchParams()
   const superAdmin = me.role === 'super_admin'
-  const tabs: [Tab, string][] = superAdmin
-    ? [['submissions', 'Заявки'], ['history', 'История'], ['moderators', 'Модераторы'], ['bot', 'Бот']]
-    : [['submissions', 'Заявки']]
+  const groups: [string, [Tab, string][]][] = superAdmin
+    ? [['Модерация', [['submissions', 'Заявки'], ['history', 'История']]], ['Управление', [['moderators', 'Модераторы'], ['bot', 'Бот']]]]
+    : [['Модерация', [['submissions', 'Заявки']]]]
+  const tabs = groups.flatMap(([, items]) => items)
   const tab = tabs.find(([t]) => t === params.get('tab'))?.[0] ?? 'submissions'
+  const open = (t: Tab) => setParams(t === 'submissions' ? {} : { tab: t })
 
-  return (
-    <div className={`pm-root mod-page${mobile ? ' mobile' : ''}`}>
+  const main = (
+    <main className="mod-main">
+      {tab === 'submissions' && <Submissions mobile={mobile} />}
+      {tab === 'history' && <History />}
+      {tab === 'moderators' && <Moderators me={me} />}
+      {tab === 'bot' && <Bot />}
+    </main>
+  )
+
+  if (mobile) return (
+    <div className="pm-root mod-page mobile">
       <header className="mod-top">
-        <Logo short={mobile} onClick={() => navigate('/map')} />
+        <Logo short onClick={() => navigate('/map')} />
         {tabs.length > 1 && (
           <nav className="mod-tabs">
             {tabs.map(([t, label]) => (
-              <button key={t} type="button" className={t === tab ? 'on' : ''} onClick={() => setParams(t === 'submissions' ? {} : { tab: t })}>{label}</button>
+              <button key={t} type="button" className={t === tab ? 'on' : ''} onClick={() => open(t)}>{label}</button>
             ))}
           </nav>
         )}
         <div className="pm-grow" />
-        <span className="mod-me">{me.login}<small>{api.ROLE_LABEL[me.role]}</small></span>
         <button type="button" className="pm-btn-text" onClick={onLogout}>Выйти</button>
       </header>
-      <main className="mod-main">
-        {tab === 'submissions' && <Submissions mobile={mobile} />}
-        {tab === 'history' && <History />}
-        {tab === 'moderators' && <Moderators me={me} />}
-        {tab === 'bot' && <Bot />}
-      </main>
+      {main}
+    </div>
+  )
+
+  return (
+    <div className="pm-root mod-page mod-shell">
+      <aside className="mod-side">
+        <div className="mod-side-brand">
+          <Logo short onClick={() => navigate('/map')} />
+          <button type="button" className="mod-side-back" title="На карту" aria-label="На карту" onClick={() => navigate('/map')}><Icon name="map" /></button>
+        </div>
+        <div className="mod-side-hello">
+          <h2>Здравствуйте,<br />{me.login}</h2>
+          <span className="mod-dim">{api.ROLE_LABEL[me.role]}</span>
+        </div>
+        <nav className="mod-side-nav">
+          {groups.map(([title, items]) => (
+            <React.Fragment key={title}>
+              <span className="pm-menu-label">{title}</span>
+              {items.map(([t, label]) => (
+                <button key={t} type="button" className={`pm-menu-item${t === tab ? ' on' : ''}`} aria-current={t === tab ? 'page' : undefined}
+                  title={label} onClick={() => open(t)}><Icon name={t} /><span>{label}</span></button>
+              ))}
+            </React.Fragment>
+          ))}
+        </nav>
+        <button type="button" className="pm-menu-item mod-side-out" title="Выйти" onClick={onLogout}><Icon name="logout" /><span>Выйти</span></button>
+      </aside>
+      <div className="mod-scroll">{main}</div>
     </div>
   )
 }
