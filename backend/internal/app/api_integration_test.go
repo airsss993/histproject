@@ -19,6 +19,7 @@ import (
 	"github.com/airsss993/histproject/backend/internal/modules/admins"
 	"github.com/airsss993/histproject/backend/internal/modules/events"
 	"github.com/airsss993/histproject/backend/internal/modules/submissions"
+	"github.com/airsss993/histproject/backend/internal/modules/users"
 	"github.com/airsss993/histproject/backend/internal/platform/config"
 	"github.com/airsss993/histproject/backend/internal/platform/database"
 	platformqueue "github.com/airsss993/histproject/backend/internal/platform/queue"
@@ -81,7 +82,12 @@ func TestAPIHTTPFlow(t *testing.T) {
 	cfg := config.Config{SessionTTL: time.Hour, CORSOrigins: []string{"http://localhost:3000"}}
 	logger := testLogger()
 	handler := NewAPI(cfg, logger, NewModules(cfg, logger, databaseClient, redisClient, nil), databaseClient, redisClient)
-	invalidSubmission := performJSONRequest(t, handler, http.MethodPost, "/api/v1/submissions", `{}`, nil)
+	anonymousSubmission := performJSONRequest(t, handler, http.MethodPost, "/api/v1/submissions", `{}`, nil)
+	if anonymousSubmission.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous submission status = %d, want 401, body = %s", anonymousSubmission.Code, anonymousSubmission.Body.String())
+	}
+	visitorCookie := visitorLogin(t, ctx, databaseClient, redisClient, "visitor@example.test")
+	invalidSubmission := performJSONRequest(t, handler, http.MethodPost, "/api/v1/submissions", `{}`, visitorCookie)
 	if invalidSubmission.Code != http.StatusBadRequest {
 		t.Fatalf("invalid submission status = %d, want 400, body = %s", invalidSubmission.Code, invalidSubmission.Body.String())
 	}
@@ -241,7 +247,7 @@ func TestAPISubmissionFlow(t *testing.T) {
 	editorCookie := appLogin(t, handler, "editor", "editor-password")
 	rootCookie := appLogin(t, handler, "root", "correct-password")
 
-	rejectedID := createSubmissionRequest(t, handler, "Rejected event", "rejected-author@example.test", "rejected_author")
+	rejectedID := createSubmissionRequest(t, handler, visitorLogin(t, ctx, databaseClient, redisClient, "rejected-author@example.test"), "Rejected event", "rejected_author")
 	rejectedArchiveID := submissionArchiveID(t, ctx, databaseClient, rejectedID)
 	assertRawArchiveKey(t, rejectedArchiveID)
 	assertArchiveExists(t, ctx, storageClient, rejectedArchiveID)
@@ -266,7 +272,7 @@ func TestAPISubmissionFlow(t *testing.T) {
 	assertSubmissionState(t, ctx, databaseClient, rejectedID, statusExpectation{Status: "rejected", AuditCount: 2})
 	assertArchiveExists(t, ctx, storageClient, rejectedArchiveID)
 
-	publishedID := createSubmissionRequest(t, handler, "Published event", "published-author@example.test", "published_author")
+	publishedID := createSubmissionRequest(t, handler, visitorLogin(t, ctx, databaseClient, redisClient, "published-author@example.test"), "Published event", "published_author")
 	publishedArchiveID := submissionArchiveID(t, ctx, databaseClient, publishedID)
 	assertRawArchiveKey(t, publishedArchiveID)
 	assertArchiveExists(t, ctx, storageClient, publishedArchiveID)
@@ -333,13 +339,28 @@ func appLogin(t *testing.T, handler http.Handler, login, password string) *http.
 	return cookies[0]
 }
 
-func createSubmissionRequest(t *testing.T, handler http.Handler, title, email, telegram string) int64 {
+// visitorLogin заводит посетителя и кладёт его сессию в Redis в обход кода на почту.
+func visitorLogin(t *testing.T, ctx context.Context, databaseClient *database.Database, redisClient *redisstore.Store, email string) *http.Cookie {
+	t.Helper()
+	user, err := users.NewRepository(databaseClient.Pool()).Create(ctx, users.User{Email: email, FirstName: "Автор", LastName: "Тестовый"})
+	if err != nil {
+		t.Fatalf("create visitor %q: %v", email, err)
+	}
+	token := "visitor-session-" + email
+	if err := users.NewStore(redisClient.Client()).CreateSession(ctx, token, user.ID, time.Hour); err != nil {
+		t.Fatalf("create visitor session: %v", err)
+	}
+	return &http.Cookie{Name: users.SessionCookieName, Value: token}
+}
+
+// createSubmissionRequest шлёт заявку от посетителя cookie: email автора берётся из его аккаунта.
+func createSubmissionRequest(t *testing.T, handler http.Handler, cookie *http.Cookie, title, telegram string) int64 {
 	t.Helper()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	fields := map[string]string{
 		"title": title, "description": "Description", "eventDate": "2020-01-02",
-		"eventType": "military", "email": email, "telegramUsername": telegram,
+		"eventType": "military", "telegramUsername": telegram, "latitude": "55.5", "longitude": "60.5",
 	}
 	for key, value := range fields {
 		if err := writer.WriteField(key, value); err != nil {
@@ -358,6 +379,7 @@ func createSubmissionRequest(t *testing.T, handler http.Handler, title, email, t
 	}
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/submissions", body)
 	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.AddCookie(cookie)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusCreated {
