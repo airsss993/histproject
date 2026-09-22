@@ -72,20 +72,13 @@ func NewNotificationService(cfg config.Config, databaseClient *database.Database
 		}
 		emailSender = sender
 	}
-	var telegramSender notifications.TelegramSender
-	if cfg.TelegramBotToken != "" {
-		sender, err := notifications.NewTelegramSender(cfg.TelegramBotToken, cfg.TelegramAdminChatID, cfg.NotificationTimeout)
-		if err != nil {
-			return nil, err
-		}
-		telegramSender = sender
-	}
+	repository := notifications.NewRepository(databaseClient.Pool())
 	return notifications.NewService(
-		notifications.NewRepository(databaseClient.Pool()),
+		repository,
 		notificationSubmissionSource{service: submissionService},
 		notificationAdminSource{service: adminService},
 		emailSender,
-		telegramSender,
+		notifications.NewBot(repository, cfg.NotificationTimeout),
 		cfg.AdminPanelURL,
 	), nil
 }
