@@ -27,8 +27,9 @@
 Заявка на событие:
 
 ```
-SPA форма "Предложить"
--> POST /api/v1/submissions (multipart, ZIP)
+SPA форма "Предложить" (только вошедшему посетителю, гостя SPA ведёт на /login и возвращает в форму)
+-> POST /api/v1/submissions (multipart, ZIP; без куки histproject_user - 401 до чтения тела)
+-> email автора берётся из аккаунта, поле формы игнорируется: по нему профиль /u/:id находит заявки
 -> submissions: запись в PostgreSQL (status processing), ZIP в bucket archives
 -> Asynq -> worker -> sites: распаковка, файлы в bucket sites, скриншот через Chrome
 -> статус new (или отказ при невалидном архиве)
