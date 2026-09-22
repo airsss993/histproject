@@ -142,7 +142,7 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
           <button type="button" className="mod-side-back" title="На карту" aria-label="На карту" onClick={() => navigate('/map')}><Icon name="map" /></button>
         </div>
         <div className="mod-side-hello">
-          <h2>Здравствуйте,<br />{me.login}</h2>
+          <h2>Здравствуйте,<br />{me.name || me.login}</h2>
           <span className="mod-dim">{api.ROLE_LABEL[me.role]}</span>
         </div>
         <nav className="mod-side-nav">
@@ -426,7 +426,7 @@ const History: React.FC = () => {
   )
 }
 
-const EMPTY = { login: '', password: '', email: '', role: 'admin' as Role }
+const EMPTY = { login: '', name: '', password: '', email: '', role: 'admin' as Role }
 
 const Moderators: React.FC<{ me: Me }> = ({ me }) => {
   const expired = React.useContext(ExpiredContext)
@@ -451,7 +451,7 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
   const create = (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
-    act(() => api.createModerator({ ...form, login: form.login.trim(), email: form.email.trim() }), () => setForm(EMPTY))
+    act(() => api.createModerator({ ...form, login: form.login.trim(), name: form.name.trim(), email: form.email.trim() }), () => setForm(EMPTY))
   }
   const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm(f => ({ ...f, [k]: e.target.value }))
@@ -469,8 +469,8 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
             {data.items.map(m => (
               <li key={m.id} className="mod-row mod-mod">
                 <span className="mod-grow-col">
-                  <b>{m.login}{m.id === me.id && ' (вы)'}</b>
-                  <span className="mod-dim">{m.email || 'почта не указана'} · с {formatDate(m.createdAt)}</span>
+                  <b>{m.name || m.login}{m.id === me.id && ' (вы)'}</b>
+                  <span className="mod-dim">{m.name && `${m.login} · `}{m.email || 'почта не указана'} · с {formatDate(m.createdAt)}</span>
                 </span>
                 <Field className="mod-select"><select value={m.role} disabled={busy || m.id === me.id} aria-label={`Роль ${m.login}`}
                   onChange={e => act(() => api.changeRole(m.id, e.target.value as Role))}>
@@ -490,11 +490,14 @@ const Moderators: React.FC<{ me: Me }> = ({ me }) => {
       <form className="mod-card mod-form" onSubmit={create} noValidate>
         <h3>Добавить модератора</h3>
         <div className="mod-pair">
+          <Field label="Имя" error={errors.name}><input value={form.name} onChange={set('name')} autoComplete="off" maxLength={100} placeholder="Иван Иванов" /></Field>
           <Field label="Логин" error={errors.login}><input value={form.login} onChange={set('login')} autoComplete="off" maxLength={100} placeholder="ivanov" /></Field>
-          <Field label="Пароль" error={errors.password}><input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="не короче 12 символов" /></Field>
         </div>
         <div className="mod-pair">
+          <Field label="Пароль" error={errors.password}><input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="не короче 12 символов" /></Field>
           <Field label="Почта для уведомлений" error={errors.email}><input type="email" value={form.email} onChange={set('email')} maxLength={254} placeholder="можно пусто" /></Field>
+        </div>
+        <div className="mod-pair">
           <Field label="Роль" error={errors.role}>
             <select value={form.role} onChange={set('role')}>
               <option value="admin">Модератор</option>

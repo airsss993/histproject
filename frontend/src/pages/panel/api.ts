@@ -5,7 +5,8 @@ const API = `${import.meta.env.VITE_API_BASE ?? ''}/api/v1`
 export type Role = 'admin' | 'super_admin'
 export type Status = 'processing' | 'new' | 'review' | 'rejected' | 'published'
 
-export interface Me { id: number; login: string; role: Role }
+// name пустое у модераторов, заведённых до появления имени: показывать login.
+export interface Me { id: number; login: string; name?: string; role: Role }
 
 export interface Submission {
   id: number
@@ -38,7 +39,7 @@ export interface AuditEntry {
   createdAt: string
 }
 
-export interface Moderator { id: number; login: string; email: string; role: Role; createdAt: string }
+export interface Moderator { id: number; login: string; name: string; email: string; role: Role; createdAt: string }
 
 export interface Page<T> { items: T[]; page: number; pageSize: number; total: number }
 
@@ -82,7 +83,7 @@ export const publishSubmission = (id: number, latitude: number, longitude: numbe
 export const listAudit = (p: { q?: string; page: number }) => call<Page<AuditEntry>>('GET', `/admin/audit-log?${query({ ...p, pageSize: 30 })}`)
 
 export const listModerators = () => call<{ items: Moderator[] }>('GET', '/admin/admins')
-export const createModerator = (body: { login: string; password: string; email: string; role: Role }) =>
+export const createModerator = (body: { login: string; name: string; password: string; email: string; role: Role }) =>
   call<{ admin: Moderator }>('POST', '/admin/admins', body)
 export const changeRole = (id: number, role: Role) => call<{ admin: Moderator }>('PATCH', `/admin/admins/${id}/role`, { role })
 export const deleteModerator = (id: number) => call('DELETE', `/admin/admins/${id}`)
