@@ -4,6 +4,7 @@ import { HeaderNav, Logo, ROMAN, useIsMobile } from './PublicMap.tsx'
 import { PinShape } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
+import { Loading, useSettle } from '../../shared/ui/Loader.tsx'
 import {
   fetchMe, fetchProfile, formatDate, logoutUser, TYPE_LABEL,
   type Profile, type User, type Work, type WorkStatus,
@@ -88,8 +89,8 @@ const Timeline: React.FC<{ works: Work[] }> = ({ works }) => (
 )
 
 // Опубликованная работа - плитка-витрина: главное в ней превью сайта, а не строка с датой.
-const Tile: React.FC<{ work: Work }> = ({ work }) => (
-  <a className="pf-tile pm-glass" href={work.siteUrl} target="_blank" rel="noreferrer">
+const Tile: React.FC<{ work: Work; i: number }> = ({ work, i }) => (
+  <a className="pf-tile pm-glass" href={work.siteUrl} target="_blank" rel="noreferrer" style={{ '--i': i } as React.CSSProperties}>
     <span className="pf-tile-frame">
       {work.screenshotUrl
         ? <img className="pf-tile-shot" src={work.screenshotUrl} alt="" loading="lazy" />
@@ -104,10 +105,10 @@ const Tile: React.FC<{ work: Work }> = ({ work }) => (
 )
 
 // Незавершённая заявка - строка с путём, как в референсе отслеживания заказа. Видит только автор.
-const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
+const WorkCard: React.FC<{ work: Work; i: number }> = ({ work, i }) => {
   const status = STATUS[work.status]
   return (
-    <article className="pf-card pm-glass">
+    <article className="pf-card pm-glass" style={{ '--i': i } as React.CSSProperties}>
       {work.screenshotUrl
         ? <img className="pf-shot" src={work.screenshotUrl} alt="" loading="lazy" />
         : <span className="pf-shot pm-hatch" />}
@@ -168,9 +169,11 @@ export const ProfilePage: React.FC = () => {
     return () => ac.abort()
   }, [id, retry])
 
+  const phase = useSettle(state.k === 'load', state.k === 'ready')
+
   if (state.k === 'none') return <NotFound path={`/u/${id}`} kind="profile" />
 
-  const profile = state.k === 'ready' ? state.profile : null
+  const profile = state.k === 'ready' && phase === 'idle' ? state.profile : null
   const works = profile?.works ?? []
   const owner = !!profile?.owner
   const published = works.filter(w => w.status === 'published')
@@ -189,8 +192,8 @@ export const ProfilePage: React.FC = () => {
       </div>
 
       <main className="pf-main">
-        {state.k === 'load' && <div className="pf-note pm-glass">Загружаем профиль</div>}
-        {state.k === 'error' && (
+        {phase !== 'idle' && <Loading phase={phase} label="Загружаем профиль" done="Профиль загружен" className="pf-note pm-glass" />}
+        {state.k === 'error' && phase === 'idle' && (
           <div className="pf-note pm-glass">
             Нет связи с сервером
             <button type="button" className="pm-btn-ghost pm-pill" onClick={() => setRetry(n => n + 1)}>Повторить</button>
@@ -244,14 +247,14 @@ export const ProfilePage: React.FC = () => {
             {shownPending.length > 0 && (
               <>
                 <Title count={shownPending.length}>Заявки</Title>
-                <div className="pf-list">{shownPending.map(w => <WorkCard key={w.publicId} work={w} />)}</div>
+                <div className="pf-list">{shownPending.map((w, i) => <WorkCard key={w.publicId} work={w} i={i} />)}</div>
               </>
             )}
 
             {shownPublished.length > 0 && (
               <>
                 <Title count={shownPublished.length}>{owner ? 'Опубликовано' : 'Сайты на карте'}</Title>
-                <div className="pf-gallery">{shownPublished.map(w => <Tile key={w.publicId} work={w} />)}</div>
+                <div className="pf-gallery">{shownPublished.map((w, i) => <Tile key={w.publicId} work={w} i={i} />)}</div>
               </>
             )}
 

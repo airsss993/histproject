@@ -48,7 +48,7 @@
 .mod-main { flex: 1; width: 100%; max-width: 1320px; margin: 0 auto; padding: 28px; animation: mod-main-in 320ms ease-out; }
 /* Смена вкладки: новый экран проявляется и чуть поднимается */
 @keyframes mod-main-in { from { opacity: 0; translate: 0 8px; } }
-@media (prefers-reduced-motion: reduce) { .mod-main { animation: none; } .pm-menu-pill { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .mod-main, .mod-reveal, .mod-narrow > * { animation: none; } .pm-menu-pill { transition: none; } }
 .mod-narrow { max-width: 820px; display: flex; flex-direction: column; gap: 14px; }
 
 .mod-card {
@@ -63,6 +63,8 @@
 .mod-note { margin: 0; color: #8FC79B; font: 400 13px/18px var(--ui); }
 .mod-empty { padding: 40px 0; text-align: center; }
 .mod-stale { opacity: 0.55; transition: opacity 160ms; }
+/* Содержимое после индикатора загрузки и всё, что появляется в узкой колонке настроек, выплывает, а не возникает. */
+.mod-reveal, .mod-narrow > * { animation: mod-main-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
 
 /* Вход */
 .mod-login { align-items: stretch; }

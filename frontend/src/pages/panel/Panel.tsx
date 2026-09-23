@@ -4,6 +4,7 @@ import { Logo, useIsMobile } from '../public/PublicMap.tsx'
 import { MapView, type MapHandle } from '../public/MapView.tsx'
 import { TYPES, TYPE_LABEL, formatDate, type ApiResult, type EventType } from '../public/api.ts'
 import { Field } from '../../shared/ui/Field.tsx'
+import { Loading, useSettle } from '../../shared/ui/Loader.tsx'
 import { fetchMe, logoutUser } from '../public/api.ts'
 import * as api from './api.ts'
 import type { AuditEntry, Me, Moderator, Page, Role, Status, Submission, TelegramChat } from './api.ts'
@@ -275,10 +276,13 @@ const Submissions: React.FC<{ mobile: boolean }> = ({ mobile }) => {
 function Rows<T extends { items: unknown[] }>({ state, empty, children }: {
   state: { data?: T; error?: string; loading: boolean; reload: () => void }; empty: string; children: (data: T) => React.ReactNode
 }) {
+  // Индикатор только на первую загрузку: при смене страницы или фильтра старый список просто тускнеет.
+  const phase = useSettle(!state.data && !state.error, !!state.data?.items.length)
+  if (phase !== 'idle') return <Loading phase={phase} label="Загружаем" done="Загружено" className="mod-dim" />
   if (state.error) return <p className="mod-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
-  if (!state.data) return <p className="mod-dim">Загружаем...</p>
+  if (!state.data) return null
   if (!state.data.items.length) return <p className="mod-dim mod-empty">{empty}</p>
-  return <div className={state.loading ? 'mod-stale' : ''}>{children(state.data)}</div>
+  return <div className={`mod-reveal${state.loading ? ' mod-stale' : ''}`}>{children(state.data)}</div>
 }
 
 const Pager: React.FC<{ page: number; pageSize: number; total: number; onPage: (p: number) => void }> = ({ page, pageSize, total, onPage }) => {
@@ -610,7 +614,8 @@ const ModeratorEdit: React.FC<{ moderator: Moderator; onCancel: () => void; onSa
 // Ключи Postbox задаются на сервере. Здесь статус, отправитель писем и проверочное письмо.
 const Mail: React.FC = () => {
   const state = useLoad(() => api.getMail(), [])
-  const mail = state.data?.mail
+  const phase = useSettle(!state.data && !state.error, !!state.data)
+  const mail = phase === 'idle' ? state.data?.mail : undefined
   const [email, setEmail] = useState('')
   const s = useSubmit()
   const send = (e: React.FormEvent) => {
@@ -623,9 +628,9 @@ const Mail: React.FC = () => {
       <h1 className="mod-title">Почта</h1>
       <p className="mod-dim">Сайт отправляет письма: коды входа и решения по заявкам авторам, уведомления о новых заявках модераторам.</p>
       {!mail
-        ? state.error
+        ? phase === 'idle'
           ? <p className="mod-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
-          : <p className="mod-dim">Загружаем...</p>
+          : <Loading phase={phase} label="Загружаем настройки почты" done="Загружено" className="mod-dim" />
         : <>
           <div className="mod-card mod-status">
             <span className={`mod-dot${mail.configured ? ' on' : ''}`} aria-hidden="true" />
@@ -678,8 +683,11 @@ const NO_CANDIDATES = () => Promise.resolve<ApiResult<{ items: TelegramChat[] }>
 const Bot: React.FC = () => {
   const expired = React.useContext(ExpiredContext)
   const state = useLoad(() => api.getBot(), [])
-  const bot = state.data?.bot
-  const candidates = useLoad(bot?.configured ? api.listBotCandidates : NO_CANDIDATES, [bot?.configured])
+  const phase = useSettle(!state.data && !state.error, !!state.data)
+  const bot = phase === 'idle' ? state.data?.bot : undefined
+  // Кандидатов просим сразу по ответу, не дожидаясь, пока доиграет индикатор.
+  const configured = state.data?.bot.configured
+  const candidates = useLoad(configured ? api.listBotCandidates : NO_CANDIDATES, [configured])
   const [token, setToken] = useState('')
   const [tokenError, setTokenError] = useState('')
   // Итог действия показывается у блока, где его сделали: у токена или у списка получателей.
@@ -714,9 +722,9 @@ const Bot: React.FC = () => {
     return (
       <section className="mod-narrow">
         <h1 className="mod-title">Бот</h1>
-        {state.error
+        {phase === 'idle'
           ? <p className="mod-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
-          : <p className="mod-dim">Загружаем...</p>}
+          : <Loading phase={phase} label="Загружаем настройки бота" done="Загружено" className="mod-dim" />}
       </section>
     )
   }

@@ -66,7 +66,7 @@
 .pm-root .pm-sheet.out { animation: none; transform: translateY(100%); }
 
 /* Карта */
-.pm-map { position: absolute; inset: 0; transition: opacity 180ms ease-out; }
+.pm-map { position: absolute; inset: 0; transition: opacity 600ms ease-out; }
 .pm-map-canvas { position: absolute; inset: 0; }
 .pm-map-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
 .pm-map .maplibregl-ctrl-attrib { background: rgba(1, 0, 20, 0.7); color: var(--muted); font: 400 11px var(--ui); }
@@ -344,7 +344,12 @@
   width: 40px; height: 40px; border-radius: 999px; border: 2px solid var(--ring); border-top-color: var(--tone);
   display: flex; align-items: center; justify-content: center; color: var(--tone); font: 400 18px var(--ui);
 }
-.pm-state-loading .pm-state-icon { animation: pm-spin 0.9s linear infinite; }
+/* Загрузка и её итог: кольцо из Loader.tsx вместо значка, заголовок и текст сменяются наплывом. */
+.pm-state-done { --tone: #8FC7A0; }
+.pm-state-title, .pm-state-text { animation: pm-fade 320ms ease-out; }
+.pm-state-title { transition: color 400ms ease-out; }
+/* Кнопки у итога нет, но место под ней держим: карточка не прыгает по высоте. */
+.pm-state-done button { visibility: hidden; }
 @keyframes pm-spin { to { transform: rotate(360deg); } }
 .pm-state-title { font: 500 28px/36px var(--display); color: var(--tone); }
 .pm-state-text { font: 400 15px/24px var(--ui); color: var(--text-2); }
@@ -410,8 +415,8 @@
   .pm-404-code { font-size: 64px; line-height: 72px; }
 }
 
-/* Спиннер и скелетон - индикаторы, а не украшение: их оставляем. */
+/* Дуга загрузки и скелетон - индикаторы, а не украшение: их оставляем. */
 @media (prefers-reduced-motion: reduce) {
-  .pm-root, .pm-root *:not(.pm-state-icon, .pm-skel-lines i) { animation: none !important; transition: none !important; }
+  .pm-root, .pm-root *:not(.ui-load-arc, .pm-skel-lines i) { animation: none !important; transition: none !important; }
   .pm-root .out, .pm-root.out { visibility: hidden; }
 }
