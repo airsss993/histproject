@@ -360,16 +360,25 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
         <a href={s.siteUrl} target="_blank" rel="noopener noreferrer" className="mod-shot"><img src={s.screenshotUrl} alt="Снимок присланного сайта" /></a>
       )}
       <p className="mod-desc">{s.description}</p>
-      <dl className="mod-facts">
-        <dt>Номер</dt><dd>{s.publicId}</dd>
-        <dt>Тип</dt><dd>{TYPE_LABEL[s.eventType]}</dd>
-        <dt>Дата события</dt><dd>{formatDate(s.eventDate)}</dd>
-        <dt>Точка автора</dt><dd>{s.latitude !== undefined ? `${s.latitude.toFixed(5)}, ${s.longitude!.toFixed(5)}` : 'не указана'}</dd>
-        <dt>Почта</dt><dd><a href={`mailto:${s.email}`}>{s.email}</a></dd>
-        <dt>Telegram</dt><dd><a href={`https://t.me/${s.telegramUsername}`} target="_blank" rel="noopener noreferrer">@{s.telegramUsername}</a></dd>
-        <dt>Прислана</dt><dd>{api.dateTime(s.createdAt)}</dd>
-        <dt>Изменена</dt><dd>{api.dateTime(s.updatedAt)}</dd>
-      </dl>
+      <div className="mod-facts">
+        <section>
+          <h4 className="pm-label">Событие</h4>
+          <dl>
+            <div><dt>Номер</dt><dd className="mod-code">{s.publicId}</dd></div>
+            <div><dt>Тип</dt><dd>{TYPE_LABEL[s.eventType]}</dd></div>
+            <div><dt>Дата</dt><dd>{formatDate(s.eventDate)}</dd></div>
+            <div><dt>Точка автора</dt><dd>{s.latitude !== undefined ? `${s.latitude.toFixed(5)}, ${s.longitude!.toFixed(5)}` : <span className="mod-dim">не указана</span>}</dd></div>
+          </dl>
+        </section>
+        <section>
+          <h4 className="pm-label">Автор</h4>
+          <div className="mod-contacts">
+            <a className="pm-btn-ghost pm-pill" href={`mailto:${s.email}`} title={s.email}><Icon name="mail" /><span>{s.email}</span></a>
+            <a className="pm-btn-ghost pm-pill" href={`https://t.me/${s.telegramUsername}`} target="_blank" rel="noopener noreferrer" title="Открыть в Telegram"><Icon name="bot" /><span>@{s.telegramUsername}</span></a>
+          </div>
+        </section>
+      </div>
+      <p className="mod-dim">Прислана {api.dateTime(s.createdAt)}{s.updatedAt !== s.createdAt && <>, изменена {api.dateTime(s.updatedAt)}</>}</p>
       {s.status === 'rejected' && s.adminComment && <p className="mod-reason"><b>Причина отказа.</b> {s.adminComment}</p>}
       {s.status === 'processing' && <p className="mod-dim">Архив ещё распаковывается, предпросмотр появится через минуту.</p>}
 
