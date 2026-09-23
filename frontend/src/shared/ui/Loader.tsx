@@ -10,7 +10,7 @@ export type Phase = 'load' | 'done' | 'idle'
  * Фаза индикатора поверх настоящего флага загрузки. ok - загрузилось с данными: только тогда галочка,
  * ошибка и пустой ответ сразу уходят в idle. Контент показывать на idle.
  */
-export function useSettle(loading: boolean, ok: boolean, min = MIN_MS): Phase {
+export function useSettle(loading: boolean, ok: boolean, min = MIN_MS, hold = DONE_MS): Phase {
   const [phase, setPhase] = useState<Phase>(loading ? 'load' : 'idle')
   const since = useRef(0)
   useEffect(() => {
@@ -21,10 +21,10 @@ export function useSettle(loading: boolean, ok: boolean, min = MIN_MS): Phase {
     }
     let t = setTimeout(() => {
       setPhase(p => (p === 'load' ? (ok ? 'done' : 'idle') : p))
-      t = setTimeout(() => setPhase(p => (p === 'done' ? 'idle' : p)), DONE_MS)
+      t = setTimeout(() => setPhase(p => (p === 'done' ? 'idle' : p)), hold)
     }, Math.max(0, since.current + min - Date.now()))
     return () => clearTimeout(t)
-  }, [loading, ok, min])
+  }, [loading, ok, min, hold])
   return phase
 }
 
@@ -56,6 +56,8 @@ const LINES = [
 const LINE_MS = 1400
 /** Заставка держится хотя бы две строки. */
 export const SPLASH_MS = 2 * LINE_MS
+/** Итог заставки: галочка, затем приближение логотипа (.ui-splash.done в ui.css). */
+export const SPLASH_DONE_MS = 1500
 
 /**
  * Отсчёт с первого показа заставки: заглушка на время загрузки кода и заставка самой страницы -
@@ -63,7 +65,7 @@ export const SPLASH_MS = 2 * LINE_MS
  */
 let bootAt = 0
 
-/** Заставка на весь экран: логотип и что сейчас делается; на done - галочка и итог, к концу DONE_MS гаснет. */
+/** Заставка на весь экран: логотип и что сейчас делается; на done - галочка и итог, потом логотип наезжает и гаснет. */
 export const Splash: React.FC<{ phase: Phase; done?: string; onCancel?: () => void }> = ({ phase, done, onCancel }) => {
   const [since] = useState(() => {
     if (!bootAt) bootAt = Date.now()
@@ -78,8 +80,10 @@ export const Splash: React.FC<{ phase: Phase; done?: string; onCancel?: () => vo
   const ok = phase === 'done'
   return (
     <div className={`pm-root ui-splash${ok ? ' done' : ''}`} role="status" style={{ '--since': `-${since}ms` } as React.CSSProperties}>
-      <img className="ui-splash-logo" src="/logo.svg" alt="" />
-      <div className="ui-splash-name">Россия - страна Героев</div>
+      <div className="ui-splash-brand">
+        <img className="ui-splash-logo" src="/logo.svg" alt="" />
+        <div className="ui-splash-name">Россия - страна Героев</div>
+      </div>
       <div className="ui-splash-line">
         <LoadMark done={ok} size={22} />
         <span key={ok ? 'done' : line}>{ok ? done : `${LINES[line]}...`}</span>

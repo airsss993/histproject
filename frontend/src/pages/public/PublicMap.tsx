@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
-import { LoadMark, Splash, SPLASH_MS, useSettle } from '../../shared/ui/Loader.tsx'
+import { LoadMark, Splash, SPLASH_DONE_MS, SPLASH_MS, useSettle } from '../../shared/ui/Loader.tsx'
 import { fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
@@ -175,7 +175,7 @@ export const PublicMap: React.FC = () => {
   }, [attempt])
 
   const events = load.status === 'ready' ? load.events : []
-  const phase = useSettle(load.status === 'loading', events.length > 0, splash ? SPLASH_MS : undefined)
+  const phase = useSettle(load.status === 'loading', events.length > 0, splash ? SPLASH_MS : undefined, splash ? SPLASH_DONE_MS : undefined)
   useEffect(() => { if (phase === 'idle') splashSeen = true }, [phase])
   const full = splash && phase !== 'idle'
   const filtered = useMemo(() => events.filter(e => matches(applied, e)), [events, applied])
