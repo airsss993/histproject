@@ -199,10 +199,6 @@ type adminServiceStub struct {
 	deleteError  error
 	updateInput  UpdateInput
 	updateError  error
-	profileID    int64
-	profileName  string
-	passwords    [2]string
-	passwordErr  error
 }
 
 func (stub *adminServiceStub) Create(_ context.Context, input CreateInput) (Admin, error) {
