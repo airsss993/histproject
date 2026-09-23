@@ -10,7 +10,8 @@
            горит на :focus-within или с классом .on, с .bad - красный
   Поле     .pm-field - рамка с .pm-glow, внутри голый input, textarea или select; Field.tsx добавляет подпись и ошибку
   Чипы     .pm-chips > button, выбранный .on
-  Загрузка .ui-load - кольцо с галочкой, .ui-loading - строка с кольцом и подписью (Loader.tsx)
+  Загрузка .ui-load - кольцо с галочкой, .ui-loading - строка с кольцом и подписью,
+           .ui-splash - заставка на весь экран с логотипом (Loader.tsx)
 */
 
 /* Кнопки */
@@ -224,3 +225,37 @@
 .ui-loading span { animation: pm-fade 320ms ease-out; }
 .ui-loading.done { animation: pm-fade-out 280ms ease-in 720ms forwards; }
 .ui-loading.done span { color: #8FC7A0; }
+
+/* Заставка. --since - сколько она уже идёт (Loader.tsx): смена элемента не перезапускает появление. */
+.ui-splash {
+  z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px;
+  background: radial-gradient(60% 50% at 50% 45%, rgba(199, 174, 127, 0.08), transparent 70%), var(--sea);
+}
+/* Свечение первым в списке: пока идёт появление, его filter перекрывает свечение. */
+.ui-splash-brand { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.ui-splash-logo { height: 132px; animation: ui-splash-glow 2.8s ease-in-out infinite, ui-splash-logo 1100ms var(--since) cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+.ui-splash-name {
+  font: 500 15px var(--ui); letter-spacing: 0.22em; text-transform: uppercase; text-align: center; color: var(--gold-soft);
+  animation: pm-in 700ms calc(var(--since) + 450ms) cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.ui-splash-line {
+  display: flex; align-items: center; gap: 12px; min-height: 24px; font: 400 15px/24px var(--ui); color: var(--text-2);
+  animation: pm-fade 600ms calc(var(--since) + 800ms) ease-out backwards;
+}
+.ui-splash-line span { animation: pm-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ui-splash.done .ui-splash-line span { color: #8FC7A0; }
+/* Отмена нужна только на долгой загрузке. */
+.ui-splash-cancel { position: absolute; bottom: 32px; animation: pm-fade 400ms 6s ease-out backwards; }
+/* Итог, SPLASH_DONE_MS = 1500: галочка рисуется до ~750ms, строка гаснет, логотип с названием наезжают и растворяются, фон уходит последним. */
+.ui-splash.done { animation: pm-fade-out 350ms ease-in 1150ms forwards; pointer-events: none; }
+.ui-splash.done .ui-splash-line { animation: pm-fade-out 250ms ease-in 750ms forwards; }
+.ui-splash.done .ui-splash-brand { animation: ui-splash-zoom 680ms cubic-bezier(0.45, 0, 0.7, 0.55) 820ms forwards; }
+.ui-splash.done .ui-splash-cancel { visibility: hidden; }
+@keyframes ui-splash-logo { from { opacity: 0; transform: scale(0.88); filter: blur(10px); } }
+@keyframes ui-splash-zoom { 55% { opacity: 1; } to { opacity: 0; transform: scale(2.4); filter: blur(6px); } }
+@keyframes ui-splash-glow { 50% { filter: drop-shadow(0 0 22px rgba(199, 174, 127, 0.45)); } }
+@media (max-width: 600px) {
+  .ui-splash-logo { height: 104px; }
+  .ui-splash-name { font-size: 13px; letter-spacing: 0.16em; }
+  .ui-splash-line { font-size: 14px; }
+}

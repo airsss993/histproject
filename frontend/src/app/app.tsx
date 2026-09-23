@@ -1,6 +1,8 @@
 import React, { lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Splash } from '../shared/ui/Loader.tsx'
+import '../pages/public/public.css'
 
 // Страницы грузятся отдельными чанками: карта (MapLibre) не попадает в первый экран.
 const PublicMap = lazy(() => import('../pages/public/PublicMap.tsx').then(m => ({ default: m.PublicMap })))
@@ -20,7 +22,8 @@ const rootElement = document.getElementById('root');
             <Routes>
               <Route path="/" element={<Navigate to="/map" replace />} />
               <Route path="/app" element={<Navigate to="/map" replace />} />
-              <Route path="/map" element={<PublicMap />} />
+              {/* Пока грузится код карты - та же заставка, что потом покажет сама карта. */}
+              <Route path="/map" element={<Suspense fallback={<Splash phase="load" />}><PublicMap /></Suspense>} />
               <Route path="/about" element={<About />} />
               <Route path="/guide" element={<Guide />} />
               <Route path="/login" element={<AuthPage key="login" mode="login" />} />
