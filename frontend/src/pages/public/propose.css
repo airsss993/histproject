@@ -2,7 +2,7 @@
 .pm-root.pp-page {
   z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px;
   background: rgba(1, 0, 17, 0.5);
-  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
   animation: pm-fade 180ms ease-out; --ok: #7FA98A; --warn: #C1A97B; --field: #0C1023;
 }
 /* Та же специфичность, что у общего .pm-root.out, а файл грузится раньше public.css: уход задаём явно. */
@@ -14,7 +14,7 @@
   border-radius: 28px; border: 1px solid rgba(129, 148, 174, 0.16); overflow: hidden;
   /* Стекло: карта просвечивает размытой, верхняя кромка светлее. */
   background: linear-gradient(180deg, rgba(129, 148, 174, 0.1), rgba(129, 148, 174, 0.02) 45%), rgba(12, 16, 35, 0.62);
-  backdrop-filter: blur(28px) saturate(150%); -webkit-backdrop-filter: blur(28px) saturate(150%);
+  backdrop-filter: blur(28px) saturate(150%);
   box-shadow: 0 30px 90px rgba(0, 0, 20, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.14);
   animation: pm-in 220ms ease-out; /* без transition ширины: карта на шаге места должна создаваться уже в итоговом размере */
 }
@@ -61,7 +61,7 @@
   position: absolute; left: 0; bottom: 0; width: 66px; height: 66px; border-radius: 20px; display: grid; place-items: center;
   color: rgba(255, 255, 255, 0.94);
   background: linear-gradient(150deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.1));
-  backdrop-filter: blur(9px) saturate(170%); -webkit-backdrop-filter: blur(9px) saturate(170%);
+  backdrop-filter: blur(9px) saturate(170%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 16px 32px rgba(0, 0, 20, 0.5);
 }
 /* Кромка-блик: светлая в верхнем левом углу, гаснет к середине, слабо загорается снизу справа. */
