@@ -79,13 +79,13 @@
 .pm-cluster { transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .pm-hit:hover > .pm-cluster, .pm-hit:focus-visible > .pm-cluster { transform: scale(1.12); }
 .pm-hit:focus-visible .pm-pin path { filter: drop-shadow(0 0 3px var(--gold)); }
-/* Метка: масштаб --s задаёт React, переход и "подскок" при выборе - CSS. Остриё в (0, 0) = transform-origin. */
+/* Метка: масштаб --s задаёт React, плавное выделение при выборе - CSS. Остриё в (0, 0) = transform-origin. */
 .pm-pin { transform: scale(var(--s)); transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .pm-pin path, .pm-pin circle { transition: fill 240ms ease-out, stroke 240ms ease-out; }
 /* Метки и группы, появившиеся после фильтра или зума. */
 .pm-appear { animation: pm-fade 240ms ease-out; }
-.pm-pin.sel { animation: pm-bounce 420ms cubic-bezier(0.3, 1.4, 0.5, 1); }
-@keyframes pm-bounce { from { transform: scale(calc(var(--s) * 0.6)); } }
+.pm-pin.sel { animation: pm-pin-select 260ms cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes pm-pin-select { from { transform: scale(calc(var(--s) * 0.85)); } }
 .pm-ring { transform-box: fill-box; transform-origin: center; animation: pm-ring-in 420ms ease-out, pm-ring-pulse 2.4s 420ms ease-in-out infinite; }
 @keyframes pm-ring-in { from { transform: scale(0.5); opacity: 0; } }
 @keyframes pm-ring-pulse { 50% { transform: scale(1.12); opacity: 0.4; } }
