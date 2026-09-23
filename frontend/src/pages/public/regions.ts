@@ -13,6 +13,8 @@ export const loadRussia = () => russia ??= fetch('/russia-regions.geojson')
   .then(r => { if (!r.ok) throw new Error(`russia-regions: ${r.status}`); return r.json() as Promise<FeatureCollection> })
   .then(fc => {
     for (const f of fc.features) {
+      // У Крыма, Севастополя и новых регионов в OSM нет ISO-кода: ключом служит имя.
+      if (f.properties && !f.properties.iso) f.properties.iso = f.properties.name
       const g = f.geometry
       if (g.type === 'Polygon') g.coordinates = g.coordinates.map(unwrap)
       else if (g.type === 'MultiPolygon') g.coordinates = g.coordinates.map(p => p.map(unwrap))

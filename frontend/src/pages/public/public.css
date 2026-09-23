@@ -323,12 +323,14 @@
 .pm-screen .pm-panel-foot .pm-btn, .pm-screen .pm-panel-foot .pm-btn-text { height: 52px; font-size: 16px; }
 .pm-root .pm-tall { height: 48px; border-radius: 999px; font: 500 15px var(--ui); }
 
-/* Лента по регионам: карта-шар в левой половине (.pm-split), лента в правой. Положение ленты
-   не зависит от .pm-split, иначе при уходе она прыгнет на место, пока гаснет. */
-.pm-split .pm-map { right: 50%; }
+/* Лента по регионам: карта на весь экран, шар сдвинут в левую половину отступом камеры (cover в MapView),
+   лента в правой полупрозрачная, сквозь неё видна карта. Положение ленты не зависит от .pm-split,
+   иначе при уходе она прыгнет на место, пока гаснет. */
 .pm-split .pm-search-wrap { left: 25%; width: min(520px, calc(50% - 220px)); }
 .pm-split .pm-centuries { right: calc(50% + 26px); }
 .pm-feed { left: calc(50% + 12px); right: 24px; top: 96px; bottom: 24px; width: auto; max-height: none; }
+.pm-root .pm-feed { background: rgba(12, 16, 35, 0.42); backdrop-filter: blur(3px) saturate(140%); }
+.pm-feed-hint { padding: 10px 16px; border-bottom: 1px dashed var(--line-soft); }
 .pm-feed-chips { padding: 12px 16px; border-bottom: 1px dashed var(--line-soft); flex-wrap: nowrap; overflow-x: auto; }
 /* position: relative - offsetTop секций регионов считается от списка. */
 .pm-feed-list { flex: 1; overflow-y: auto; position: relative; }
@@ -336,8 +338,13 @@
 .pm-feed-list::after { content: ''; display: block; height: 60%; }
 .pm-region-head {
   position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 12px 16px; background: var(--glass); border-bottom: 1px dashed var(--line-soft);
+  width: 100%; padding: 12px 16px; text-align: left; cursor: pointer;
+  /* Блюр здесь размывает события, которые уезжают под заголовок: у ленты свой backdrop-filter. */
+  background: rgba(12, 16, 35, 0.55); backdrop-filter: blur(14px); border-bottom: 1px dashed var(--line-soft);
+  transition: background 120ms ease-out;
 }
+.pm-region-head:hover { background: rgba(26, 32, 58, 0.7); }
+.pm-region-head:hover .pm-label { color: var(--gold-soft); }
 .pm-region-head .pm-label { transition: color 160ms ease-out; }
 .pm-region-head.on .pm-label { color: var(--gold); }
 .pm-feed-item { padding: 14px 16px; }
@@ -426,9 +433,8 @@
   .pm-search input { font-size: 16px; }
   .pm-centuries { right: 14px; top: 200px; bottom: 150px; width: 44px; padding: 10px 0; }
   /* Лента на телефоне: шар сверху, лента под ним. Скроллится список, а не экран: по нему считается регион. */
-  .pm-split .pm-map { right: 0; bottom: 58%; }
   .pm-root .pm-screen.pm-feed { top: 42%; left: 0; right: 0; bottom: 0; overflow: hidden; border-radius: 16px 16px 0 0; }
-  .pm-screen .pm-region-head { background: #0C1023; }
+  .pm-screen.pm-feed .pm-panel-foot { background: rgba(12, 16, 35, 0.7); backdrop-filter: blur(14px); }
   .pm-centuries button { gap: 8px; font-size: 13px; line-height: 18px; }
   .pm-centuries button i { width: 8px; }
   .pm-404 h1 { font-size: 34px; line-height: 40px; }

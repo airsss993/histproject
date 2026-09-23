@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { FeatureCollection } from 'geojson'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
@@ -8,7 +8,7 @@ import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { ProposeModal } from './Propose.tsx'
 import { Presence } from './presence.tsx'
-import { groupByRegion, loadRussia, type RegionGroup } from './regions.ts'
+import { groupByRegion, loadRussia, regionOf, type RegionGroup } from './regions.ts'
 import './public.css'
 
 export const MIN_YEAR = 862
@@ -185,7 +185,21 @@ export const PublicMap: React.FC = () => {
     const needle = q.trim().toLowerCase()
     return needle ? filtered.filter(e => e.title.toLowerCase().includes(needle)) : filtered
   }, [filtered, q])
-  const foundIds = useMemo(() => new Set(found.map(e => e.id)), [found])
+
+  // Лента по регионам: регион события считаем по полигонам russia-regions.geojson.
+  const [fc, setFc] = useState<FeatureCollection | null>(null)
+  useEffect(() => {
+    let live = true
+    loadRussia().then(f => { if (live) setFc(f) }, () => {})
+    return () => { live = false }
+  }, [])
+  const groups = useMemo(() => (layer === 'feed' && fc ? groupByRegion(found, fc) : null), [layer, found, fc])
+  // Выбранный регион; события берём из свежих групп, у региона без событий список пуст.
+  const [region, setRegion] = useState<RegionGroup | null>(null)
+  useEffect(() => { if (layer !== 'feed') setRegion(null) }, [layer])
+  const picked = useMemo(() => region && (groups?.find(g => g.iso === region.iso && g.name === region.name) ?? { ...region, events: [] }), [region, groups])
+
+  const foundIds = useMemo(() => new Set((picked?.events ?? found).map(e => e.id)), [picked?.events, found])
   const isActive = useCallback((e: HistEvent) => foundIds.has(e.id), [foundIds])
 
   // Событие из ссылки может не попасть в список (снято, ещё грузится) - спрашиваем отдельно.
@@ -251,14 +265,21 @@ export const PublicMap: React.FC = () => {
   const modal = <ProposeModal open={proposeOpen && !!me} email={me?.email ?? ''} mobile={mobile} onClose={closePropose} />
   // На телефоне фильтры и лента - экраны поверх карты: карта остаётся смонтированной и не теряет вид.
   const screen = mobile && (layer === 'filters' || layer === 'feed')
-  const feed = <Feed mobile={mobile} events={found} applied={applied} selectedId={selectedId} onSelect={select}
-    onClose={() => setLayer('none')} onPropose={propose} onRegion={g => mapRef.current?.focusRegion(g?.iso ?? null, g?.bbox)} />
+  const feed = <Feed mobile={mobile} events={found} groups={groups} picked={picked} onPick={setRegion} applied={applied}
+    selectedId={selectedId} onSelect={select} onClose={() => setLayer('none')} onPropose={propose}
+    onRegion={g => mapRef.current?.focusRegion(g?.iso ?? null, g?.bbox)} />
+  // Клик по региону на шаре выбирает его, повторный - снимает выбор.
+  const pickAt = (lat: number, lng: number) => {
+    const r = fc && regionOf(fc, lng, lat)
+    if (r) setRegion(picked?.iso === r.iso ? null : { iso: r.iso, name: r.name, bbox: r.bbox, events: [] })
+  }
 
   return (
     <>
     <div className={`pm-root${overlay && overlay.kind !== 'empty' ? ' pm-dim' : ''}${split ? ' pm-split' : ''}`}>
       <MapView ref={mapRef} events={events} isActive={isActive} selectedId={showCard ? selectedId : null}
         onSelect={select} pad={mobile ? 16 : 48} labels={!mobile} globe
+        cover={split ? (mobile ? 'bottom' : 'right') : undefined} onMapClick={split ? pickAt : undefined}
         callout={showCard && !mobile && <Card key={selectedId} event={selected ?? undefined} onClose={closeCard} />} />
 
       {!screen && (
@@ -564,21 +585,19 @@ const FeedItem: React.FC<{ e: HistEvent; on: boolean; onSelect: (id: number) => 
   </button>
 )
 
-/** Лента по регионам: регион, чей заголовок дошёл до верха списка, показывается на карте через onRegion. */
+/**
+ * Лента по регионам: регион, чей заголовок дошёл до верха списка, показывается на карте через onRegion.
+ * Клик по заголовку оставляет в ленте только этот регион.
+ */
 const Feed: React.FC<{
-  mobile?: boolean; events: HistEvent[]; applied: Filter; selectedId: number | null
+  mobile?: boolean; events: HistEvent[]; groups: RegionGroup[] | null; picked: RegionGroup | null
+  onPick: (g: RegionGroup | null) => void; applied: Filter; selectedId: number | null
   onSelect: (id: number) => void; onClose: () => void; onPropose: () => void
   onRegion: (g: RegionGroup | null) => void; className?: string
-}> = ({ mobile, events, applied, selectedId, onSelect, onClose, onPropose, onRegion, className = '' }) => {
-  const [fc, setFc] = useState<FeatureCollection | null>(null)
-  useEffect(() => {
-    let live = true
-    loadRussia().then(f => { if (live) setFc(f) }, () => {})
-    return () => { live = false }
-  }, [])
+}> = ({ mobile, events, groups, picked, onPick, applied, selectedId, onSelect, onClose, onPropose, onRegion, className = '' }) => {
   // Без полигонов регионов (не загрузились) - плоский список по дате.
-  const groups = useMemo(() => fc && groupByRegion(events, fc), [events, fc])
   const sorted = useMemo(() => [...events].sort((a, b) => a.eventDate.localeCompare(b.eventDate)), [events])
+  const shown = picked ? [picked] : groups
 
   const list = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(0)
@@ -588,7 +607,17 @@ const Feed: React.FC<{
     el.querySelectorAll<HTMLElement>('.pm-region').forEach((sec, k) => { if (sec.offsetTop <= el.scrollTop + 8) i = k })
     setActive(i)
   }
-  const current = groups?.[Math.min(active, groups.length - 1)]
+  // Сняли выбор - возвращаемся в общем списке к этому же региону.
+  const last = useRef<string | null>(null)
+  useLayoutEffect(() => {
+    const el = list.current!
+    const key = picked && `${picked.iso}:${picked.name}`
+    if (!key && last.current) el.scrollTop = el.querySelector<HTMLElement>(`[data-region="${CSS.escape(last.current)}"]`)?.offsetTop ?? 0
+    else el.scrollTop = 0
+    last.current = key
+    onScroll()
+  }, [picked?.iso, picked?.name])
+  const current = shown?.[Math.min(active, shown.length - 1)]
   const onRegionRef = useRef(onRegion)
   onRegionRef.current = onRegion
   useEffect(() => { if (current) onRegionRef.current(current) }, [current?.iso, current?.name])
@@ -599,24 +628,28 @@ const Feed: React.FC<{
       <div className="pm-panel-head">
         <h2>Лента событий</h2>
         <span className="pm-grow" />
-        <span className="pm-dim-text">{events.length}</span>
+        <span className="pm-dim-text">{picked ? picked.events.length : events.length}</span>
         {!mobile && <button type="button" className="pm-close-sm" onClick={onClose} aria-label="Закрыть">×</button>}
       </div>
-      {!isDefault(applied) && (
+      {(!isDefault(applied) || picked) && (
         <div className="pm-chips pm-feed-chips">
+          {picked && <button type="button" className="on" onClick={() => onPick(null)} aria-label={`Все регионы, снять ${picked.name}`}>{picked.name} ×</button>}
           {(applied.from !== MIN_YEAR || applied.to !== MAX_YEAR) && <span className="on">{applied.from} - {yearLabel(applied.to)}</span>}
           {applied.types.map(t => <span key={t}>{TYPE_PLURAL[t]}</span>)}
         </div>
       )}
+      {!picked && groups && groups.length > 1 && <div className="pm-feed-hint pm-dim-text">Выберите регион в списке или на карте</div>}
       <div className="pm-feed-list" ref={list} onScroll={onScroll}>
         {events.length === 0 && <div className="pm-results-empty">Под фильтр ничего не попало</div>}
-        {groups
-          ? groups.map(g => (
-            <section key={g.iso ?? 'out'} className="pm-region" aria-label={g.name}>
-              <div className={`pm-region-head${g === current ? ' on' : ''}`}>
+        {shown
+          ? shown.map(g => (
+            <section key={g.iso ?? 'out'} className="pm-region" aria-label={g.name} data-region={`${g.iso}:${g.name}`}>
+              <button type="button" className={`pm-region-head${g === current ? ' on' : ''}`} aria-pressed={!!picked}
+                onClick={() => onPick(picked ? null : g)} title={picked ? 'Все регионы' : 'Только этот регион'}>
                 <span className="pm-label">{g.name}</span>
                 <span className="pm-dim-text">{g.events.length}</span>
-              </div>
+              </button>
+              {g.events.length === 0 && events.length > 0 && <div className="pm-results-empty">Здесь событий пока нет</div>}
               {g.events.map(e => <FeedItem key={e.id} e={e} on={e.id === selectedId} onSelect={onSelect} />)}
             </section>
           ))

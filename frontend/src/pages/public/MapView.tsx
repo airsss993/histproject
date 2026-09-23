@@ -117,6 +117,10 @@ interface Props {
   callout?: React.ReactNode
   /** 3D-шар вместо плоской карты. */
   globe?: boolean
+  /** Панель поверх карты: справа на половину ширины или снизу на 58% высоты. Вид сдвигается в открытую часть. */
+  cover?: 'right' | 'bottom'
+  /** Клик по карте мимо меток. */
+  onMapClick?: (lat: number, lng: number) => void
 }
 
 // Точка за горизонтом шара: пиксель, куда её спроецировали, обратно даёт точку на видимой стороне.
@@ -125,6 +129,17 @@ const hidden = (map: maplibregl.Map, lng: number, lat: number) => {
   const q = map.unproject(map.project([lng, lat]))
   return Math.abs(q.lat - lat) > 0.5 || Math.abs(((q.lng - lng + 540) % 360) - 180) > 0.5
 }
+
+// Сколько карты закрывает панель. Отступ передаём в каждое движение камеры, а не в padding карты:
+// fitBounds на шаре padding карты не учитывает.
+const covered = (map: maplibregl.Map, cover: Props['cover']) => {
+  const { clientWidth: w, clientHeight: h } = map.getContainer()
+  return { right: cover === 'right' ? Math.round(w / 2) : 0, bottom: cover === 'bottom' ? Math.round(h * 0.58) : 0 }
+}
+
+// Подсветка региона через feature-state: фильтр и выражения от свойств пересчитываются в воркере и во время
+// полёта камеры применяются только в конце.
+const ON: ExpressionSpecification = ['case', ['boolean', ['feature-state', 'on'], false], 1, 0]
 
 const selectedPx = (size: number) => Math.max(size, 32) * 1.1
 
@@ -175,13 +190,17 @@ function Callout({ x, y, pin, width, height, out, children }:
 }
 
 export const MapView = forwardRef<MapHandle, Props>(function MapView(
-  { events, isActive, selectedId, onSelect, pad, labels, sea = INK, interactive = true, pick, onPick, callout, globe = false }, ref) {
+  { events, isActive, selectedId, onSelect, pad, labels, sea = INK, interactive = true, pick, onPick, callout, globe = false, cover, onMapClick }, ref) {
   const wrap = useRef<HTMLDivElement>(null)
   const hasCallout = !!callout
   const mapRef = useRef<maplibregl.Map | undefined>(undefined)
   const pickRef = useRef<maplibregl.Marker | undefined>(undefined)
   const onPickRef = useRef(onPick)
   onPickRef.current = onPick
+  const onMapClickRef = useRef(onMapClick)
+  onMapClickRef.current = onMapClick
+  const coverRef = useRef(cover)
+  coverRef.current = cover
   const labelsRef = useRef(labels)
   labelsRef.current = labels
   const baseZoom = useRef(0)
@@ -204,7 +223,10 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     const redraw = () => setTick(t => t + 1)
     map.on('move', redraw)
     map.on('resize', redraw)
-    map.on('click', e => onPickRef.current?.(e.lngLat.lat, e.lngLat.wrap().lng))
+    map.on('click', e => {
+      onPickRef.current?.(e.lngLat.lat, e.lngLat.wrap().lng)
+      onMapClickRef.current?.(e.lngLat.lat, e.lngLat.wrap().lng)
+    })
     // Камере и регионам нужен только стиль: load ждёт ещё и все тайлы, на шаре это десятки секунд.
     map.once('style.load', () => {
       pendingCam.current?.(map)
@@ -213,11 +235,12 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     })
     map.once('style.load', () => loadRussia().then(fc => {
       if (!map.getStyle()) return
-      map.addSource('russia', { type: 'geojson', data: fc })
+      map.addSource('russia', { type: 'geojson', data: fc, promoteId: 'iso' })
       map.addLayer({ id: 'russia', type: 'fill', source: 'russia', paint: { 'fill-color': '#1B233D' } }, 'water')
       map.addLayer({ id: 'regions', type: 'line', source: 'russia', paint: { 'line-color': '#31355C', 'line-width': ['interpolate', ['linear'], ['zoom'], 2, 0.4, 6, 1] } }, 'borders')
-      map.addLayer({ id: 'region-on', type: 'fill', source: 'russia', filter: ['==', ['get', 'iso'], regionRef.current ?? ''], paint: { 'fill-color': alpha(GOLD, 0.08) } }, 'water')
-      map.addLayer({ id: 'region-on-line', type: 'line', source: 'russia', filter: ['==', ['get', 'iso'], regionRef.current ?? ''], paint: { 'line-color': GOLD, 'line-width': 1.6 } }, 'borders')
+      map.addLayer({ id: 'region-on', type: 'fill', source: 'russia', paint: { 'fill-color': alpha(GOLD, 0.08), 'fill-opacity': ON } }, 'water')
+      map.addLayer({ id: 'region-on-line', type: 'line', source: 'russia', paint: { 'line-color': GOLD, 'line-width': 1.6, 'line-opacity': ON } }, 'borders')
+      if (regionRef.current) map.setFeatureState({ source: 'russia', id: regionRef.current }, { on: true })
     }).catch(() => undefined))
     redraw()
     return () => { map.remove(); mapRef.current = undefined; pickRef.current = undefined; loadedRef.current = false }
@@ -258,13 +281,18 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     zoomBy: k => { const map = mapRef.current; if (map) map.zoomTo(map.getZoom() + Math.log2(k)) },
     flyTo: (lat, lng, zoom = 10) => camera(m => m.flyTo({ center: [lng, lat], zoom, duration: 800 })),
     focusRegion: (iso, bbox) => {
-      regionRef.current = iso
       const map = mapRef.current
-      for (const id of ['region-on', 'region-on-line']) if (map?.getLayer(id)) map.setFilter(id, ['==', ['get', 'iso'], iso ?? ''])
+      if (map?.getSource('russia')) {
+        if (regionRef.current) map.setFeatureState({ source: 'russia', id: regionRef.current }, { on: false })
+        if (iso) map.setFeatureState({ source: 'russia', id: iso }, { on: true })
+      }
+      regionRef.current = iso
       // На телефоне шар над лентой без рейла и шкалы веков: поля EDGE съели бы его целиком.
-      if (bbox) camera(m => m.fitBounds(bbox, {
-        padding: m.getContainer().clientWidth < 500 ? 24 : { ...EDGE, top: EDGE.top + 50 }, maxZoom: 4.5, duration: 1200,
-      }))
+      if (bbox) camera(m => {
+        const { right, bottom } = covered(m, coverRef.current)
+        const pad = m.getContainer().clientWidth < 500 ? { top: 24, right: 24, bottom: 24, left: 24 } : { ...EDGE, top: EDGE.top + 50 }
+        m.fitBounds(bbox, { padding: { ...pad, right: pad.right + right, bottom: pad.bottom + bottom }, maxZoom: 4.5, duration: 1200 })
+      })
     },
   }), [])
 
@@ -309,9 +337,10 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     const lng = e.longitude + 360 * Math.round((map.getCenter().lng - e.longitude) / 360)
     const { x, y } = map.project([lng, e.latitude])
     const { width, height } = map.getContainer().getBoundingClientRect()
-    if ((globe && hidden(map, lng, e.latitude)) || x < EDGE.left || y < EDGE.top || x > width - EDGE.right || y > height - EDGE.bottom)
-      map.easeTo({ center: [lng, e.latitude], duration: 600 })
-  }, [selectedId, events, hasCallout, globe])
+    const { right, bottom } = covered(map, cover)
+    if ((globe && hidden(map, lng, e.latitude)) || x < EDGE.left || y < EDGE.top || x > width - right - EDGE.right || y > height - bottom - EDGE.bottom)
+      map.easeTo({ center: [lng, e.latitude], offset: [-right / 2, -bottom / 2], duration: 600 })
+  }, [selectedId, events, hasCallout, globe, cover])
 
   // Точки в экранных координатах; кластеризуем только активные, по сетке CELL.
   // Сетку считаем в мировых пикселях, а не в экранных: от экранных состав кластеров и цифры
@@ -322,7 +351,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     const map = mapRef.current
     const pts: (P & { active: boolean })[] = [], clusters: { x: number; y: number; members: P[] }[] = []
     const anchors = new Map<number, { x: number; y: number }>()
-    if (!map) return { pins: pts, clusters, anchors, k: 1, width: 0, height: 0 }
+    if (!map) return { pins: pts, clusters, anchors, k: 1, width: 0, height: 0, free: [0, 0] }
     const wanted = new Set(anchorIds.split(',').map(Number))
     const { width, height } = map.getContainer().getBoundingClientRect()
     const center = map.getCenter().lng
@@ -358,7 +387,9 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     // иначе соседняя отфильтрованная метка перекрывает её вместе с кольцом.
     const sel = pins.findIndex(p => p.e.id === selectedId)
     if (sel >= 0) pins.push(...pins.splice(sel, 1))
-    return { pins, clusters, anchors, k: 2 ** (map.getZoom() - baseZoom.current), width, height }
+    // Карточка держится в части, не закрытой панелью.
+    const { right, bottom } = covered(map, coverRef.current)
+    return { pins, clusters, anchors, k: 2 ** (map.getZoom() - baseZoom.current), width, height, free: [width - right, height - bottom] }
     // tick - перерисовка при движении карты.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, isActive, tick, selectedId, anchorIds])
@@ -410,7 +441,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
       {cards.map(c => {
         const at = c.key === null ? undefined : view.anchors.get(c.key)
         return at
-          ? <Callout key={c.key} x={at.x} y={at.y} pin={selectedPx(pin)} width={view.width} height={view.height} out={c.out}>{c.node}</Callout>
+          ? <Callout key={c.key} x={at.x} y={at.y} pin={selectedPx(pin)} width={view.free[0]} height={view.free[1]} out={c.out}>{c.node}</Callout>
           // Событие не в списке (ссылка на снятое, ещё грузится): метки нет, карточка в углу.
           : <div key={c.key} className={`pm-callout fixed${c.out ? ' out' : ''}`}>{c.node}</div>
       })}
