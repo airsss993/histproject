@@ -38,7 +38,7 @@ function problem(res: Extract<ApiResult, { ok: false }>) {
 export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
   const navigate = useNavigate()
   const mobile = useIsMobile()
-  // back - куда вернуть после входа (форма заявки), переходы вход <-> регистрация его сохраняют.
+  // back - куда вернуть после входа; переходы вход <-> регистрация его сохраняют.
   const { email: prefill = '', back } = (useLocation().state as { email?: string; back?: string } | null) ?? {}
   const copy = COPY[mode]
 
@@ -144,7 +144,9 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
             ) : (
               <form className="au-step" key={mode} onSubmit={send} noValidate>
                 <h1 id="au-title" className="au-title">{copy.title}</h1>
-                <p className="au-sub">{back ? copy.backSub : copy.sub}</p>
+                <p className="au-sub">{back === '/admin'
+                  ? mode === 'login' ? 'Войдите по коду, чтобы открыть панель' : 'Создайте аккаунт по почте, которой выдана роль модератора'
+                  : back ? copy.backSub : copy.sub}</p>
 
                 <div className="au-fields">
                   {mode === 'register' && (
