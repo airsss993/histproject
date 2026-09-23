@@ -422,29 +422,91 @@ const Detail: React.FC<{ submission: Submission; onChanged: (s: Submission) => v
   )
 }
 
+type Period = 'day' | 'week' | 'month'
+const PERIODS: [Period, string][] = [['day', 'День'], ['week', 'Неделя'], ['month', 'Месяц']]
+const DAY = 86400000
+
+// Начало дня, недели (с понедельника) или месяца - ключ группы на таймлайне.
+const periodStart = (d: Date, p: Period) => {
+  const s = new Date(d.getFullYear(), d.getMonth(), p === 'month' ? 1 : d.getDate())
+  if (p === 'week') s.setDate(s.getDate() - (s.getDay() + 6) % 7)
+  return s
+}
+
+const periodLabel = (start: Date, p: Period) => {
+  const now = new Date()
+  const ago = Math.round((periodStart(now, p).getTime() - start.getTime()) / DAY)
+  const year = start.getFullYear() !== now.getFullYear() ? { year: 'numeric' as const } : {}
+  if (p === 'day') {
+    if (ago === 0) return 'Сегодня'
+    if (ago === 1) return 'Вчера'
+    return start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', ...year })
+  }
+  if (p === 'week') {
+    if (ago === 0) return 'Эта неделя'
+    if (ago === 7) return 'Прошлая неделя'
+    const end = new Date(start.getTime() + 6 * DAY)
+    const from = start.getMonth() === end.getMonth() ? String(start.getDate()) : start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+    return `${from} - ${end.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', ...year })}`
+  }
+  const month = start.toLocaleDateString('ru-RU', { month: 'long', ...year })
+  return month[0].toUpperCase() + month.slice(1)
+}
+
 const History: React.FC = () => {
   const [q, setQ] = useState('')
   const query = useDebounced(q.trim())
   const [page, setPage] = useState(1)
+  const [period, setPeriod] = useState<Period>('day')
   const list = useLoad(() => api.listAudit({ q: query, page }), [query, page])
   useEffect(() => setPage(1), [query])
+
+  // Записи приходят от новых к старым, поэтому соседние записи одного периода идут подряд.
+  const groups = (items: AuditEntry[]) => items.reduce<{ key: number; label: string; items: AuditEntry[] }[]>((acc, a) => {
+    const start = periodStart(new Date(a.createdAt), period)
+    const last = acc[acc.length - 1]
+    if (last?.key === start.getTime()) last.items.push(a)
+    else acc.push({ key: start.getTime(), label: periodLabel(start, period).replace(' г.', ''), items: [a] })
+    return acc
+  }, [])
+  const time = (iso: string) => new Date(iso).toLocaleString('ru-RU', period === 'day'
+    ? { hour: '2-digit', minute: '2-digit' }
+    : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+
   return (
     <section className="mod-narrow">
-      <h1 className="mod-title">История действий</h1>
+      <div className="mod-tl-head">
+        <h1 className="mod-title">История действий</h1>
+        <div className="pm-chips" role="tablist" aria-label="Группировка">
+          {PERIODS.map(([p, label]) => (
+            <button key={p} type="button" role="tab" aria-selected={p === period} className={p === period ? 'on' : ''} onClick={() => setPeriod(p)}>{label}</button>
+          ))}
+        </div>
+      </div>
       <p className="mod-dim">Каждое действие модератора. Записи нельзя изменить или удалить.</p>
       <Field><input type="search" aria-label="Поиск по истории" placeholder="Поиск по заявке, логину или действию" value={q} onChange={e => setQ(e.target.value)} /></Field>
       <Rows state={list} empty="Действий пока нет">
         {(data: Page<AuditEntry>) => (
           <>
-            <ul className="mod-rows">
-              {data.items.map(a => (
-                <li key={a.id} className="mod-row mod-log">
-                  <span className="mod-row-head"><b>{a.adminLogin} <span className={`mod-act ${a.action}`}>{ACTION_LABEL[a.action].toLowerCase()}</span> {a.submissionPublicId} {a.submissionTitle}</b></span>
-                  <span className="mod-dim">{api.dateTime(a.createdAt)} · {api.ROLE_LABEL[a.adminRole] ?? a.adminRole}</span>
-                  {a.comment && <span className="mod-log-comment">{a.comment}</span>}
+            <ol className="mod-tl">
+              {groups(data.items).map(g => (
+                <li key={g.key}>
+                  <h2 className="mod-tl-day">{g.label}</h2>
+                  <ol>
+                    {g.items.map(a => (
+                      <li key={a.id} className="mod-tl-item">
+                        <span className="mod-row-head">
+                          <b>{a.adminLogin} <span className={`mod-act ${a.action}`}>{ACTION_LABEL[a.action].toLowerCase()}</span> {a.submissionTitle}</b>
+                          <time className="mod-dim" dateTime={a.createdAt} title={api.dateTime(a.createdAt)}>{time(a.createdAt)}</time>
+                        </span>
+                        <span className="mod-dim">{a.submissionPublicId} · {api.ROLE_LABEL[a.adminRole] ?? a.adminRole}</span>
+                        {a.comment && <span className="mod-log-comment">{a.comment}</span>}
+                      </li>
+                    ))}
+                  </ol>
                 </li>
               ))}
-            </ul>
+            </ol>
             <Pager page={page} pageSize={data.pageSize} total={data.total} onPage={setPage} />
           </>
         )}
