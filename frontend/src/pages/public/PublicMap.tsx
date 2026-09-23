@@ -267,7 +267,7 @@ export const PublicMap: React.FC = () => {
   const screen = mobile && (layer === 'filters' || layer === 'feed')
   const feed = <Feed mobile={mobile} events={found} groups={groups} picked={picked} onPick={setRegion} applied={applied}
     selectedId={selectedId} onSelect={select} onClose={() => setLayer('none')} onPropose={propose}
-    onRegion={g => mapRef.current?.focusRegion(g?.iso ?? null, g?.bbox)} />
+    onRegion={(g, close) => mapRef.current?.focusRegion(g?.iso ?? null, g?.bbox, close)} />
   // Клик по региону на шаре выбирает его, повторный - снимает выбор.
   const pickAt = (lat: number, lng: number) => {
     const r = fc && regionOf(fc, lng, lat)
@@ -593,7 +593,8 @@ const Feed: React.FC<{
   mobile?: boolean; events: HistEvent[]; groups: RegionGroup[] | null; picked: RegionGroup | null
   onPick: (g: RegionGroup | null) => void; applied: Filter; selectedId: number | null
   onSelect: (id: number) => void; onClose: () => void; onPropose: () => void
-  onRegion: (g: RegionGroup | null) => void; className?: string
+  /** close - регион выбран, а не просто прокручен: камера подходит ближе. */
+  onRegion: (g: RegionGroup | null, close?: boolean) => void; className?: string
 }> = ({ mobile, events, groups, picked, onPick, applied, selectedId, onSelect, onClose, onPropose, onRegion, className = '' }) => {
   // Без полигонов регионов (не загрузились) - плоский список по дате.
   const sorted = useMemo(() => [...events].sort((a, b) => a.eventDate.localeCompare(b.eventDate)), [events])
@@ -620,7 +621,7 @@ const Feed: React.FC<{
   const current = shown?.[Math.min(active, shown.length - 1)]
   const onRegionRef = useRef(onRegion)
   onRegionRef.current = onRegion
-  useEffect(() => { if (current) onRegionRef.current(current) }, [current?.iso, current?.name])
+  useEffect(() => { if (current) onRegionRef.current(current, !!picked) }, [current?.iso, current?.name, !!picked])
   useEffect(() => () => onRegionRef.current(null), [])
 
   return (

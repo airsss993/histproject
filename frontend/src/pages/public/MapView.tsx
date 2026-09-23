@@ -98,7 +98,7 @@ export interface MapHandle {
   zoomBy(k: number): void
   flyTo(lat: number, lng: number, zoom?: number): void
   /** Подсветить регион по iso и показать bbox; iso null - снять подсветку, bbox не задан - камеру не трогать. */
-  focusRegion(iso: string | null, bbox?: BBox): void
+  focusRegion(iso: string | null, bbox?: BBox, close?: boolean): void
 }
 
 interface Props {
@@ -140,6 +140,11 @@ const covered = (map: maplibregl.Map, cover: Props['cover']) => {
 // Подсветка региона через feature-state: фильтр и выражения от свойств пересчитываются в воркере и во время
 // полёта камеры применяются только в конце.
 const ON: ExpressionSpecification = ['case', ['boolean', ['feature-state', 'on'], false], 1, 0]
+
+// На шаре maplibre при сдвиге по широте меняет zoom на log2(1/cos(lat)), чтобы шар на экране не менял размер.
+// Размер меток и сетку кластеров считаем от zoom, приведённого к экватору: иначе они скачут при каждом сдвиге.
+const viewZoom = (map: maplibregl.Map, globe: boolean) =>
+  map.getZoom() + (globe ? -Math.log2(Math.cos((map.getCenter().lat * Math.PI) / 180)) : 0)
 
 const selectedPx = (size: number) => Math.max(size, 32) * 1.1
 
@@ -219,7 +224,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     })
     map.touchZoomRotate.disableRotation()
     mapRef.current = map
-    baseZoom.current = map.getZoom()
+    baseZoom.current = viewZoom(map, globe)
     const redraw = () => setTick(t => t + 1)
     map.on('move', redraw)
     map.on('resize', redraw)
@@ -280,7 +285,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
   useImperativeHandle(ref, () => ({
     zoomBy: k => { const map = mapRef.current; if (map) map.zoomTo(map.getZoom() + Math.log2(k)) },
     flyTo: (lat, lng, zoom = 10) => camera(m => m.flyTo({ center: [lng, lat], zoom, duration: 800 })),
-    focusRegion: (iso, bbox) => {
+    focusRegion: (iso, bbox, close) => {
       const map = mapRef.current
       if (map?.getSource('russia')) {
         if (regionRef.current) map.setFeatureState({ source: 'russia', id: regionRef.current }, { on: false })
@@ -291,7 +296,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
       if (bbox) camera(m => {
         const { right, bottom } = covered(m, coverRef.current)
         const pad = m.getContainer().clientWidth < 500 ? { top: 24, right: 24, bottom: 24, left: 24 } : { ...EDGE, top: EDGE.top + 50 }
-        m.fitBounds(bbox, { padding: { ...pad, right: pad.right + right, bottom: pad.bottom + bottom }, maxZoom: 4.5, duration: 1200 })
+        m.fitBounds(bbox, { padding: { ...pad, right: pad.right + right, bottom: pad.bottom + bottom }, maxZoom: close ? 8 : 4.5, duration: 1200 })
       })
     },
   }), [])
@@ -355,7 +360,8 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     const wanted = new Set(anchorIds.split(',').map(Number))
     const { width, height } = map.getContainer().getBoundingClientRect()
     const center = map.getCenter().lng
-    const world = 512 * 2 ** map.getZoom()
+    const zoom = viewZoom(map, globe)
+    const world = 512 * 2 ** zoom
     const onScreen = (x: number, y: number) => x >= -CELL && y >= -CELL && x <= width + CELL && y <= height + CELL
     const cells = new Map<string, P[]>()
     for (const e of events) {
@@ -389,7 +395,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     if (sel >= 0) pins.push(...pins.splice(sel, 1))
     // Карточка держится в части, не закрытой панелью.
     const { right, bottom } = covered(map, coverRef.current)
-    return { pins, clusters, anchors, k: 2 ** (map.getZoom() - baseZoom.current), width, height, free: [width - right, height - bottom] }
+    return { pins, clusters, anchors, k: 2 ** (zoom - baseZoom.current), width, height, free: [width - right, height - bottom] }
     // tick - перерисовка при движении карты.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, isActive, tick, selectedId, anchorIds])
