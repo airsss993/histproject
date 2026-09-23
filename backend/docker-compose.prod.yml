@@ -13,6 +13,10 @@ services:
   api:
     <<: *app
     command: ["/app/api"]
+    # egress: код входа, тестовое письмо и проверка токена бота уходят из api напрямую.
+    networks:
+      - app_internal
+      - egress
     depends_on:
       db:
         condition: service_healthy

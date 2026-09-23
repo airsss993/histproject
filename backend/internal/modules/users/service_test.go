@@ -138,6 +138,11 @@ func (s *memoryStore) Allow(_ context.Context, key string, limit int, _ time.Dur
 	return s.counts[key] <= limit, nil
 }
 
+func (s *memoryStore) ResetLimit(_ context.Context, key string) error {
+	delete(s.counts, key)
+	return nil
+}
+
 func (s *memoryStore) CreateSession(_ context.Context, token string, id int64, _ time.Duration) error {
 	s.sessions[token] = id
 	return nil
@@ -156,11 +161,33 @@ func (s *memoryStore) DeleteSession(_ context.Context, token string) error {
 	return nil
 }
 
-type lastCode struct{ email, code string }
+type lastCode struct {
+	email, code string
+	err         error
+}
 
 func (m *lastCode) SendCode(_ context.Context, email, code string) error {
 	m.email, m.code = email, code
-	return nil
+	return m.err
+}
+
+func TestFailedMailDoesNotBurnCooldown(t *testing.T) {
+	ctx := t.Context()
+	repo := &memoryRepository{users: []User{{ID: 1, Email: "anna@example.ru"}}}
+	store := &memoryStore{codes: map[string]Pending{}, counts: map[string]int{}, sessions: map[string]int64{}}
+	mailer := &lastCode{err: errors.New("postbox down")}
+	service := NewService(repo, store, mailer, nil, time.Hour)
+
+	if err := service.RequestLogin(ctx, "anna@example.ru", "ip"); !errors.Is(err, mailer.err) {
+		t.Fatalf("RequestLogin() error = %v, want mailer error", err)
+	}
+	mailer.err = nil
+	if err := service.RequestLogin(ctx, "anna@example.ru", "ip"); err != nil {
+		t.Fatalf("retry after failed mail error = %v, want nil", err)
+	}
+	if err := service.RequestLogin(ctx, "anna@example.ru", "ip"); !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("third request error = %v, want rate limited", err)
+	}
 }
 
 type worksStub struct {

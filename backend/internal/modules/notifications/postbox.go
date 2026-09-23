@@ -93,7 +93,7 @@ func (sender *PostboxSender) Send(ctx context.Context, message Email) error {
 
 	connection, err := (&net.Dialer{}).DialContext(ctx, "tcp", sender.address)
 	if err != nil {
-		return errors.New("postbox: соединение не установлено")
+		return fmt.Errorf("postbox: соединение не установлено: %w", err)
 	}
 	// net/smtp не знает про context, дедлайн на соединении - единственный способ не зависнуть.
 	if deadline, ok := ctx.Deadline(); ok {

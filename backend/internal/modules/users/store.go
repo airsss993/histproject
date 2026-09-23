@@ -79,6 +79,13 @@ func (store *RedisStore) Allow(ctx context.Context, key string, limit int, windo
 	return count <= int64(limit), nil
 }
 
+func (store *RedisStore) ResetLimit(ctx context.Context, key string) error {
+	if err := store.client.Del(ctx, key).Err(); err != nil {
+		return fmt.Errorf("reset %s: %w", key, err)
+	}
+	return nil
+}
+
 func (store *RedisStore) CreateSession(ctx context.Context, token string, userID int64, ttl time.Duration) error {
 	if err := store.client.Set(ctx, sessionKey(token), userID, ttl).Err(); err != nil {
 		return fmt.Errorf("store user session: %w", err)
