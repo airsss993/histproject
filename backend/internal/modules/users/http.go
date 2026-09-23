@@ -10,7 +10,7 @@ import (
 	"github.com/airsss993/histproject/backend/internal/platform/httpserver"
 )
 
-// Отдельная кука от админской: вход посетителя не пускает в админку и наоборот.
+// Общая сессия пользователя для публичного профиля и панели модерации.
 const SessionCookieName = "histproject_user"
 
 type Handler struct {
@@ -85,6 +85,7 @@ func (handler *Handler) verify(w http.ResponseWriter, r *http.Request) {
 		cookie.Expires = time.Now().Add(ttl)
 	}
 	http.SetCookie(w, cookie)
+	handler.clearLegacyAdminCookie(w)
 	_ = httpserver.WriteJSON(w, http.StatusOK, map[string]any{"user": user})
 }
 
@@ -117,11 +118,19 @@ func (handler *Handler) logout(w http.ResponseWriter, r *http.Request) {
 		Name: SessionCookieName, Path: "/", Domain: handler.cookieDomain, Expires: time.Unix(1, 0), MaxAge: -1,
 		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
 	})
+	handler.clearLegacyAdminCookie(w)
 	if err != nil {
 		handler.writeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (handler *Handler) clearLegacyAdminCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name: "histproject_session", Path: "/", Domain: handler.cookieDomain, Expires: time.Unix(1, 0), MaxAge: -1,
+		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
+	})
 }
 
 func (handler *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) {

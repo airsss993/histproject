@@ -18,6 +18,7 @@ func TestRunRefusesWithoutApplyFlag(t *testing.T) {
 		"DATABASE_URL":             "postgres://database",
 		"BOOTSTRAP_ADMIN_LOGIN":    "root",
 		"BOOTSTRAP_ADMIN_PASSWORD": "long-enough-password",
+		"BOOTSTRAP_ADMIN_EMAIL":    "root@example.test",
 	}), &bytes.Buffer{}, &stderr, func(context.Context, bootstrapInput) error {
 		called = true
 		return nil
@@ -40,9 +41,9 @@ func TestRunRequiresBootstrapEnvironment(t *testing.T) {
 		values map[string]string
 		want   string
 	}{
-		{name: "database URL", values: map[string]string{"BOOTSTRAP_ADMIN_LOGIN": "root", "BOOTSTRAP_ADMIN_PASSWORD": "long-enough-password"}, want: "DATABASE_URL"},
-		{name: "login", values: map[string]string{"DATABASE_URL": "postgres://database", "BOOTSTRAP_ADMIN_PASSWORD": "long-enough-password"}, want: "BOOTSTRAP_ADMIN_LOGIN"},
-		{name: "password", values: map[string]string{"DATABASE_URL": "postgres://database", "BOOTSTRAP_ADMIN_LOGIN": "root"}, want: "BOOTSTRAP_ADMIN_PASSWORD"},
+		{name: "database URL", values: map[string]string{"BOOTSTRAP_ADMIN_LOGIN": "root", "BOOTSTRAP_ADMIN_PASSWORD": "long-enough-password", "BOOTSTRAP_ADMIN_EMAIL": "root@example.test"}, want: "DATABASE_URL"},
+		{name: "login", values: map[string]string{"DATABASE_URL": "postgres://database", "BOOTSTRAP_ADMIN_PASSWORD": "long-enough-password", "BOOTSTRAP_ADMIN_EMAIL": "root@example.test"}, want: "BOOTSTRAP_ADMIN_LOGIN"},
+		{name: "password", values: map[string]string{"DATABASE_URL": "postgres://database", "BOOTSTRAP_ADMIN_LOGIN": "root", "BOOTSTRAP_ADMIN_EMAIL": "root@example.test"}, want: "BOOTSTRAP_ADMIN_PASSWORD"},
 	}
 
 	for _, test := range tests {
@@ -95,6 +96,7 @@ func TestRunReportsExistingSuperAdminWithoutSecrets(t *testing.T) {
 		"DATABASE_URL":             databaseURL,
 		"BOOTSTRAP_ADMIN_LOGIN":    "root",
 		"BOOTSTRAP_ADMIN_PASSWORD": password,
+		"BOOTSTRAP_ADMIN_EMAIL":    "root@example.test",
 	}), &bytes.Buffer{}, &stderr, func(context.Context, bootstrapInput) error {
 		return admins.ErrSuperAdminExists
 	})
@@ -117,6 +119,7 @@ func TestRunDoesNotPrintBootstrapErrorDetails(t *testing.T) {
 		"DATABASE_URL":             "postgres://admin:database-secret@database/histproject",
 		"BOOTSTRAP_ADMIN_LOGIN":    "root",
 		"BOOTSTRAP_ADMIN_PASSWORD": "secret-password-value",
+		"BOOTSTRAP_ADMIN_EMAIL":    "root@example.test",
 	}), &bytes.Buffer{}, &stderr, func(context.Context, bootstrapInput) error {
 		return errors.New("connect postgres://admin:database-secret@database/histproject with secret-password-value")
 	})

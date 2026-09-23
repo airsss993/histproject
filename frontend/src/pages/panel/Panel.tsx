@@ -4,6 +4,7 @@ import { Logo, useIsMobile } from '../public/PublicMap.tsx'
 import { MapView, type MapHandle } from '../public/MapView.tsx'
 import { TYPES, TYPE_LABEL, formatDate, type ApiResult, type EventType } from '../public/api.ts'
 import { Field } from '../../shared/ui/Field.tsx'
+import { fetchMe, logoutUser } from '../public/api.ts'
 import * as api from './api.ts'
 import type { AuditEntry, Me, Moderator, Page, Role, Status, Submission, TelegramChat } from './api.ts'
 import '../public/public.css'
@@ -23,70 +24,33 @@ const MAX_REASON = 1000
 const noop = () => {}
 const always = () => true
 
-// Кончилась сессия - любой 401 возвращает на форму входа.
+// Кончилась общая сессия - любой 401 возвращает на общий вход.
 const ExpiredContext = React.createContext<() => void>(noop)
 
 export const Panel: React.FC = () => {
   const [me, setMe] = useState<Me | null | undefined>(undefined)
-  const [notice, setNotice] = useState('')
-  useEffect(() => { api.getSession().then(r => setMe(r.ok ? r.data.admin : null)) }, [])
+  const [forbidden, setForbidden] = useState(false)
+  const navigate = useNavigate()
+  useEffect(() => {
+    api.getSession().then(r => {
+      if (r.ok) setMe(r.data.admin)
+      else if (r.status === 401) navigate('/login', { replace: true, state: { back: '/admin' } })
+      else { setForbidden(r.status === 403); setMe(null) }
+    })
+  }, [navigate])
   if (me === undefined) return <div className="pm-root mod-page" />
-  if (!me) return <Login notice={notice} onDone={m => { setNotice(''); setMe(m) }} />
+  if (!me) return <div className="pm-root mod-page mod-login"><header className="mod-top"><Logo onClick={() => navigate('/map')} /></header><div className="mod-card mod-login-card"><h1 className="mod-title">{forbidden ? 'Нет доступа к панели' : 'Не удалось открыть панель'}</h1><p className="mod-dim">{forbidden ? 'Этот аккаунт не имеет прав модератора.' : 'Проверьте соединение и попробуйте ещё раз.'}</p><button className="pm-btn" onClick={() => navigate('/map')}>На карту</button></div></div>
   return (
-    <ExpiredContext.Provider value={() => setMe(null)}>
-      <Shell me={me} onMe={setMe} onLogout={() => { api.logout(); setMe(null) }}
-        onRelogin={() => { setNotice('Пароль изменён. Войдите с новым паролем.'); setMe(null) }} />
+    <ExpiredContext.Provider value={() => navigate('/login', { replace: true, state: { back: '/admin' } })}>
+      <Shell me={me} onLogout={async () => { await logoutUser(); navigate('/map', { replace: true }) }} />
     </ExpiredContext.Provider>
   )
 }
 
-const Login: React.FC<{ notice: string; onDone: (me: Me) => void }> = ({ notice, onDone }) => {
-  const navigate = useNavigate()
-  const [form, setForm] = useState({ login: '', password: '' })
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [busy, setBusy] = useState(false)
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const next: Record<string, string> = {}
-    if (!form.login.trim()) next.login = 'Введите логин'
-    if (!form.password) next.password = 'Введите пароль'
-    setErrors(next)
-    if (Object.keys(next).length || busy) return
-    setBusy(true)
-    const res = await api.login(form.login.trim(), form.password)
-    setBusy(false)
-    if (res.ok) return onDone(res.data.admin)
-    if (res.fields) setErrors(res.fields)
-    else setErrors({ form: res.status === 401 ? 'Неверный логин или пароль' : api.problem(res) })
-  }
-
-  return (
-    <div className="pm-root mod-page mod-login">
-      <header className="mod-top"><Logo onClick={() => navigate('/map')} /></header>
-      <form className="mod-card mod-login-card" onSubmit={submit} noValidate>
-        <h1 className="mod-title">Модерация</h1>
-        <p className="mod-dim">Вход для модераторов</p>
-        {notice && <p className="mod-note" role="status">{notice}</p>}
-        <Field label="Логин" error={errors.login}>
-          <input value={form.login} autoFocus autoComplete="username" maxLength={100}
-            onChange={e => setForm(f => ({ ...f, login: e.target.value }))} />
-        </Field>
-        <Field label="Пароль" error={errors.password}>
-          <input type="password" value={form.password} autoComplete="current-password" maxLength={128}
-            onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-        </Field>
-        {errors.form && <p className="mod-error" role="alert">{errors.form}</p>}
-        <button className="pm-btn mod-wide" disabled={busy}>{busy ? 'Входим...' : 'Войти'}</button>
-      </form>
-    </div>
-  )
-}
-
-type Tab = 'submissions' | 'history' | 'moderators' | 'bot' | 'mail' | 'profile'
+type Tab = 'submissions' | 'history' | 'moderators' | 'bot' | 'mail'
 
 // Иконки меню: контур 24x24, stroke задаёт .pm-menu-item svg.
-const ICON: Record<Tab | 'map' | 'logout', string> = {
+const ICON: Record<Tab | 'map' | 'logout' | 'profile', string> = {
   submissions: 'M4 13h4l1.5 3h5L16 13h4 M5.5 5h13L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-5z',
   history: 'M12 7v5l3 2 M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4',
   moderators: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20a6.5 6.5 0 0 1 13 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18.5 14.5A6.5 6.5 0 0 1 21.5 20',
@@ -100,16 +64,17 @@ const Icon: React.FC<{ name: keyof typeof ICON }> = ({ name }) => (
   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d={ICON[name]} /></svg>
 )
 
-const Shell: React.FC<{ me: Me; onMe: (me: Me) => void; onLogout: () => void; onRelogin: () => void }> = ({ me, onMe, onLogout, onRelogin }) => {
+const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => {
   const navigate = useNavigate()
+  const [profilePath, setProfilePath] = useState('/map')
+  useEffect(() => { const ac = new AbortController(); fetchMe(ac.signal).then(user => { if (user) setProfilePath(`/u/${user.publicId}`) }).catch(() => {}); return () => ac.abort() }, [])
   const mobile = useIsMobile()
   const [params, setParams] = useSearchParams()
   const superAdmin = me.role === 'super_admin'
-  const account: [string, [Tab, string][]] = ['Аккаунт', [['profile', 'Профиль']]]
   const groups: [string, [Tab, string][]][] = superAdmin
     ? [['Модерация', [['submissions', 'Заявки'], ['history', 'История']]],
-        ['Управление', [['moderators', 'Модераторы'], ['bot', 'Бот'], ['mail', 'Почта']]], account]
-    : [['Модерация', [['submissions', 'Заявки']]], account]
+        ['Управление', [['moderators', 'Модераторы'], ['bot', 'Бот'], ['mail', 'Почта']]]]
+    : [['Модерация', [['submissions', 'Заявки']]]]
   const tabs = groups.flatMap(([, items]) => items)
   const tab = tabs.find(([t]) => t === params.get('tab'))?.[0] ?? 'submissions'
   const open = (t: Tab) => setParams(t === 'submissions' ? {} : { tab: t })
@@ -141,15 +106,13 @@ const Shell: React.FC<{ me: Me; onMe: (me: Me) => void; onLogout: () => void; on
     <main key={tab} className="mod-main">
       {tab === 'submissions' && <Submissions mobile={mobile} />}
       {tab === 'history' && <History />}
-      {tab === 'moderators' && <Moderators me={me} onProfile={() => open('profile')} />}
+      {tab === 'moderators' && <Moderators me={me} />}
       {tab === 'bot' && <Bot />}
       {tab === 'mail' && <Mail />}
-      {tab === 'profile' && <Profile onSaved={a => onMe({ ...me, name: a.name })} onRelogin={onRelogin} />}
     </main>
   )
 
-  // На телефоне профиль - кнопкой в шапке: в нижней полосе места на пять вкладок.
-  const barTabs = tabs.filter(([t]) => t !== 'profile')
+  const barTabs = tabs
   if (mobile) return (
     <div className="pm-root mod-page mobile">
       <header className="mod-top">
@@ -163,8 +126,8 @@ const Shell: React.FC<{ me: Me; onMe: (me: Me) => void; onLogout: () => void; on
           </nav>
         )}
         <div className="pm-grow" />
-        <button type="button" className={`mod-side-back${tab === 'profile' ? ' on' : ''}`} title="Профиль" aria-label="Профиль"
-          aria-current={tab === 'profile' ? 'page' : undefined} onClick={() => open('profile')}><Icon name="profile" /></button>
+        <button type="button" className="mod-side-back" title="Мой профиль" aria-label="Мой профиль"
+          onClick={() => navigate(profilePath)}><Icon name="profile" /></button>
         <button type="button" className="pm-btn-text" onClick={onLogout}>Выйти</button>
       </header>
       {main}
@@ -194,6 +157,7 @@ const Shell: React.FC<{ me: Me; onMe: (me: Me) => void; onLogout: () => void; on
             </React.Fragment>
           ))}
         </nav>
+        <button type="button" className="pm-menu-item" onClick={() => navigate(profilePath)}><Icon name="profile" /><span>Мой профиль</span></button>
         <button type="button" className="pm-menu-item mod-side-out" title="Выйти" onClick={onLogout}><Icon name="logout" /><span>Выйти</span></button>
       </aside>
       <div className="mod-scroll">{main}</div>
@@ -489,89 +453,34 @@ const History: React.FC = () => {
   )
 }
 
-const EMPTY = { login: '', name: '', password: '', email: '', role: 'admin' as Role }
-
-// Пароль модератору: 14 символов, в нём есть заглавная, строчная, цифра и знак из _-!@#$%.
-// Без похожих друг на друга I, O, l, 0, 1: пароль часто диктуют или переписывают.
-const PASS_SETS = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnopqrstuvwxyz', '23456789', '_-!@#$%']
-const PASS_ALL = PASS_SETS.join('')
-const randomIndex = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n
-function generatePassword(length = 14) {
-  const chars = PASS_SETS.map(set => set[randomIndex(set.length)])
-  while (chars.length < length) chars.push(PASS_ALL[randomIndex(PASS_ALL.length)])
-  for (let i = chars.length - 1; i > 0; i--) {
-    const j = randomIndex(i + 1);
-    [chars[i], chars[j]] = [chars[j], chars[i]]
-  }
-  return chars.join('')
-}
-
-// Логин модератора из имени: "Иван Иванов" -> i.ivanov-k7m2. Хвост из 4 символов разводит однофамильцев,
-// в нём нет похожих друг на друга l, o, 0, 1. Уникальность всё равно проверяет база при создании.
-// Иконка кнопок "сгенерировать" в полях логина и пароля.
-const REGENERATE = 'M20 12a8 8 0 0 1-14.3 4.9 M4 12a8 8 0 0 1 14.3-4.9 M18.5 3v4.5H14 M5.5 21v-4.5H10'
-const LOGIN_TAG = 'abcdefghijkmnpqrstuvwxyz23456789'
-const TRANSLIT: Record<string, string> = {
-  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm',
-  н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch',
-  ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
-}
-const loginTag = () => Array.from({ length: 4 }, () => LOGIN_TAG[randomIndex(LOGIN_TAG.length)]).join('')
-function makeLogin(name: string, tag: string) {
-  const words = name.toLowerCase().split(/\s+/)
-    .map(w => [...w].map(c => TRANSLIT[c] ?? c).join('').replace(/[^a-z0-9]/g, '')).filter(Boolean)
-  if (!words.length) return ''
-  const base = words.length > 1 ? `${words[0][0]}.${words[words.length - 1]}` : words[0]
-  return `${base.slice(0, 90)}-${tag}`
-}
-
-const Moderators: React.FC<{ me: Me; onProfile: () => void }> = ({ me, onProfile }) => {
+const Moderators: React.FC<{ me: Me }> = ({ me }) => {
   const expired = React.useContext(ExpiredContext)
   const list = useLoad(() => api.listModerators(), [])
-  const [form, setForm] = useState(EMPTY)
-  const [generated, setGenerated] = useState('')
-  // Пока логин не правили руками, он собирается из имени.
-  const [autoLogin, setAutoLogin] = useState({ on: true, tag: loginTag() })
+  const [form, setForm] = useState({ name: '', email: '', role: 'admin' as Role })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState<number | null>(null)
-
   const act = async (action: () => Promise<ApiResult>, onOk?: () => void) => {
     setBusy(true)
     setNote('')
     const res = await action()
     setBusy(false)
-    if (res.ok) { onOk?.(); list.reload(); return true }
+    if (res.ok) { onOk?.(); list.reload(); return }
     if (res.status === 401) expired()
     else if (res.fields) setErrors(res.fields)
-    else setNote(res.message ?? api.problem(res))
-    return false
+    else setNote(api.problem(res))
   }
-
   const create = (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
-    act(() => api.createModerator({ ...form, login: form.login.trim(), name: form.name.trim(), email: form.email.trim() }),
-      () => { setForm(EMPTY); setAutoLogin({ on: true, tag: loginTag() }) })
+    act(() => api.createModerator({ ...form, name: form.name.trim(), email: form.email.trim() }),
+      () => setForm({ name: '', email: '', role: 'admin' }))
   }
-  const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const value = e.target.value
-    if (k === 'login') setAutoLogin(a => ({ ...a, on: false }))
-    setForm(f => ({ ...f, [k]: value, ...(k === 'name' && autoLogin.on ? { login: makeLogin(value, autoLogin.tag) } : {}) }))
-    setErrors(er => ({ ...er, [k]: '', ...(k === 'name' && autoLogin.on ? { login: '' } : {}) }))
-  }
-  const regenerateLogin = () => {
-    const tag = loginTag()
-    setAutoLogin({ on: true, tag })
-    setForm(f => ({ ...f, login: makeLogin(f.name, tag) }))
-    setErrors(er => ({ ...er, login: '' }))
-  }
-
   return (
     <section className="mod-narrow">
       <h1 className="mod-title">Модераторы</h1>
-      <p className="mod-dim">Модератор проверяет заявки. Супер-админ ещё видит историю и управляет модераторами.</p>
+      <p className="mod-dim">Назначайте роль зарегистрированному пользователю по его почте. Он входит по обычному коду.</p>
       {note && <p className="mod-error" role="alert">{note}</p>}
       <Rows state={list} empty="Никого нет">
         {(data: { items: Moderator[] }) => (
@@ -583,172 +492,55 @@ const Moderators: React.FC<{ me: Me; onProfile: () => void }> = ({ me, onProfile
             ) : (
               <li key={m.id} className="mod-row mod-mod">
                 <span className="mod-grow-col">
-                  <b>{m.name || m.login}{m.id === me.id && ' (вы)'}</b>
-                  <span className="mod-dim">{m.name && `${m.login} · `}{m.email || 'почта не указана'} · с {formatDate(m.createdAt)}</span>
+                  <b>{m.name || m.email}{m.id === me.id && ' (вы)'}</b>
+                  <span className="mod-dim">{m.email} · с {formatDate(m.createdAt)}</span>
                 </span>
-                <Field className="mod-select"><select value={m.role} disabled={busy || m.id === me.id} aria-label={`Роль ${m.login}`}
+                <Field className="mod-select"><select value={m.role} disabled={busy || m.id === me.id} aria-label={`Роль ${m.email}`}
                   onChange={e => act(() => api.changeRole(m.id, e.target.value as Role))}>
-                  <option value="admin">Модератор</option>
-                  <option value="super_admin">Супер-админ</option>
+                  <option value="admin">Модератор</option><option value="super_admin">Супер-админ</option>
                 </select></Field>
-                <button type="button" className="pm-btn-text" disabled={busy}
-                  onClick={() => m.id === me.id ? onProfile() : setEditing(m.id)}>Изменить</button>
-                {m.id !== me.id && (
+                {m.id !== me.id && <>
+                  <button type="button" className="pm-btn-text" disabled={busy} onClick={() => setEditing(m.id)}>Изменить</button>
                   <button type="button" className="pm-btn-text danger" disabled={busy}
-                    onClick={() => confirm(`Удалить ${m.login}? Войти он больше не сможет.`) && act(() => api.deleteModerator(m.id))}>Удалить</button>
-                )}
+                    onClick={() => confirm(`Снять роль с ${m.email}?`) && act(() => api.deleteModerator(m.id))}>Снять роль</button>
+                </>}
               </li>
             ))}
           </ul>
         )}
       </Rows>
-
       <form className="mod-card mod-form" onSubmit={create} noValidate>
-        <h3>Добавить модератора</h3>
+        <h3>Назначить роль</h3>
         <div className="mod-pair">
-          <Field label="Имя" error={errors.name}><input value={form.name} onChange={set('name')} autoComplete="off" maxLength={100} placeholder="Иван Иванов" /></Field>
-          <Field label="Логин" error={errors.login} after={
-            <button type="button" className="pm-field-btn" title="Собрать логин из имени" aria-label="Собрать логин из имени"
-              disabled={!makeLogin(form.name, 'x')} onClick={regenerateLogin}>
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={REGENERATE} /></svg>
-            </button>
-          }>
-            <input value={form.login} onChange={set('login')} autoComplete="off" spellCheck={false} maxLength={100} placeholder="i.ivanov-k7m2" />
-          </Field>
+          <Field label="Имя" error={errors.name}><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} /></Field>
+          <Field label="Почта пользователя" error={errors.email}><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} maxLength={254} required /></Field>
         </div>
-        <div className="mod-pair">
-          <Field label="Пароль" error={errors.password} after={
-            <button type="button" className="pm-field-btn" title="Сгенерировать пароль" aria-label="Сгенерировать пароль" onClick={() => {
-              const password = generatePassword()
-              setGenerated(password)
-              setForm(f => ({ ...f, password }))
-              setErrors(er => ({ ...er, password: '' }))
-            }}>
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={REGENERATE} /></svg>
-            </button>
-          }>
-            {/* Сгенерированный пароль виден, чтобы его можно было скопировать и передать модератору. */}
-            <input type={form.password && form.password === generated ? 'text' : 'password'} value={form.password} onChange={set('password')}
-              autoComplete="new-password" spellCheck={false} placeholder="не короче 12 символов" />
-          </Field>
-          <Field label="Почта для уведомлений" error={errors.email}><input type="email" value={form.email} onChange={set('email')} maxLength={254} placeholder="можно пусто" /></Field>
-        </div>
-        <div className="mod-pair">
-          <Field label="Роль" error={errors.role}>
-            <select value={form.role} onChange={set('role')}>
-              <option value="admin">Модератор</option>
-              <option value="super_admin">Супер-админ</option>
-            </select>
-          </Field>
-        </div>
-        <div className="mod-actions"><button className="pm-btn" disabled={busy}>Добавить</button></div>
+        <Field label="Роль" error={errors.role}><select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}>
+          <option value="admin">Модератор</option><option value="super_admin">Супер-админ</option>
+        </select></Field>
+        <div className="mod-actions"><button className="pm-btn" disabled={busy}>Назначить</button></div>
       </form>
     </section>
   )
 }
 
-// Правка чужой учётки. Свою супер-админ правит в профиле: там пароль меняется только с текущим.
 const ModeratorEdit: React.FC<{ moderator: Moderator; onCancel: () => void; onSaved: () => void }> = ({ moderator: m, onCancel, onSaved }) => {
-  const [form, setForm] = useState({ name: m.name, email: m.email, password: '' })
+  const [form, setForm] = useState({ name: m.name, email: m.email })
   const s = useSubmit()
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => { setForm(f => ({ ...f, [k]: e.target.value })); s.clear(k) }
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name.trim()) return s.setErrors({ name: 'Введите имя' })
-    if (await s.submit(() => api.updateModerator(m.id, { name: form.name.trim(), email: form.email.trim(), password: form.password }))) onSaved()
+    if (await s.submit(() => api.updateModerator(m.id, { name: form.name.trim(), email: form.email.trim() }))) onSaved()
   }
   return (
     <form className="mod-edit" onSubmit={save} noValidate>
-      <b>Изменить {m.login}</b>
+      <b>Изменить {m.email}</b>
       <div className="mod-pair">
-        <Field label="Имя" error={s.errors.name}><input value={form.name} onChange={set('name')} autoComplete="off" maxLength={100} autoFocus /></Field>
-        <Field label="Почта для уведомлений" error={s.errors.email}><input type="email" value={form.email} onChange={set('email')} maxLength={254} placeholder="можно пусто" /></Field>
-      </div>
-      <div className="mod-pair">
-        <Field label="Новый пароль" error={s.errors.password}>
-          <input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="пусто - пароль прежний" />
-        </Field>
-      </div>
-      {form.password && <p className="mod-dim">После смены пароля модератора выкинет из панели на всех устройствах.</p>}
-      {s.noteLine}
-      <div className="mod-actions">
-        <button className="pm-btn" disabled={s.busy}>{s.busy ? 'Сохраняем...' : 'Сохранить'}</button>
-        <button type="button" className="pm-btn-text" onClick={onCancel}>Отмена</button>
-      </div>
-    </form>
-  )
-}
-
-const Profile: React.FC<{ onSaved: (m: Moderator) => void; onRelogin: () => void }> = ({ onSaved, onRelogin }) => {
-  const state = useLoad(() => api.getProfile(), [])
-  return (
-    <section className="mod-narrow">
-      <h1 className="mod-title">Профиль</h1>
-      {state.data
-        ? <ProfileForm admin={state.data.admin} onSaved={onSaved} />
-        : state.error
-          ? <p className="mod-error">{state.error} <button type="button" className="pm-btn-text" onClick={state.reload}>Повторить</button></p>
-          : <p className="mod-dim">Загружаем...</p>}
-      <PasswordForm onDone={onRelogin} />
-    </section>
-  )
-}
-
-const ProfileForm: React.FC<{ admin: Moderator; onSaved: (m: Moderator) => void }> = ({ admin, onSaved }) => {
-  const [form, setForm] = useState({ name: admin.name, email: admin.email })
-  const s = useSubmit()
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => { setForm(f => ({ ...f, [k]: e.target.value })); s.clear(k) }
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!form.name.trim()) return s.setErrors({ name: 'Введите имя' })
-    const res = await s.submit(() => api.updateProfile({ name: form.name.trim(), email: form.email.trim() }), 'Сохранено')
-    if (res) { setForm({ name: res.admin.name, email: res.admin.email }); onSaved(res.admin) }
-  }
-  return (
-    <form className="mod-card mod-form" onSubmit={save} noValidate>
-      <h3>Данные</h3>
-      <p className="mod-dim">Логин {admin.login}, {api.ROLE_LABEL[admin.role].toLowerCase()}. Логин и роль меняет супер-админ.</p>
-      <div className="mod-pair">
-        <Field label="Имя" error={s.errors.name}><input value={form.name} onChange={set('name')} autoComplete="name" maxLength={100} placeholder="Иван Иванов" /></Field>
-        <Field label="Почта для уведомлений" error={s.errors.email}><input type="email" value={form.email} onChange={set('email')} autoComplete="email" maxLength={254} placeholder="можно пусто" /></Field>
-      </div>
-      <p className="mod-dim">На почту приходят письма о новых заявках. Пустое поле - писем не будет.</p>
-      {s.noteLine}
-      <div className="mod-actions"><button className="pm-btn" disabled={s.busy}>{s.busy ? 'Сохраняем...' : 'Сохранить'}</button></div>
-    </form>
-  )
-}
-
-const PasswordForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
-  const [form, setForm] = useState({ currentPassword: '', password: '', repeat: '' })
-  const s = useSubmit()
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => { setForm(f => ({ ...f, [k]: e.target.value })); s.clear(k) }
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const next: Record<string, string> = {}
-    if (!form.currentPassword) next.currentPassword = 'Введите текущий пароль'
-    if (!form.password) next.password = 'Введите новый пароль'
-    else if (form.repeat !== form.password) next.repeat = 'Пароли не совпадают'
-    if (Object.keys(next).length) return s.setErrors(next)
-    if (await s.submit(() => api.changePassword(form.currentPassword, form.password))) onDone()
-  }
-  return (
-    <form className="mod-card mod-form" onSubmit={save} noValidate>
-      <h3>Пароль</h3>
-      <p className="mod-dim">После смены пароля панель попросит войти заново, на остальных устройствах сессии закроются.</p>
-      <Field label="Текущий пароль" error={s.errors.currentPassword}>
-        <input type="password" value={form.currentPassword} onChange={set('currentPassword')} autoComplete="current-password" />
-      </Field>
-      <div className="mod-pair">
-        <Field label="Новый пароль" error={s.errors.password}>
-          <input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="не короче 12 символов" />
-        </Field>
-        <Field label="Повторите пароль" error={s.errors.repeat}>
-          <input type="password" value={form.repeat} onChange={set('repeat')} autoComplete="new-password" />
-        </Field>
+        <Field label="Имя" error={s.errors.name}><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} autoFocus /></Field>
+        <Field label="Почта пользователя" error={s.errors.email}><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} maxLength={254} /></Field>
       </div>
       {s.noteLine}
-      <div className="mod-actions"><button className="pm-btn" disabled={s.busy}>{s.busy ? 'Меняем...' : 'Сменить пароль'}</button></div>
+      <div className="mod-actions"><button className="pm-btn" disabled={s.busy}>Сохранить</button><button type="button" className="pm-btn-text" onClick={onCancel}>Отмена</button></div>
     </form>
   )
 }

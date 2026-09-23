@@ -69,8 +69,6 @@ const query = (params: Record<string, string | number | undefined>) =>
   new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])).toString()
 
 export const getSession = () => call<{ admin: Me }>('GET', '/auth/session')
-export const login = (login: string, password: string) => call<{ admin: Me }>('POST', '/auth/login', { login, password })
-export const logout = () => call('POST', '/auth/logout')
 
 export const listSubmissions = (p: { status?: Status | ''; q?: string; page: number }) =>
   call<Page<Submission>>('GET', `/admin/submissions?${query({ ...p, pageSize: 20 })}`)
@@ -83,19 +81,12 @@ export const publishSubmission = (id: number, latitude: number, longitude: numbe
 export const listAudit = (p: { q?: string; page: number }) => call<Page<AuditEntry>>('GET', `/admin/audit-log?${query({ ...p, pageSize: 30 })}`)
 
 export const listModerators = () => call<{ items: Moderator[] }>('GET', '/admin/admins')
-export const createModerator = (body: { login: string; name: string; password: string; email: string; role: Role }) =>
+export const createModerator = (body: { name: string; email: string; role: Role }) =>
   call<{ admin: Moderator }>('POST', '/admin/admins', body)
 export const changeRole = (id: number, role: Role) => call<{ admin: Moderator }>('PATCH', `/admin/admins/${id}/role`, { role })
 export const deleteModerator = (id: number) => call('DELETE', `/admin/admins/${id}`)
-// Пустой password оставляет прежний пароль.
-export const updateModerator = (id: number, body: { name: string; email: string; password: string }) =>
+export const updateModerator = (id: number, body: { name: string; email: string }) =>
   call<{ admin: Moderator }>('PATCH', `/admin/admins/${id}`, body)
-
-export const getProfile = () => call<{ admin: Moderator }>('GET', '/admin/profile')
-export const updateProfile = (body: { name: string; email: string }) => call<{ admin: Moderator }>('PATCH', '/admin/profile', body)
-// После смены пароля все сессии учётки, включая текущую, недействительны.
-export const changePassword = (currentPassword: string, password: string) =>
-  call('PUT', '/admin/profile/password', { currentPassword, password })
 
 // name, address и domain приходят, только если почта настроена. domain - подтверждённый в Postbox.
 export interface MailStatus { configured: boolean; name?: string; address?: string; domain?: string }

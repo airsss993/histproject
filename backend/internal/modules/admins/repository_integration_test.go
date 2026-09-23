@@ -15,7 +15,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
+func TestRepositoryFindsIdentityByEmail(t *testing.T) {
 	databaseURL := os.Getenv("TEST_ADMINS_DATABASE_URL")
 	if databaseURL == "" {
 		t.Skip("TEST_ADMINS_DATABASE_URL is not set")
@@ -49,16 +49,19 @@ func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
 	}
 	t.Cleanup(pool.Close)
 	repository := NewRepository(pool)
+	if _, err := pool.Exec(ctx, `INSERT INTO users.users (email, first_name, last_name) VALUES ('root@example.test','Root',''), ('second@example.test','Second',''), ('third@example.test','Third','')`); err != nil {
+		t.Fatalf("seed users: %v", err)
+	}
 
-	adminID, login, _, passwordHash, role, err := repository.FindCredentialsByLogin(ctx, "root")
+	adminID, login, _, role, err := repository.FindIdentityByEmail(ctx, "root@example.test")
 	if err != nil {
-		t.Fatalf("FindCredentialsByLogin() error = %v", err)
+		t.Fatalf("FindIdentityByEmail() error = %v", err)
 	}
-	if adminID != 1 || login != "root" || passwordHash != "$2a$12$test-hash" || role != "super_admin" {
-		t.Fatalf("credentials = (%d, %q, %q, %q)", adminID, login, passwordHash, role)
+	if adminID != 1 || login != "root" || role != "super_admin" {
+		t.Fatalf("credentials = (%d, %q, %q, %q)", adminID, login, "", role)
 	}
 
-	_, _, _, _, _, err = repository.FindCredentialsByLogin(ctx, "missing")
+	_, _, _, _, err = repository.FindIdentityByEmail(ctx, "missing@example.test")
 	if !errors.Is(err, pgx.ErrNoRows) {
 		t.Fatalf("missing credentials error = %v, want pgx.ErrNoRows", err)
 	}
@@ -66,6 +69,7 @@ func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
 	_, err = repository.Create(ctx, CreateRecord{
 		Login:        "root",
 		PasswordHash: "$2a$12$other-hash",
+		Email:        "second@example.test",
 		Role:         RoleAdmin,
 	})
 	if !errors.Is(err, ErrLoginTaken) {
@@ -102,6 +106,7 @@ func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
 	thirdSuperAdmin, err := repository.Create(ctx, CreateRecord{
 		Login:        "third-root",
 		PasswordHash: "$2a$12$third-hash",
+		Email:        "third@example.test",
 		Role:         RoleSuperAdmin,
 	})
 	if err != nil {
@@ -116,18 +121,16 @@ func TestRepositoryFindsCredentialsByLogin(t *testing.T) {
 	if err != nil || updated.Name != "Анна" || updated.Email != "root@example.test" {
 		t.Fatalf("Update() name only = %#v, %v", updated, err)
 	}
-	if hash, err := repository.PasswordHash(ctx, 1); err != nil || hash != "$2a$12$test-hash" {
-		t.Fatalf("password hash after name update = %q, %v", hash, err)
+	email := "third@example.test"
+	if _, err := repository.Update(ctx, 1, UpdateRecord{Email: &email}); !errors.Is(err, ErrEmailTaken) {
+		t.Fatalf("Update() duplicate email = %v", err)
 	}
-	empty := ""
-	if _, err := repository.Update(ctx, 1, UpdateRecord{Email: &empty, PasswordHash: "$2a$12$new-hash"}); err != nil {
+	email = "second@example.test"
+	if _, err := repository.Update(ctx, 1, UpdateRecord{Email: &email}); err != nil {
 		t.Fatalf("Update() email and password: %v", err)
 	}
-	if got, err := repository.Get(ctx, 1); err != nil || got.Name != "Анна" || got.Email != "" {
+	if got, err := repository.Get(ctx, 1); err != nil || got.Name != "Анна" || got.Email != email {
 		t.Fatalf("Get() after update = %#v, %v", got, err)
-	}
-	if hash, _ := repository.PasswordHash(ctx, 1); hash != "$2a$12$new-hash" {
-		t.Fatalf("password hash = %q, want new", hash)
 	}
 	if _, err := repository.Update(ctx, 999, UpdateRecord{Name: &name}); !errors.Is(err, ErrAdminNotFound) {
 		t.Fatalf("Update() missing admin error = %v, want ErrAdminNotFound", err)

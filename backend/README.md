@@ -69,8 +69,6 @@ go run ./cmd/bootstrap-admin --apply
 
 API предоставляет:
 
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/session`
 - `GET /api/v1/events`
 - `GET /api/v1/events/{id}`

@@ -18,27 +18,37 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-func (repository *Repository) FindCredentialsByLogin(ctx context.Context, login string) (int64, string, string, string, string, error) {
+func (repository *Repository) FindIdentityByEmail(ctx context.Context, email string) (int64, string, string, string, error) {
 	var adminID int64
-	var storedLogin, name, passwordHash, role string
+	var login, name, role string
 	err := repository.pool.QueryRow(ctx, `
-		SELECT id, login, name, password_hash, role::TEXT
+		SELECT id, login, name, role::TEXT
 		FROM auth.admins
-		WHERE login = $1
-	`, login).Scan(&adminID, &storedLogin, &name, &passwordHash, &role)
+		WHERE LOWER(email) = $1 AND email <> ''
+	`, email).Scan(&adminID, &login, &name, &role)
 	if err != nil {
-		return 0, "", "", "", "", fmt.Errorf("find admin credentials: %w", err)
+		return 0, "", "", "", fmt.Errorf("find admin identity: %w", err)
 	}
-	return adminID, storedLogin, name, passwordHash, role, nil
+	return adminID, login, name, role, nil
 }
 
 func (repository *Repository) Create(ctx context.Context, input CreateRecord) (Admin, error) {
+	var exists bool
+	if err := repository.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users.users WHERE email = $1)`, input.Email).Scan(&exists); err != nil {
+		return Admin{}, fmt.Errorf("check user account: %w", err)
+	}
+	if !exists {
+		return Admin{}, ErrUserNotFound
+	}
 	admin, err := scanAdmin(repository.pool.QueryRow(ctx, `
 		INSERT INTO auth.admins (login, name, password_hash, email, role)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, login, name, email, role::TEXT, created_at
 	`, input.Login, input.Name, input.PasswordHash, input.Email, input.Role))
-	if isUniqueViolation(err) {
+	if constraint := uniqueConstraint(err); constraint != "" {
+		if constraint == "admins_email_ci_unique" {
+			return Admin{}, ErrEmailTaken
+		}
 		return Admin{}, ErrLoginTaken
 	}
 	if err != nil {
@@ -70,11 +80,21 @@ func (repository *Repository) CreateInitialSuperAdmin(ctx context.Context, input
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, login, name, email, role::TEXT, created_at
 	`, input.Login, input.Name, input.PasswordHash, input.Email, input.Role))
-	if isUniqueViolation(err) {
+	if constraint := uniqueConstraint(err); constraint != "" {
+		if constraint == "admins_email_ci_unique" {
+			return Admin{}, ErrEmailTaken
+		}
 		return Admin{}, ErrLoginTaken
 	}
 	if err != nil {
 		return Admin{}, fmt.Errorf("create initial super admin: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO users.users (email, first_name, last_name)
+		VALUES ($1, LEFT(COALESCE(NULLIF(SPLIT_PART(BTRIM($2), ' ', 1), ''), $3), 50), '')
+		ON CONFLICT (email) DO NOTHING
+	`, input.Email, input.Name, input.Login); err != nil {
+		return Admin{}, fmt.Errorf("create initial user account: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return Admin{}, fmt.Errorf("commit super admin bootstrap: %w", err)
@@ -186,35 +206,34 @@ func (repository *Repository) Get(ctx context.Context, adminID int64) (Admin, er
 	return admin, nil
 }
 
-// Update меняет только заданные поля: NULL в имени и почте и пустой хеш оставляют прежнее значение.
+// Update меняет только заданные поля.
 func (repository *Repository) Update(ctx context.Context, adminID int64, record UpdateRecord) (Admin, error) {
+	if record.Email != nil {
+		var exists bool
+		if err := repository.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users.users WHERE email = $1)`, *record.Email).Scan(&exists); err != nil {
+			return Admin{}, fmt.Errorf("check user account: %w", err)
+		}
+		if !exists {
+			return Admin{}, ErrUserNotFound
+		}
+	}
 	admin, err := scanAdmin(repository.pool.QueryRow(ctx, `
 		UPDATE auth.admins
 		SET name = COALESCE($2, name),
-			email = COALESCE($3, email),
-			password_hash = COALESCE(NULLIF($4, ''), password_hash)
+			email = COALESCE($3, email)
 		WHERE id = $1
 		RETURNING id, login, name, email, role::TEXT, created_at
-	`, adminID, record.Name, record.Email, record.PasswordHash))
+	`, adminID, record.Name, record.Email))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Admin{}, ErrAdminNotFound
+	}
+	if uniqueConstraint(err) == "admins_email_ci_unique" {
+		return Admin{}, ErrEmailTaken
 	}
 	if err != nil {
 		return Admin{}, fmt.Errorf("update admin: %w", err)
 	}
 	return admin, nil
-}
-
-func (repository *Repository) PasswordHash(ctx context.Context, adminID int64) (string, error) {
-	var passwordHash string
-	err := repository.pool.QueryRow(ctx, `SELECT password_hash FROM auth.admins WHERE id = $1`, adminID).Scan(&passwordHash)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "", ErrAdminNotFound
-	}
-	if err != nil {
-		return "", fmt.Errorf("read admin password hash: %w", err)
-	}
-	return passwordHash, nil
 }
 
 func (repository *Repository) HasSuperAdmin(ctx context.Context) (bool, error) {
@@ -279,7 +298,10 @@ func ensureAnotherSuperAdmin(ctx context.Context, tx pgx.Tx) error {
 	return nil
 }
 
-func isUniqueViolation(err error) bool {
+func uniqueConstraint(err error) string {
 	var postgresError *pgconn.PgError
-	return errors.As(err, &postgresError) && postgresError.Code == "23505"
+	if errors.As(err, &postgresError) && postgresError.Code == "23505" {
+		return postgresError.ConstraintName
+	}
+	return ""
 }

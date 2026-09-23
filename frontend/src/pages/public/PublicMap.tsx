@@ -63,21 +63,45 @@ const NavIcon: React.FC<{ d: string }> = ({ d }) => (
 // Меню шапки карты и профиля. На карту ведёт логотип, отдельного пункта нет.
 export const HeaderNav: React.FC<{
   me: User | null; mobile: boolean; onLogout: () => void; onPropose: () => void; proposeOpen?: boolean
-}> = ({ me, mobile, onLogout, onPropose, proposeOpen }) => (
-  <nav className="pm-nav">
+}> = ({ me, mobile, onLogout, onPropose, proposeOpen }) => {
+  const [open, setOpen] = useState(false)
+  const [adminRole, setAdminRole] = useState<'admin' | 'super_admin' | null>(null)
+  const menu = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!me) { setAdminRole(null); setOpen(false); return }
+    const ac = new AbortController()
+    fetch(`${import.meta.env.VITE_API_BASE ?? ''}/api/v1/auth/session`, { credentials: 'include', signal: ac.signal })
+      .then(async r => { const role = r.ok ? (await r.json()).admin.role : null; if (!ac.signal.aborted) setAdminRole(role) }).catch(() => {})
+    return () => ac.abort()
+  }, [me?.id])
+  useEffect(() => {
+    if (!open) return
+    const outside = (e: MouseEvent) => { if (!menu.current?.contains(e.target as Node)) setOpen(false) }
+    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', outside)
+    document.addEventListener('keydown', escape)
+    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', escape) }
+  }, [open])
+  return <nav className="pm-nav">
     <Link to="/about" className="pm-nav-item">О проекте</Link>
     {me
-      ? <>
-          <Link to={`/u/${me.publicId}`} className="pm-user" title="Мой профиль">
+      ? <div className="pm-account" ref={menu}>
+          <button type="button" className="pm-user" aria-label="Меню аккаунта" aria-expanded={open} aria-haspopup="true" onClick={() => setOpen(v => !v)}>
             <Avatar seed={me.publicId} size={30} />
-            {!mobile && <span className="pm-user-name">{me.firstName} {me.lastName[0]}.</span>}
-          </Link>
-          <button type="button" className="pm-user-out" onClick={onLogout} title="Выйти" aria-label="Выйти"><NavIcon d={LOGOUT} /></button>
-        </>
+            {!mobile && <span className="pm-user-name">{me.firstName}{me.lastName ? ` ${me.lastName[0]}.` : ''}</span>}
+            <span aria-hidden="true">⌄</span>
+          </button>
+          {open && <div className="pm-account-menu">
+            <div className="pm-account-head"><Avatar seed={me.publicId} size={34} /><span><strong>{me.firstName} {me.lastName}</strong>{adminRole && <small>{adminRole === 'super_admin' ? 'Супер-админ' : 'Модератор'}</small>}</span></div>
+            <Link to={`/u/${me.publicId}`} onClick={() => setOpen(false)}>Мой профиль</Link>
+            {adminRole && <Link to="/admin" onClick={() => setOpen(false)}>Панель модератора</Link>}
+            <button type="button" onClick={() => { setOpen(false); onLogout() }}><NavIcon d={LOGOUT} />Выйти</button>
+          </div>}
+        </div>
       : <Link to="/login" className="pm-btn-ghost pm-pill pm-login"><NavIcon d={LOGIN} />Войти</Link>}
     {!mobile && <button type="button" className={`pm-btn-light pm-pill${proposeOpen ? ' on' : ''}`} onClick={onPropose}>Предложить событие</button>}
   </nav>
-)
+}
 
 export const PublicMap: React.FC = () => {
   const [params, setParams] = useSearchParams()

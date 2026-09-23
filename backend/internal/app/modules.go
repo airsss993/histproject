@@ -35,17 +35,6 @@ type Modules struct {
 func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database.Database, redisClient *redisstore.Store, storageClient *storage.MinIO) Modules {
 	adminRepository := admins.NewRepository(databaseClient.Pool())
 	adminService := admins.NewService(adminRepository)
-	authHandler := auth.NewHandler(
-		auth.NewService(adminRepository, auth.NewSessionStore(redisClient.Client()), cfg.SessionTTL),
-		auth.NewLoginLimiter(redisClient.Client()),
-		logger,
-		cfg.CookieDomain,
-		cfg.SessionTTL,
-	)
-	adminHandler := admins.NewHandler(adminService, logger, func(ctx context.Context) (admins.Actor, bool) {
-		identity, ok := auth.IdentityFromContext(ctx)
-		return admins.Actor{AdminID: identity.AdminID, Role: admins.Role(identity.Role)}, ok
-	})
 	eventService := events.NewService(events.NewRepository(databaseClient.Pool()))
 	eventHandler := events.NewHandler(eventService, logger)
 	submissionRepository := submissions.NewRepository(databaseClient.Pool())
@@ -63,6 +52,11 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		users.NewRepository(databaseClient.Pool()), users.NewStore(redisClient.Client()),
 		NewCodeMailer(cfg, logger, notificationRepository), authorWorks{service: submissionService}, cfg.SessionTTL,
 	)
+	authHandler := auth.NewHandler(auth.NewService(adminRepository), currentUserEmail(userService), logger)
+	adminHandler := admins.NewHandler(adminService, logger, func(ctx context.Context) (admins.Actor, bool) {
+		identity, ok := auth.IdentityFromContext(ctx)
+		return admins.Actor{AdminID: identity.AdminID, Role: admins.Role(identity.Role)}, ok
+	})
 	submissionHandler := submissions.NewHandler(
 		submissionService,
 		submissions.NewCreateLimiter(redisClient.Client()),
@@ -93,7 +87,7 @@ func (modules Modules) Register(mux *http.ServeMux) {
 		return modules.auth.Authenticate(auth.RequireRole(string(admins.RoleSuperAdmin))(next))
 	}
 	modules.auth.Register(mux)
-	modules.admins.Register(mux, superAdminOnly, adminOnly)
+	modules.admins.Register(mux, superAdminOnly)
 	modules.events.Register(mux, adminOnly)
 	modules.submissions.Register(mux, adminOnly, superAdminOnly)
 	if modules.users != nil {
@@ -104,6 +98,20 @@ func (modules Modules) Register(mux *http.ServeMux) {
 	}
 	if modules.mail != nil {
 		modules.mail.Register(mux, superAdminOnly)
+	}
+}
+
+func currentUserEmail(service *users.Service) auth.UserEmail {
+	return func(r *http.Request) (string, error) {
+		token := ""
+		if cookie, err := r.Cookie(users.SessionCookieName); err == nil {
+			token = cookie.Value
+		}
+		user, err := service.Authenticate(r.Context(), token)
+		if errors.Is(err, users.ErrNoSession) {
+			return "", auth.ErrUnauthenticated
+		}
+		return user.Email, err
 	}
 }
 

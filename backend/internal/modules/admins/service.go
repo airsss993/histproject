@@ -2,6 +2,8 @@ package admins
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/mail"
 	"regexp"
@@ -14,6 +16,8 @@ import (
 var (
 	ErrAdminNotFound    = errors.New("admin not found")
 	ErrLoginTaken       = errors.New("admin login already exists")
+	ErrEmailTaken       = errors.New("admin email already exists")
+	ErrUserNotFound     = errors.New("user account not found")
 	ErrSuperAdminExists = errors.New("super admin already exists")
 	ErrSelfMutation     = errors.New("admin cannot mutate itself")
 	ErrLastSuperAdmin   = errors.New("last super admin cannot be changed")
@@ -37,17 +41,15 @@ type CreateRecord struct {
 	Role         Role
 }
 
-// UpdateInput - правка учётки. nil - поле не меняется, пустой Password - пароль прежний.
+// UpdateInput - правка роли. nil - поле не меняется.
 type UpdateInput struct {
-	Name     *string
-	Email    *string
-	Password string
+	Name  *string
+	Email *string
 }
 
 type UpdateRecord struct {
-	Name         *string
-	Email        *string
-	PasswordHash string
+	Name  *string
+	Email *string
 }
 
 type ValidationError struct {
@@ -66,7 +68,6 @@ type Store interface {
 	Delete(context.Context, int64) error
 	Get(context.Context, int64) (Admin, error)
 	Update(context.Context, int64, UpdateRecord) (Admin, error)
-	PasswordHash(context.Context, int64) (string, error)
 }
 
 type Service struct {
@@ -78,15 +79,36 @@ func NewService(store Store) *Service {
 }
 
 func (service *Service) Create(ctx context.Context, input CreateInput) (Admin, error) {
-	record, err := prepareCreateRecord(input, true)
+	input.Name = strings.Join(strings.Fields(input.Name), " ")
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+	input.Role = Role(strings.TrimSpace(string(input.Role)))
+	fields := validateCreate(input, true)
+	delete(fields, "login")
+	delete(fields, "password")
+	if input.Email == "" {
+		fields["email"] = "Введите почту"
+	}
+	if len(fields) > 0 {
+		return Admin{}, &ValidationError{Fields: fields}
+	}
+	digest := sha256.Sum256([]byte(input.Email))
+	record := CreateRecord{
+		Login: "account-" + hex.EncodeToString(digest[:12]), Name: input.Name,
+		PasswordHash: "disabled", Email: input.Email, Role: input.Role,
+	}
+	admin, err := service.store.Create(ctx, record)
 	if err != nil {
 		return Admin{}, err
 	}
-	return service.store.Create(ctx, record)
+	return admin, nil
 }
 
 func (service *Service) Bootstrap(ctx context.Context, input CreateInput) (Admin, error) {
 	input.Role = RoleSuperAdmin
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+	if input.Email == "" {
+		return Admin{}, &ValidationError{Fields: map[string]string{"email": "Введите почту"}}
+	}
 	record, err := prepareCreateRecord(input, false)
 	if err != nil {
 		return Admin{}, err
@@ -98,7 +120,7 @@ func (service *Service) Bootstrap(ctx context.Context, input CreateInput) (Admin
 func prepareCreateRecord(input CreateInput, requireName bool) (CreateRecord, error) {
 	input.Login = strings.TrimSpace(input.Login)
 	input.Name = strings.TrimSpace(input.Name)
-	input.Email = strings.TrimSpace(input.Email)
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
 	if fields := validateCreate(input, requireName); len(fields) > 0 {
 		return CreateRecord{}, &ValidationError{Fields: fields}
 	}
@@ -137,7 +159,7 @@ func (service *Service) Delete(ctx context.Context, callerID, targetID int64) er
 	return service.store.Delete(ctx, targetID)
 }
 
-// Update - правка чужой учётки супер-админом. Свою правят через профиль: там пароль меняется только с текущим.
+// Update - правка чужой учётки супер-админом.
 func (service *Service) Update(ctx context.Context, callerID, targetID int64, input UpdateInput) (Admin, error) {
 	if callerID == targetID {
 		return Admin{}, ErrSelfMutation
@@ -147,37 +169,6 @@ func (service *Service) Update(ctx context.Context, callerID, targetID int64, in
 		return Admin{}, err
 	}
 	return service.store.Update(ctx, targetID, record)
-}
-
-func (service *Service) Get(ctx context.Context, adminID int64) (Admin, error) {
-	return service.store.Get(ctx, adminID)
-}
-
-func (service *Service) UpdateProfile(ctx context.Context, adminID int64, name, email string) (Admin, error) {
-	record, err := prepareUpdateRecord(UpdateInput{Name: &name, Email: &email})
-	if err != nil {
-		return Admin{}, err
-	}
-	return service.store.Update(ctx, adminID, record)
-}
-
-func (service *Service) ChangePassword(ctx context.Context, adminID int64, current, next string) error {
-	if next == "" {
-		return &ValidationError{Fields: map[string]string{"password": "Введите новый пароль"}}
-	}
-	record, err := prepareUpdateRecord(UpdateInput{Password: next})
-	if err != nil {
-		return err
-	}
-	hash, err := service.store.PasswordHash(ctx, adminID)
-	if err != nil {
-		return err
-	}
-	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(current)) != nil {
-		return &ValidationError{Fields: map[string]string{"currentPassword": "Неверный пароль"}}
-	}
-	_, err = service.store.Update(ctx, adminID, record)
-	return err
 }
 
 func prepareUpdateRecord(input UpdateInput) (UpdateRecord, error) {
@@ -191,26 +182,17 @@ func prepareUpdateRecord(input UpdateInput) (UpdateRecord, error) {
 		record.Name = &name
 	}
 	if input.Email != nil {
-		email := strings.TrimSpace(*input.Email)
+		email := strings.ToLower(strings.TrimSpace(*input.Email))
 		if problem := emailProblem(email); problem != "" {
 			fields["email"] = problem
 		}
-		record.Email = &email
-	}
-	if input.Password != "" {
-		if problem := passwordProblem(input.Password); problem != "" {
-			fields["password"] = problem
+		if email == "" {
+			fields["email"] = "Введите почту"
 		}
+		record.Email = &email
 	}
 	if len(fields) > 0 {
 		return UpdateRecord{}, &ValidationError{Fields: fields}
-	}
-	if input.Password != "" {
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
-		if err != nil {
-			return UpdateRecord{}, errors.New("hash admin password")
-		}
-		record.PasswordHash = string(passwordHash)
 	}
 	return record, nil
 }

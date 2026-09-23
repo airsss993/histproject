@@ -56,6 +56,7 @@ func run(parent context.Context, args []string, getenv func(string) string, stdo
 		"DATABASE_URL":             input.databaseURL,
 		"BOOTSTRAP_ADMIN_LOGIN":    input.login,
 		"BOOTSTRAP_ADMIN_PASSWORD": input.password,
+		"BOOTSTRAP_ADMIN_EMAIL":    input.email,
 	} {
 		if value == "" {
 			_, _ = fmt.Fprintf(stderr, "%s is required\n", key)

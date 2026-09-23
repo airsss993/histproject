@@ -57,11 +57,14 @@ func TestAPIHTTPFlow(t *testing.T) {
 		t.Fatalf("flush Redis: %v", err)
 	}
 
+	if _, err := users.NewRepository(databaseClient.Pool()).Create(ctx, users.User{Email: "editor@example.test", FirstName: "Редактор", LastName: ""}); err != nil {
+		t.Fatalf("create editor user: %v", err)
+	}
 	adminService := admins.NewService(admins.NewRepository(databaseClient.Pool()))
-	if _, err := adminService.Bootstrap(ctx, admins.CreateInput{Login: "root", Password: "correct-password"}); err != nil {
+	if _, err := adminService.Bootstrap(ctx, admins.CreateInput{Login: "root", Password: "correct-password", Email: "root@example.test"}); err != nil {
 		t.Fatalf("bootstrap admin: %v", err)
 	}
-	if _, err := adminService.Create(ctx, admins.CreateInput{Login: "editor", Name: "Редактор", Password: "editor-password", Role: admins.RoleAdmin}); err != nil {
+	if _, err := adminService.Create(ctx, admins.CreateInput{Name: "Редактор", Email: "editor@example.test", Role: admins.RoleAdmin}); err != nil {
 		t.Fatalf("create editor: %v", err)
 	}
 	if _, err := databaseClient.Pool().Exec(ctx, `
@@ -108,17 +111,13 @@ func TestAPIHTTPFlow(t *testing.T) {
 		t.Fatalf("unauthorized update status = %d, want 401", unauthorizedUpdate.Code)
 	}
 
-	login := performJSONRequest(t, handler, http.MethodPost, "/api/v1/auth/login", `{"login":"root","password":"correct-password"}`, nil)
-	if login.Code != http.StatusOK {
-		t.Fatalf("login status = %d, body = %s", login.Code, login.Body.String())
+	sessionCookie := visitorLoginExisting(t, ctx, databaseClient, redisClient, "root@example.test")
+	if got := performJSONRequest(t, handler, http.MethodGet, "/api/v1/auth/session", "", visitorCookie); got.Code != http.StatusForbidden {
+		t.Fatalf("ordinary user session = %d", got.Code)
 	}
-	result := login.Result()
-	t.Cleanup(func() { _ = result.Body.Close() })
-	cookies := result.Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("login cookies = %#v", cookies)
+	if got := performJSONRequest(t, handler, http.MethodPost, "/api/v1/auth/login", `{}`, nil); got.Code != http.StatusNotFound {
+		t.Fatalf("legacy login status = %d", got.Code)
 	}
-	sessionCookie := cookies[0]
 
 	session := performJSONRequest(t, handler, http.MethodGet, "/api/v1/auth/session", "", sessionCookie)
 	if session.Code != http.StatusOK {
@@ -135,30 +134,19 @@ func TestAPIHTTPFlow(t *testing.T) {
 	if err := json.NewDecoder(list.Body).Decode(&adminsBody); err != nil {
 		t.Fatalf("decode admins: %v", err)
 	}
-	if len(adminsBody.Items) != 2 || adminsBody.Items[0].Login != "root" || adminsBody.Items[1].Login != "editor" {
+	if len(adminsBody.Items) != 2 || adminsBody.Items[0].Email != "root@example.test" || adminsBody.Items[1].Email != "editor@example.test" {
 		t.Fatalf("admins = %#v", adminsBody.Items)
 	}
 
-	logout := performJSONRequest(t, handler, http.MethodPost, "/api/v1/auth/logout", "", sessionCookie)
+	logout := performJSONRequest(t, handler, http.MethodPost, "/api/v1/users/logout", "", sessionCookie)
 	if logout.Code != http.StatusNoContent {
-		t.Fatalf("logout status = %d, body = %s", logout.Code, logout.Body.String())
+		t.Fatalf("logout status = %d", logout.Code)
 	}
-	afterLogout := performJSONRequest(t, handler, http.MethodGet, "/api/v1/auth/session", "", sessionCookie)
-	if afterLogout.Code != http.StatusUnauthorized {
-		t.Fatalf("session after logout status = %d, want 401", afterLogout.Code)
+	if got := performJSONRequest(t, handler, http.MethodGet, "/api/v1/auth/session", "", sessionCookie); got.Code != http.StatusUnauthorized {
+		t.Fatalf("session after logout = %d", got.Code)
 	}
-
-	editorLogin := performJSONRequest(t, handler, http.MethodPost, "/api/v1/auth/login", `{"login":"editor","password":"editor-password"}`, nil)
-	if editorLogin.Code != http.StatusOK {
-		t.Fatalf("editor login status = %d, body = %s", editorLogin.Code, editorLogin.Body.String())
-	}
-	editorResult := editorLogin.Result()
-	t.Cleanup(func() { _ = editorResult.Body.Close() })
-	editorCookies := editorResult.Cookies()
-	if len(editorCookies) != 1 {
-		t.Fatalf("editor cookies = %#v", editorCookies)
-	}
-	update := performJSONRequest(t, handler, http.MethodPatch, "/api/v1/admin/events/1/coordinates", `{"latitude":56,"longitude":61}`, editorCookies[0])
+	editorCookie := visitorLoginExisting(t, ctx, databaseClient, redisClient, "editor@example.test")
+	update := performJSONRequest(t, handler, http.MethodPatch, "/api/v1/admin/events/1/coordinates", `{"latitude":56,"longitude":61}`, editorCookie)
 	if update.Code != http.StatusNoContent {
 		t.Fatalf("update status = %d, body = %s", update.Code, update.Body.String())
 	}
@@ -169,7 +157,7 @@ func TestAPIHTTPFlow(t *testing.T) {
 	if latitude != 56 || longitude != 61 {
 		t.Fatalf("coordinates = (%f, %f)", latitude, longitude)
 	}
-	deleteEvent := performJSONRequest(t, handler, http.MethodDelete, "/api/v1/admin/events/1", "", editorCookies[0])
+	deleteEvent := performJSONRequest(t, handler, http.MethodDelete, "/api/v1/admin/events/1", "", editorCookie)
 	if deleteEvent.Code != http.StatusNoContent {
 		t.Fatalf("delete status = %d, body = %s", deleteEvent.Code, deleteEvent.Body.String())
 	}
@@ -181,28 +169,6 @@ func TestAPIHTTPFlow(t *testing.T) {
 		t.Fatalf("submission count = %d, want 1", submissionCount)
 	}
 
-	for attempt := 1; attempt <= 6; attempt++ {
-		response := performJSONRequest(t, handler, http.MethodPost, "/api/v1/auth/login", `{"login":"missing","password":"wrong-password"}`, nil)
-		want := http.StatusUnauthorized
-		if attempt == 6 {
-			want = http.StatusTooManyRequests
-		}
-		if response.Code != want {
-			t.Fatalf("login attempt %d status = %d, want %d", attempt, response.Code, want)
-		}
-	}
-	keys, err := redisClient.Client().Keys(ctx, "auth:login:*").Result()
-	if err != nil {
-		t.Fatalf("list rate limit keys: %v", err)
-	}
-	if len(keys) != 3 {
-		t.Fatalf("rate limit keys = %#v, want root, editor and missing digests", keys)
-	}
-	for _, key := range keys {
-		if strings.Contains(key, "root") || strings.Contains(key, "editor") || strings.Contains(key, "missing") {
-			t.Fatalf("rate limit key exposes login: %q", key)
-		}
-	}
 }
 
 func TestAPISubmissionFlow(t *testing.T) {
@@ -233,19 +199,22 @@ func TestAPISubmissionFlow(t *testing.T) {
 	}
 	storageClient := prepareAppTestStorage(t, ctx, minioEndpoint, minioAccessKey, minioSecretKey)
 
+	if _, err := users.NewRepository(databaseClient.Pool()).Create(ctx, users.User{Email: "editor@example.test", FirstName: "Редактор", LastName: ""}); err != nil {
+		t.Fatalf("create editor user: %v", err)
+	}
 	adminService := admins.NewService(admins.NewRepository(databaseClient.Pool()))
-	if _, err := adminService.Bootstrap(ctx, admins.CreateInput{Login: "root", Password: "correct-password"}); err != nil {
+	if _, err := adminService.Bootstrap(ctx, admins.CreateInput{Login: "root", Password: "correct-password", Email: "root@example.test"}); err != nil {
 		t.Fatalf("bootstrap admin: %v", err)
 	}
-	if _, err := adminService.Create(ctx, admins.CreateInput{Login: "editor", Name: "Редактор", Password: "editor-password", Role: admins.RoleAdmin}); err != nil {
+	if _, err := adminService.Create(ctx, admins.CreateInput{Name: "Редактор", Email: "editor@example.test", Role: admins.RoleAdmin}); err != nil {
 		t.Fatalf("create editor: %v", err)
 	}
 
 	cfg := config.Config{SessionTTL: time.Hour, CORSOrigins: []string{"http://localhost:3000"}, MaxUploadBytes: 52_428_800, SitePublicBaseURL: "https://storage.test/sites"}
 	logger := testLogger()
 	handler := NewAPI(cfg, logger, NewModules(cfg, logger, databaseClient, redisClient, storageClient), databaseClient, redisClient, storageClient)
-	editorCookie := appLogin(t, handler, "editor", "editor-password")
-	rootCookie := appLogin(t, handler, "root", "correct-password")
+	editorCookie := visitorLoginExisting(t, ctx, databaseClient, redisClient, "editor@example.test")
+	rootCookie := visitorLoginExisting(t, ctx, databaseClient, redisClient, "root@example.test")
 
 	rejectedID := createSubmissionRequest(t, handler, visitorLogin(t, ctx, databaseClient, redisClient, "rejected-author@example.test"), "Rejected event", "rejected_author")
 	rejectedArchiveID := submissionArchiveID(t, ctx, databaseClient, rejectedID)
@@ -326,17 +295,17 @@ type statusExpectation struct {
 	AuditCount int
 }
 
-func appLogin(t *testing.T, handler http.Handler, login, password string) *http.Cookie {
+func visitorLoginExisting(t *testing.T, ctx context.Context, databaseClient *database.Database, redisClient *redisstore.Store, email string) *http.Cookie {
 	t.Helper()
-	response := performJSONRequest(t, handler, http.MethodPost, "/api/v1/auth/login", fmt.Sprintf(`{"login":%q,"password":%q}`, login, password), nil)
-	if response.Code != http.StatusOK {
-		t.Fatalf("login %q status = %d, body = %s", login, response.Code, response.Body.String())
+	var id int64
+	if err := databaseClient.Pool().QueryRow(ctx, `SELECT id FROM users.users WHERE email = $1`, email).Scan(&id); err != nil {
+		t.Fatalf("find user: %v", err)
 	}
-	cookies := response.Result().Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("login %q cookies = %#v", login, cookies)
+	token := "visitor-session-" + email
+	if err := users.NewStore(redisClient.Client()).CreateSession(ctx, token, id, time.Hour); err != nil {
+		t.Fatalf("create session: %v", err)
 	}
-	return cookies[0]
+	return &http.Cookie{Name: users.SessionCookieName, Value: token}
 }
 
 // visitorLogin заводит посетителя и кладёт его сессию в Redis в обход кода на почту.

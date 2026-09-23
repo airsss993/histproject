@@ -25,9 +25,6 @@ type HTTPService interface {
 	ChangeRole(context.Context, int64, int64, Role) (Admin, error)
 	Delete(context.Context, int64, int64) error
 	Update(context.Context, int64, int64, UpdateInput) (Admin, error)
-	Get(context.Context, int64) (Admin, error)
-	UpdateProfile(context.Context, int64, string, string) (Admin, error)
-	ChangePassword(context.Context, int64, string, string) error
 }
 
 type Handler struct {
@@ -40,25 +37,19 @@ func NewHandler(service HTTPService, logger *slog.Logger, actorReader ActorReade
 	return &Handler{service: service, logger: logger, actorReader: actorReader}
 }
 
-// Register: superAdmin закрывает управление модераторами, anyAdmin - собственный профиль.
-func (handler *Handler) Register(mux *http.ServeMux, superAdmin, anyAdmin Middleware) {
+func (handler *Handler) Register(mux *http.ServeMux, superAdmin Middleware) {
 	mux.Handle("GET /api/v1/admin/admins", superAdmin(http.HandlerFunc(handler.list)))
 	mux.Handle("POST /api/v1/admin/admins", superAdmin(http.HandlerFunc(handler.create)))
 	mux.Handle("PATCH /api/v1/admin/admins/{id}", superAdmin(http.HandlerFunc(handler.update)))
 	mux.Handle("PATCH /api/v1/admin/admins/{id}/role", superAdmin(http.HandlerFunc(handler.changeRole)))
 	mux.Handle("DELETE /api/v1/admin/admins/{id}", superAdmin(http.HandlerFunc(handler.delete)))
-	mux.Handle("GET /api/v1/admin/profile", anyAdmin(http.HandlerFunc(handler.profile)))
-	mux.Handle("PATCH /api/v1/admin/profile", anyAdmin(http.HandlerFunc(handler.updateProfile)))
-	mux.Handle("PUT /api/v1/admin/profile/password", anyAdmin(http.HandlerFunc(handler.changePassword)))
 }
 
 func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 	var request struct {
-		Login    string `json:"login"`
-		Name     string `json:"name"`
-		Password string `json:"password"`
-		Email    string `json:"email"`
-		Role     Role   `json:"role"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
+		Role  Role   `json:"role"`
 	}
 	if err := httpserver.DecodeJSON(w, r, &request); err != nil {
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "invalid_json", "Некорректный JSON", nil)
@@ -66,11 +57,7 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	admin, err := handler.service.Create(r.Context(), CreateInput{
-		Login:    request.Login,
-		Name:     request.Name,
-		Password: request.Password,
-		Email:    request.Email,
-		Role:     request.Role,
+		Name: request.Name, Email: request.Email, Role: request.Role,
 	})
 	if err != nil {
 		handler.writeServiceError(w, r, err)
@@ -144,9 +131,8 @@ func (handler *Handler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var request struct {
-		Name     *string `json:"name"`
-		Email    *string `json:"email"`
-		Password string  `json:"password"`
+		Name  *string `json:"name"`
+		Email *string `json:"email"`
 	}
 	if err := httpserver.DecodeJSON(w, r, &request); err != nil {
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "invalid_json", "Некорректный JSON", nil)
@@ -157,66 +143,12 @@ func (handler *Handler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	admin, err := handler.service.Update(r.Context(), actor.AdminID, targetID, UpdateInput{Name: request.Name, Email: request.Email, Password: request.Password})
+	admin, err := handler.service.Update(r.Context(), actor.AdminID, targetID, UpdateInput{Name: request.Name, Email: request.Email})
 	if err != nil {
 		handler.writeServiceError(w, r, err)
 		return
 	}
 	_ = httpserver.WriteJSON(w, http.StatusOK, map[string]Admin{"admin": admin})
-}
-
-func (handler *Handler) profile(w http.ResponseWriter, r *http.Request) {
-	actor, ok := handler.actor(w, r)
-	if !ok {
-		return
-	}
-	admin, err := handler.service.Get(r.Context(), actor.AdminID)
-	if err != nil {
-		handler.writeServiceError(w, r, err)
-		return
-	}
-	_ = httpserver.WriteJSON(w, http.StatusOK, map[string]Admin{"admin": admin})
-}
-
-func (handler *Handler) updateProfile(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		Name  string `json:"name"`
-		Email string `json:"email"`
-	}
-	if err := httpserver.DecodeJSON(w, r, &request); err != nil {
-		_ = httpserver.WriteError(w, http.StatusBadRequest, "invalid_json", "Некорректный JSON", nil)
-		return
-	}
-	actor, ok := handler.actor(w, r)
-	if !ok {
-		return
-	}
-	admin, err := handler.service.UpdateProfile(r.Context(), actor.AdminID, request.Name, request.Email)
-	if err != nil {
-		handler.writeServiceError(w, r, err)
-		return
-	}
-	_ = httpserver.WriteJSON(w, http.StatusOK, map[string]Admin{"admin": admin})
-}
-
-func (handler *Handler) changePassword(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		CurrentPassword string `json:"currentPassword"`
-		Password        string `json:"password"`
-	}
-	if err := httpserver.DecodeJSON(w, r, &request); err != nil {
-		_ = httpserver.WriteError(w, http.StatusBadRequest, "invalid_json", "Некорректный JSON", nil)
-		return
-	}
-	actor, ok := handler.actor(w, r)
-	if !ok {
-		return
-	}
-	if err := handler.service.ChangePassword(r.Context(), actor.AdminID, request.CurrentPassword, request.Password); err != nil {
-		handler.writeServiceError(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (handler *Handler) actor(w http.ResponseWriter, r *http.Request) (Actor, bool) {
@@ -234,6 +166,10 @@ func (handler *Handler) writeServiceError(w http.ResponseWriter, r *http.Request
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", validationError.Fields)
 	case errors.Is(err, ErrLoginTaken):
 		_ = httpserver.WriteError(w, http.StatusConflict, "login_taken", "Логин уже занят", nil)
+	case errors.Is(err, ErrEmailTaken):
+		_ = httpserver.WriteError(w, http.StatusConflict, "email_taken", "Эта почта уже привязана к другому модератору", nil)
+	case errors.Is(err, ErrUserNotFound):
+		_ = httpserver.WriteError(w, http.StatusNotFound, "user_not_found", "Сначала зарегистрируйте пользователя с этой почтой", nil)
 	case errors.Is(err, ErrAdminNotFound):
 		_ = httpserver.WriteError(w, http.StatusNotFound, "admin_not_found", "Администратор не найден", nil)
 	case errors.Is(err, ErrSelfMutation):

@@ -49,42 +49,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Readiness"
-  /api/v1/auth/login:
-    post:
-      tags: [Auth]
-      operationId: login
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LoginInput"
-      responses:
-        "200":
-          description: Сессия создана
-          headers:
-            Set-Cookie:
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SessionResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
-  /api/v1/auth/logout:
-    post:
-      tags: [Auth]
-      operationId: logout
-      responses:
-        "204":
-          description: Сессия удалена
-        "500":
-          $ref: "#/components/responses/InternalError"
   /api/v1/auth/session:
     get:
       tags: [Auth]
@@ -93,13 +57,15 @@ paths:
         - sessionCookie: []
       responses:
         "200":
-          description: Текущая сессия
+          description: Роль вошедшего пользователя
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SessionResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /api/v1/users/register:
     post:
       tags: [Users]
@@ -551,7 +517,7 @@ paths:
     patch:
       tags: [Admins]
       operationId: updateAdmin
-      description: Только super_admin и только чужая учётка (свою правят через /admin/profile). Отсутствующее поле не меняется, пустой password оставляет прежний пароль. Смена пароля обрывает сессии этой учётки.
+      description: Только super_admin и только чужая роль. Отсутствующее поле не меняется.
       security:
         - sessionCookie: []
       parameters:
@@ -569,10 +535,7 @@ paths:
                   maxLength: 100
                 email:
                   type: string
-                  description: Пустая строка убирает почту
-                password:
-                  type: string
-                  description: Новый пароль, 12-72 байта
+                  description: Почта зарегистрированного пользователя
       responses:
         "200":
           $ref: "#/components/responses/AdminResult"
@@ -596,72 +559,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
-  /api/v1/admin/profile:
-    get:
-      tags: [Profile]
-      operationId: getProfile
-      description: Своя учётка, для любой роли.
-      security:
-        - sessionCookie: []
-      responses:
-        "200":
-          $ref: "#/components/responses/AdminResult"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-    patch:
-      tags: [Profile]
-      operationId: updateProfile
-      security:
-        - sessionCookie: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, email]
-              properties:
-                name:
-                  type: string
-                  minLength: 1
-                  maxLength: 100
-                email:
-                  type: string
-                  description: Почта для уведомлений о заявках, можно пусто
-      responses:
-        "200":
-          $ref: "#/components/responses/AdminResult"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-  /api/v1/admin/profile/password:
-    put:
-      tags: [Profile]
-      operationId: changePassword
-      description: Нужен текущий пароль (иначе 400 с полем currentPassword). После смены все сессии учётки, включая текущую, недействительны.
-      security:
-        - sessionCookie: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [currentPassword, password]
-              properties:
-                currentPassword:
-                  type: string
-                password:
-                  type: string
-                  description: 12-72 байта
-      responses:
-        "204":
-          description: Пароль изменён
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
   /api/v1/admin/audit-log:
     get:
       tags: [Audit]
@@ -899,7 +796,7 @@ components:
     sessionCookie:
       type: apiKey
       in: cookie
-      name: histproject_session
+      name: histproject_user
     userCookie:
       type: apiKey
       in: cookie
@@ -1142,17 +1039,6 @@ components:
               createdAt:
                 type: string
                 format: date-time
-    LoginInput:
-      type: object
-      required: [login, password]
-      properties:
-        login:
-          type: string
-          maxLength: 100
-        password:
-          type: string
-          format: password
-          maxLength: 128
     SessionResponse:
       type: object
       required: [admin]
@@ -1237,21 +1123,12 @@ components:
           format: date-time
     CreateAdminInput:
       type: object
-      required: [login, name, password, role]
+      required: [name, email, role]
       properties:
-        login:
-          type: string
-          minLength: 3
-          maxLength: 100
         name:
           type: string
           minLength: 1
           maxLength: 100
-        password:
-          type: string
-          format: password
-          minLength: 12
-          maxLength: 72
         email:
           type: string
           format: email
