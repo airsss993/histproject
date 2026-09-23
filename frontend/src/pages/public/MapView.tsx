@@ -130,12 +130,13 @@ const hidden = (map: maplibregl.Map, lng: number, lat: number) => {
   return Math.abs(q.lat - lat) > 0.5 || Math.abs(((q.lng - lng + 540) % 360) - 180) > 0.5
 }
 
-// Сколько карты закрывает панель. Отступ передаём в каждое движение камеры, а не в padding карты:
-// fitBounds на шаре padding карты не учитывает.
-const covered = (map: maplibregl.Map, cover: Props['cover']) => {
-  const { clientWidth: w, clientHeight: h } = map.getContainer()
-  return { right: cover === 'right' ? Math.round(w / 2) : 0, bottom: cover === 'bottom' ? Math.round(h * 0.58) : 0 }
-}
+// Сколько карты закрывают панели. Отступ передаём в каждое движение камеры, а не в padding карты:
+// fitBounds на шаре padding карты не учитывает. Справа - лента (.pm-feed в public.css: 420px и отступы)
+// и шкала веков внизу, на телефоне - лента снизу на 58% высоты.
+const covered = (map: maplibregl.Map, cover: Props['cover']) =>
+  cover === 'right' ? { right: 456, bottom: 60 }
+  : cover === 'bottom' ? { right: 0, bottom: Math.round(map.getContainer().clientHeight * 0.58) }
+  : { right: 0, bottom: 0 }
 
 // Подсветка региона через feature-state: фильтр и выражения от свойств пересчитываются в воркере и во время
 // полёта камеры применяются только в конце.
@@ -296,7 +297,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
       if (bbox) camera(m => {
         const { right, bottom } = covered(m, coverRef.current)
         const pad = m.getContainer().clientWidth < 500 ? { top: 24, right: 24, bottom: 24, left: 24 } : { ...EDGE, top: EDGE.top + 50 }
-        m.fitBounds(bbox, { padding: { ...pad, right: pad.right + right, bottom: pad.bottom + bottom }, maxZoom: close ? 8 : 4.5, duration: 1200 })
+        m.fitBounds(bbox, { padding: { ...pad, right: (right ? 24 : pad.right) + right, bottom: pad.bottom + bottom }, maxZoom: close ? 8 : 4.5, duration: 1200 })
       })
     },
   }), [])

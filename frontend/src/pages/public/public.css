@@ -323,12 +323,23 @@
 .pm-screen .pm-panel-foot .pm-btn, .pm-screen .pm-panel-foot .pm-btn-text { height: 52px; font-size: 16px; }
 .pm-root .pm-tall { height: 48px; border-radius: 999px; font: 500 15px var(--ui); }
 
-/* Лента по регионам: карта на весь экран, шар сдвинут в левую половину отступом камеры (cover в MapView),
-   лента в правой полупрозрачная, сквозь неё видна карта. Положение ленты не зависит от .pm-split,
-   иначе при уходе она прыгнет на место, пока гаснет. */
-.pm-split .pm-search-wrap { left: 25%; width: min(520px, calc(50% - 220px)); }
-.pm-split .pm-centuries { right: calc(50% + 26px); }
-.pm-feed { left: calc(50% + 12px); right: 24px; top: 96px; bottom: 24px; width: auto; max-height: none; }
+/* Лента по регионам: карта на весь экран, лента справа полупрозрачная, шкала веков внизу. Шар сдвигается
+   в открытую часть отступом камеры: ширина ленты с отступами (456px) и высота шкалы заданы в covered()
+   в MapView, менять вместе. Положение ленты не зависит от .pm-split, иначе при уходе она прыгнет, пока гаснет. */
+.pm-split .pm-search-wrap { left: calc((100% - 456px) / 2); width: min(520px, calc(100% - 456px - 220px)); }
+.pm-split .pm-centuries {
+  top: auto; left: 100px; right: 480px; bottom: 20px; width: auto; height: 48px; padding: 0 14px;
+  flex-direction: row; border-right: 0; border-top: 1px dashed var(--line-soft);
+}
+.pm-split .pm-centuries button { flex-direction: column-reverse; justify-content: flex-start; gap: 8px; height: 100%; }
+.pm-split .pm-centuries button i { width: 1px; height: 8px; }
+.pm-split .pm-centuries button span { transform-origin: center top; }
+/* На узком окне 13 подписей слипаются: мельче шрифт, у каждого второго века остаётся только засечка */
+@media (max-width: 1200px) {
+  .pm-split .pm-centuries button { font-size: 12px; }
+  .pm-split .pm-centuries button:nth-child(even):not(.on):not(:hover) span { visibility: hidden; }
+}
+.pm-feed { left: auto; right: 24px; top: 96px; bottom: 24px; width: 420px; max-height: none; }
 .pm-root .pm-feed { background: rgba(12, 16, 35, 0.42); backdrop-filter: blur(3px) saturate(140%); }
 .pm-feed-hint { padding: 10px 16px; border-bottom: 1px dashed var(--line-soft); }
 .pm-feed-chips { padding: 12px 16px; border-bottom: 1px dashed var(--line-soft); flex-wrap: nowrap; overflow-x: auto; }
