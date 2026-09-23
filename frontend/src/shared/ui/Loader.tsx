@@ -10,7 +10,7 @@ export type Phase = 'load' | 'done' | 'idle'
  * Фаза индикатора поверх настоящего флага загрузки. ok - загрузилось с данными: только тогда галочка,
  * ошибка и пустой ответ сразу уходят в idle. Контент показывать на idle.
  */
-export function useSettle(loading: boolean, ok: boolean): Phase {
+export function useSettle(loading: boolean, ok: boolean, min = MIN_MS): Phase {
   const [phase, setPhase] = useState<Phase>(loading ? 'load' : 'idle')
   const since = useRef(0)
   useEffect(() => {
@@ -22,9 +22,9 @@ export function useSettle(loading: boolean, ok: boolean): Phase {
     let t = setTimeout(() => {
       setPhase(p => (p === 'load' ? (ok ? 'done' : 'idle') : p))
       t = setTimeout(() => setPhase(p => (p === 'done' ? 'idle' : p)), DONE_MS)
-    }, Math.max(0, since.current + MIN_MS - Date.now()))
+    }, Math.max(0, since.current + min - Date.now()))
     return () => clearTimeout(t)
-  }, [loading, ok])
+  }, [loading, ok, min])
   return phase
 }
 
@@ -44,3 +44,47 @@ export const Loading: React.FC<{ phase: Phase; label: string; done: string; clas
     <span key={phase}>{phase === 'done' ? done : label}</span>
   </div>
 )
+
+const LINES = [
+  'Разворачиваем карту России',
+  'Собираем события с IX по XXI век',
+  'Сверяем даты по летописям',
+  'Отмечаем места сражений',
+  'Поднимаем архивы экспедиций',
+  'Вспоминаем имена героев',
+]
+const LINE_MS = 1400
+/** Заставка держится хотя бы две строки. */
+export const SPLASH_MS = 2 * LINE_MS
+
+/**
+ * Отсчёт с первого показа заставки: заглушка на время загрузки кода и заставка самой страницы -
+ * разные элементы, и без общего отсчёта логотип и строки начинались бы заново.
+ */
+let bootAt = 0
+
+/** Заставка на весь экран: логотип и что сейчас делается; на done - галочка и итог, к концу DONE_MS гаснет. */
+export const Splash: React.FC<{ phase: Phase; done?: string; onCancel?: () => void }> = ({ phase, done, onCancel }) => {
+  const [since] = useState(() => {
+    if (!bootAt) bootAt = Date.now()
+    return Date.now() - bootAt
+  })
+  const [line, setLine] = useState(() => Math.floor(since / LINE_MS) % LINES.length)
+  useEffect(() => {
+    if (phase !== 'load') return
+    const t = setInterval(() => setLine(i => (i + 1) % LINES.length), LINE_MS)
+    return () => clearInterval(t)
+  }, [phase])
+  const ok = phase === 'done'
+  return (
+    <div className={`pm-root ui-splash${ok ? ' done' : ''}`} role="status" style={{ '--since': `-${since}ms` } as React.CSSProperties}>
+      <img className="ui-splash-logo" src="/logo.svg" alt="" />
+      <div className="ui-splash-name">Россия - страна Героев</div>
+      <div className="ui-splash-line">
+        <LoadMark done={ok} size={22} />
+        <span key={ok ? 'done' : line}>{ok ? done : `${LINES[line]}...`}</span>
+      </div>
+      {onCancel && <button type="button" className="pm-btn-text ui-splash-cancel" onClick={onCancel}>Отмена</button>}
+    </div>
+  )
+}

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
-import { LoadMark, useSettle } from '../../shared/ui/Loader.tsx'
+import { LoadMark, Splash, SPLASH_MS, useSettle } from '../../shared/ui/Loader.tsx'
 import { fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
@@ -105,6 +105,9 @@ export const HeaderNav: React.FC<{
   </nav>
 }
 
+/** Заставка на весь экран - только на первую загрузку карты во вкладке, дальше обычная плашка. */
+let splashSeen = false
+
 export const PublicMap: React.FC = () => {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
@@ -136,6 +139,7 @@ export const PublicMap: React.FC = () => {
   const [layer, setLayer] = useState<Layer>('none')
   const [draft, setDraft] = useState<Filter>(applied)
   const [load, setLoad] = useState<Load>({ status: 'loading' })
+  const [splash] = useState(() => !splashSeen)
   const [attempt, setAttempt] = useState(0)
   const abortRef = useRef<AbortController | undefined>(undefined)
   const [proposeOpen, setProposeOpen] = useState(false)
@@ -171,7 +175,9 @@ export const PublicMap: React.FC = () => {
   }, [attempt])
 
   const events = load.status === 'ready' ? load.events : []
-  const phase = useSettle(load.status === 'loading', events.length > 0)
+  const phase = useSettle(load.status === 'loading', events.length > 0, splash ? SPLASH_MS : undefined)
+  useEffect(() => { if (phase === 'idle') splashSeen = true }, [phase])
+  const full = splash && phase !== 'idle'
   const filtered = useMemo(() => events.filter(e => matches(applied, e)), [events, applied])
   const found = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -217,7 +223,8 @@ export const PublicMap: React.FC = () => {
 
   const showCard = layer === 'none' && selectedId !== null
   const counts = Object.fromEntries(TYPES.map(t => [t, filtered.filter(e => e.eventType === t).length])) as Record<EventType, number>
-  const overlay = phase === 'load'
+  const overlay = full ? null
+    : phase === 'load'
     ? { kind: 'loading', title: 'Загружаем события', text: 'Несколько секунд.', action: 'Отмена', run: () => abortRef.current?.abort() }
     : phase === 'done'
     ? { kind: 'done', title: 'События загружены', text: `${events.length} ${plural(events.length, EVENTS_WORDS)} на карте.`, action: 'Отмена', run: () => {} }
@@ -338,6 +345,7 @@ export const PublicMap: React.FC = () => {
       )}
       {/* На телефоне фильтры и лента - экраны поверх остального; уходя, закрывают уже вернувшийся интерфейс. */}
       <Presence>{screen && (layer === 'filters' ? filtersPanel : feed)}</Presence>
+      {full && <Splash phase={phase} done={`${events.length} ${plural(events.length, EVENTS_WORDS)} на карте`} onCancel={() => abortRef.current?.abort()} />}
     </div>
     {modal}
     </>
