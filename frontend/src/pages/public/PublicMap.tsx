@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
+import { LoadMark, useSettle } from '../../shared/ui/Loader.tsx'
 import { fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
@@ -170,6 +171,7 @@ export const PublicMap: React.FC = () => {
   }, [attempt])
 
   const events = load.status === 'ready' ? load.events : []
+  const phase = useSettle(load.status === 'loading', events.length > 0)
   const filtered = useMemo(() => events.filter(e => matches(applied, e)), [events, applied])
   const found = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -215,8 +217,10 @@ export const PublicMap: React.FC = () => {
 
   const showCard = layer === 'none' && selectedId !== null
   const counts = Object.fromEntries(TYPES.map(t => [t, filtered.filter(e => e.eventType === t).length])) as Record<EventType, number>
-  const overlay = load.status === 'loading'
+  const overlay = phase === 'load'
     ? { kind: 'loading', title: 'Загружаем события', text: 'Несколько секунд.', action: 'Отмена', run: () => abortRef.current?.abort() }
+    : phase === 'done'
+    ? { kind: 'done', title: 'События загружены', text: `${events.length} ${plural(events.length, EVENTS_WORDS)} на карте.`, action: 'Отмена', run: () => {} }
     : load.status === 'error'
       ? { kind: 'error', title: 'Нет связи с сервером', text: 'Проверьте соединение. Фильтры и период сохранены.', action: 'Повторить', run: () => setAttempt(a => a + 1) }
       : events.length === 0
@@ -273,7 +277,7 @@ export const PublicMap: React.FC = () => {
               onKeyDown={e => { if (e.key === 'Escape') setLayer('none'); if (e.key === 'Enter' && found[0]) select(found[0].id) }} />
             {showCard && q
               ? <button type="button" className="pm-link" onClick={() => setLayer('search')}>Показать список ↓</button>
-              : load.status === 'ready' && <span className="pm-counter" key={q ? `${found.length}/${filtered.length}` : filtered.length}>{q ? `${found.length} из ${filtered.length}` : filtered.length}</span>}
+              : phase === 'idle' && events.length > 0 && <span className="pm-counter" key={q ? `${found.length}/${filtered.length}` : filtered.length}>{q ? `${found.length} из ${filtered.length}` : filtered.length}</span>}
           </label>
           <Presence>{layer === 'search' && !!q && (
             <div className="pm-results pm-glass">
@@ -293,7 +297,7 @@ export const PublicMap: React.FC = () => {
 
         <Presence>{!mobile && layer === 'filters' && filtersPanel}</Presence>
 
-        <Presence>{!mobile && load.status === 'ready' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
+        <Presence>{!mobile && phase === 'idle' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
           <div className="pm-legend pm-glass">
             {TYPES.map(t => (
               <span key={t}><i style={{ background: TYPE_COLOR[t] }} />{TYPE_PLURAL[t]} · {counts[t]}</span>
@@ -322,9 +326,11 @@ export const PublicMap: React.FC = () => {
 
         <Presence>{overlay && (
           <div className={`pm-state pm-glass pm-state-${overlay.kind}`} role={overlay.kind === 'error' ? 'alert' : 'status'}>
-            <div className="pm-state-icon">{overlay.kind === 'error' ? '!' : overlay.kind === 'empty' ? '0' : ''}</div>
-            <div className="pm-state-title">{overlay.title}</div>
-            <div className="pm-state-text">{overlay.text}</div>
+            {overlay.kind === 'loading' || overlay.kind === 'done'
+              ? <LoadMark done={overlay.kind === 'done'} />
+              : <div className="pm-state-icon">{overlay.kind === 'error' ? '!' : '0'}</div>}
+            <div className="pm-state-title" key={`t${overlay.kind}`}>{overlay.title}</div>
+            <div className="pm-state-text" key={`x${overlay.kind}`}>{overlay.text}</div>
             <button type="button" className={overlay.kind === 'loading' ? 'pm-btn-ghost' : 'pm-btn'} onClick={overlay.run}>{overlay.action}</button>
           </div>
         )}</Presence>

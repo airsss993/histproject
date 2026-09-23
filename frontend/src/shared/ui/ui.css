@@ -10,6 +10,7 @@
            горит на :focus-within или с классом .on, с .bad - красный
   Поле     .pm-field - рамка с .pm-glow, внутри голый input, textarea или select; Field.tsx добавляет подпись и ошибку
   Чипы     .pm-chips > button, выбранный .on
+  Загрузка .ui-load - кольцо с галочкой, .ui-loading - строка с кольцом и подписью (Loader.tsx)
 */
 
 /* Кнопки */
@@ -203,3 +204,23 @@
 .pm-root .pm-chips > .on, .pm-root .pm-chips button:hover { border-color: var(--gold); background: var(--gold-wash); color: var(--gold); }
 /* iOS приближает страницу при фокусе на поле со шрифтом меньше 16px. */
 .pm-root.mobile .pm-field :is(input, textarea, select) { font-size: 16px; }
+
+/* Загрузка (Loader.tsx): дуга бежит по кольцу, на .done кольцо замыкается, зеленеет и рисует галочку. */
+.ui-load { flex: none; color: var(--gold); transition: color 400ms ease-out; }
+.ui-load circle, .ui-load path { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.ui-load-track { opacity: 0.2; }
+.ui-load-arc {
+  transform-box: fill-box; transform-origin: center; stroke-dasharray: 30 100;
+  animation: ui-load-spin 1.3s cubic-bezier(0.5, 0.15, 0.5, 0.85) infinite; transition: stroke-dasharray 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ui-load-check { stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 420ms 320ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ui-load.done { color: #8FC7A0; animation: ui-load-pop 520ms 280ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ui-load.done .ui-load-arc { stroke-dasharray: 100 0; }
+.ui-load.done .ui-load-check { stroke-dashoffset: 0; }
+@keyframes ui-load-spin { to { transform: rotate(360deg); } }
+@keyframes ui-load-pop { 40% { transform: scale(1.12); } }
+/* Строка появляется плавно, подпись сменяется наплывом, после галочки строка гаснет (DONE_MS = 1000). */
+.ui-loading { display: flex; align-items: center; gap: 14px; animation: pm-fade 320ms ease-out; }
+.ui-loading span { animation: pm-fade 320ms ease-out; }
+.ui-loading.done { animation: pm-fade-out 280ms ease-in 720ms forwards; }
+.ui-loading.done span { color: #8FC7A0; }
