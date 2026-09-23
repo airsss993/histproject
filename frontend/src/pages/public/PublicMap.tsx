@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { FeatureCollection } from 'geojson'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { LoadMark, Splash, SPLASH_DONE_MS, SPLASH_MS, useSettle } from '../../shared/ui/Loader.tsx'
@@ -7,6 +8,7 @@ import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { ProposeModal } from './Propose.tsx'
 import { Presence } from './presence.tsx'
+import { groupByRegion, loadRussia, type RegionGroup } from './regions.ts'
 import './public.css'
 
 export const MIN_YEAR = 862
@@ -200,7 +202,9 @@ export const PublicMap: React.FC = () => {
   if (selectedId !== null && selected === null) return <NotFound path={`/map?event=${selectedId}`} kind="event" />
   if (eventParam !== null && selectedId === null) return <NotFound path={`/map?event=${eventParam}`} kind="event" />
 
-  const select = (id: number) => { patch({ event: String(id) }); setLayer('none') }
+  // На десктопе лента остаётся открытой рядом с картой, на телефоне уступает место листу события.
+  const split = layer === 'feed'
+  const select = (id: number) => { patch({ event: String(id) }); if (mobile || !split) setLayer('none') }
   const closeCard = () => patch({ event: null })
   const openLayer = (l: Layer) => {
     if (l === 'filters') setDraft(applied)
@@ -221,7 +225,7 @@ export const PublicMap: React.FC = () => {
     applyFilter({ ...applied, from: Math.max(MIN_YEAR, (c - 1) * 100 + 1), to: Math.min(MAX_YEAR, c * 100) })
   }
 
-  const showCard = layer === 'none' && selectedId !== null
+  const showCard = (layer === 'none' || (split && !mobile)) && selectedId !== null
   const counts = Object.fromEntries(TYPES.map(t => [t, filtered.filter(e => e.eventType === t).length])) as Record<EventType, number>
   const overlay = full ? null
     : phase === 'load'
@@ -247,13 +251,14 @@ export const PublicMap: React.FC = () => {
   const modal = <ProposeModal open={proposeOpen && !!me} email={me?.email ?? ''} mobile={mobile} onClose={closePropose} />
   // На телефоне фильтры и лента - экраны поверх карты: карта остаётся смонтированной и не теряет вид.
   const screen = mobile && (layer === 'filters' || layer === 'feed')
-  const feed = <Feed mobile={mobile} events={found} applied={applied} onSelect={select} onClose={() => setLayer('none')} onPropose={propose} />
+  const feed = <Feed mobile={mobile} events={found} applied={applied} selectedId={selectedId} onSelect={select}
+    onClose={() => setLayer('none')} onPropose={propose} onRegion={g => mapRef.current?.focusRegion(g?.iso ?? null, g?.bbox)} />
 
   return (
     <>
-    <div className={`pm-root${overlay && overlay.kind !== 'empty' ? ' pm-dim' : ''}`}>
+    <div className={`pm-root${overlay && overlay.kind !== 'empty' ? ' pm-dim' : ''}${split ? ' pm-split' : ''}`}>
       <MapView ref={mapRef} events={events} isActive={isActive} selectedId={showCard ? selectedId : null}
-        onSelect={select} pad={mobile ? 16 : 48} labels={!mobile}
+        onSelect={select} pad={mobile ? 16 : 48} labels={!mobile} globe
         callout={showCard && !mobile && <Card key={selectedId} event={selected ?? undefined} onClose={closeCard} />} />
 
       {!screen && (
@@ -264,11 +269,16 @@ export const PublicMap: React.FC = () => {
           <HeaderNav me={me ?? null} mobile={mobile} onLogout={logout} onPropose={propose} proposeOpen={proposeOpen} />
         </div>
 
-        <Presence>{!mobile && layer !== 'filters' && layer !== 'feed' && (
+        <Presence>{!mobile && layer !== 'filters' && (
           <nav className="pm-rail pm-glass" aria-label="Управление картой">
             <button type="button" onClick={() => openLayer('filters')} title="Фильтры" className={filterBadge(applied) ? 'on' : ''} aria-label="Фильтры">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path transform="translate(3 4)" d="M14.3879,9.708 C16.1039,9.708 17.4999,11.097 17.4999,12.804 C17.4999,14.511 16.1039,15.9 14.3879,15.9 C12.6709,15.9 11.2739,14.511 11.2739,12.804 C11.2739,11.097 12.6709,9.708 14.3879,9.708 Z M14.3879,11.208 C13.4979,11.208 12.7739,11.924 12.7739,12.804 C12.7739,13.685 13.4979,14.4 14.3879,14.4 C15.2769,14.4 15.9999,13.685 15.9999,12.804 C15.9999,11.924 15.2769,11.208 14.3879,11.208 Z M7.0803,12.0928 C7.4943,12.0928 7.8303,12.4288 7.8303,12.8428 C7.8303,13.2568 7.4943,13.5928 7.0803,13.5928 L0.7793,13.5928 C0.3653,13.5928 0.0293,13.2568 0.0293,12.8428 C0.0293,12.4288 0.3653,12.0928 0.7793,12.0928 L7.0803,12.0928 Z M3.113,0 C4.83,0 6.226,1.39 6.226,3.097 C6.226,4.804 4.83,6.192 3.113,6.192 C1.397,6.192 0,4.804 0,3.097 C0,1.39 1.397,0 3.113,0 Z M3.113,1.5 C2.224,1.5 1.5,2.216 1.5,3.097 C1.5,3.977 2.224,4.692 3.113,4.692 C4.003,4.692 4.726,3.977 4.726,3.097 C4.726,2.216 4.003,1.5 3.113,1.5 Z M16.1911,2.4004 C16.6051,2.4004 16.9411,2.7364 16.9411,3.1504 C16.9411,3.5644 16.6051,3.9004 16.1911,3.9004 L9.8911,3.9004 C9.4771,3.9004 9.1411,3.5644 9.1411,3.1504 C9.1411,2.7364 9.4771,2.4004 9.8911,2.4004 L16.1911,2.4004 Z" />
+              </svg>
+            </button>
+            <button type="button" onClick={() => openLayer('feed')} title="Лента по регионам" className={split ? 'on' : ''} aria-label="Лента по регионам" aria-pressed={split}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" aria-hidden="true">
+                <path d="M9 6h11 M9 12h11 M9 18h11 M4.5 6h.01 M4.5 12h.01 M4.5 18h.01" />
               </svg>
             </button>
             <button type="button" onClick={() => mapRef.current?.zoomBy(1.6)} title="Приблизить">+</button>
@@ -276,13 +286,13 @@ export const PublicMap: React.FC = () => {
           </nav>
         )}</Presence>
 
-        <div className={`pm-search-wrap${layer === 'filters' || layer === 'feed' ? ' pm-muted' : ''}`}>
+        <div className="pm-search-wrap">
           <label className="pm-search pm-glass pm-glow">
             <input value={q} maxLength={100} placeholder="Найти событие" aria-label="Найти событие"
-              onChange={e => { patch({ q: e.target.value }); setLayer('search') }}
-              onFocus={() => q && setLayer('search')}
+              onChange={e => { patch({ q: e.target.value }); if (!split) setLayer('search') }}
+              onFocus={() => q && !split && setLayer('search')}
               onKeyDown={e => { if (e.key === 'Escape') setLayer('none'); if (e.key === 'Enter' && found[0]) select(found[0].id) }} />
-            {showCard && q
+            {showCard && q && !split
               ? <button type="button" className="pm-link" onClick={() => setLayer('search')}>Показать список ↓</button>
               : phase === 'idle' && events.length > 0 && <span className="pm-counter" key={q ? `${found.length}/${filtered.length}` : filtered.length}>{q ? `${found.length} из ${filtered.length}` : filtered.length}</span>}
           </label>
@@ -303,6 +313,7 @@ export const PublicMap: React.FC = () => {
         </div>
 
         <Presence>{!mobile && layer === 'filters' && filtersPanel}</Presence>
+        <Presence>{!mobile && split && feed}</Presence>
 
         <Presence>{!mobile && phase === 'idle' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
           <div className="pm-legend pm-glass">
@@ -543,13 +554,48 @@ const Filters: React.FC<{
   )
 }
 
+const FeedItem: React.FC<{ e: HistEvent; on: boolean; onSelect: (id: number) => void }> = ({ e, on, onSelect }) => (
+  <button type="button" className={`pm-feed-item${on ? ' on' : ''}`} onClick={() => onSelect(e.id)}>
+    <Thumb e={e} size={52} />
+    <span className="pm-feed-text">
+      <span className="pm-row-tight"><span className="pm-year">{yearOf(e)}</span><span className="pm-feed-title">{e.title}</span></span>
+      <span className="pm-feed-line">{e.description}</span>
+    </span>
+  </button>
+)
+
+/** Лента по регионам: регион, чей заголовок дошёл до верха списка, показывается на карте через onRegion. */
 const Feed: React.FC<{
-  mobile?: boolean; events: HistEvent[]; applied: Filter
-  onSelect: (id: number) => void; onClose: () => void; onPropose: () => void; className?: string
-}> = ({ mobile, events, applied, onSelect, onClose, onPropose, className = '' }) => {
+  mobile?: boolean; events: HistEvent[]; applied: Filter; selectedId: number | null
+  onSelect: (id: number) => void; onClose: () => void; onPropose: () => void
+  onRegion: (g: RegionGroup | null) => void; className?: string
+}> = ({ mobile, events, applied, selectedId, onSelect, onClose, onPropose, onRegion, className = '' }) => {
+  const [fc, setFc] = useState<FeatureCollection | null>(null)
+  useEffect(() => {
+    let live = true
+    loadRussia().then(f => { if (live) setFc(f) }, () => {})
+    return () => { live = false }
+  }, [])
+  // Без полигонов регионов (не загрузились) - плоский список по дате.
+  const groups = useMemo(() => fc && groupByRegion(events, fc), [events, fc])
   const sorted = useMemo(() => [...events].sort((a, b) => a.eventDate.localeCompare(b.eventDate)), [events])
+
+  const list = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(0)
+  const onScroll = () => {
+    const el = list.current!
+    let i = 0
+    el.querySelectorAll<HTMLElement>('.pm-region').forEach((sec, k) => { if (sec.offsetTop <= el.scrollTop + 8) i = k })
+    setActive(i)
+  }
+  const current = groups?.[Math.min(active, groups.length - 1)]
+  const onRegionRef = useRef(onRegion)
+  onRegionRef.current = onRegion
+  useEffect(() => { if (current) onRegionRef.current(current) }, [current?.iso, current?.name])
+  useEffect(() => () => onRegionRef.current(null), [])
+
   return (
-    <section className={`${mobile ? 'pm-screen' : 'pm-panel pm-glass pm-feed'} ${className}`} aria-label="Лента событий">
+    <section className={`${mobile ? 'pm-screen' : 'pm-panel pm-glass'} pm-feed ${className}`} aria-label="Лента событий">
       <div className="pm-panel-head">
         <h2>Лента событий</h2>
         <span className="pm-grow" />
@@ -562,17 +608,19 @@ const Feed: React.FC<{
           {applied.types.map(t => <span key={t}>{TYPE_PLURAL[t]}</span>)}
         </div>
       )}
-      <div className="pm-feed-list">
-        {sorted.length === 0 && <div className="pm-results-empty">Под фильтр ничего не попало</div>}
-        {sorted.map(e => (
-          <button type="button" key={e.id} className="pm-feed-item" onClick={() => onSelect(e.id)}>
-            <Thumb e={e} size={52} />
-            <span className="pm-feed-text">
-              <span className="pm-row-tight"><span className="pm-year">{yearOf(e)}</span><span className="pm-feed-title">{e.title}</span></span>
-              <span className="pm-feed-line">{e.description}</span>
-            </span>
-          </button>
-        ))}
+      <div className="pm-feed-list" ref={list} onScroll={onScroll}>
+        {events.length === 0 && <div className="pm-results-empty">Под фильтр ничего не попало</div>}
+        {groups
+          ? groups.map(g => (
+            <section key={g.iso ?? 'out'} className="pm-region" aria-label={g.name}>
+              <div className={`pm-region-head${g === current ? ' on' : ''}`}>
+                <span className="pm-label">{g.name}</span>
+                <span className="pm-dim-text">{g.events.length}</span>
+              </div>
+              {g.events.map(e => <FeedItem key={e.id} e={e} on={e.id === selectedId} onSelect={onSelect} />)}
+            </section>
+          ))
+          : sorted.map(e => <FeedItem key={e.id} e={e} on={e.id === selectedId} onSelect={onSelect} />)}
       </div>
       {mobile && (
         <div className="pm-panel-foot">
