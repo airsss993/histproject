@@ -69,6 +69,7 @@ type Store interface {
 	// CheckCode сверяет хеш и удаляет код при успехе. ErrInvalidCode - не совпал, ErrCodeExpired - нет кода или попытки кончились.
 	CheckCode(context.Context, string, string, int) (Pending, error)
 	Allow(context.Context, string, int, time.Duration) (bool, error)
+	ResetLimit(context.Context, string) error
 	CreateSession(context.Context, string, int64, time.Duration) error
 	SessionUser(context.Context, string) (int64, error)
 	DeleteSession(context.Context, string) error
@@ -127,12 +128,13 @@ func (service *Service) RequestLogin(ctx context.Context, rawEmail, clientIP str
 }
 
 func (service *Service) sendCode(ctx context.Context, email, clientIP string, pending Pending) error {
+	cooldownKey := "users:cooldown:" + digest(email)
 	for _, limit := range []struct {
 		key    string
 		limit  int
 		window time.Duration
 	}{
-		{"users:cooldown:" + digest(email), 1, codeCooldown},
+		{cooldownKey, 1, codeCooldown},
 		{"users:ip:" + digest(clientIP), ipCodeLimit, ipCodeWindow},
 	} {
 		allowed, err := service.store.Allow(ctx, limit.key, limit.limit, limit.window)
@@ -151,7 +153,12 @@ func (service *Service) sendCode(ctx context.Context, email, clientIP string, pe
 	if err := service.store.SaveCode(ctx, email, pending, codeTTL); err != nil {
 		return err
 	}
-	return service.mailer.SendCode(ctx, email, code)
+	if err := service.mailer.SendCode(ctx, email, code); err != nil {
+		// Письмо не ушло - минута ожидания не нужна, иначе повтор получит 429 вместо настоящей ошибки.
+		_ = service.store.ResetLimit(ctx, cooldownKey)
+		return err
+	}
+	return nil
 }
 
 // Verify проверяет код и открывает сессию. remember - долгая сессия вместо обычной.
