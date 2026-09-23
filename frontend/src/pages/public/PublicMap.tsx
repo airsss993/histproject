@@ -55,6 +55,7 @@ export const Logo: React.FC<{ short?: boolean; onClick?: () => void }> = ({ shor
 // Дверь и стрелка: внутрь - войти, наружу - выйти.
 const LOGIN = 'M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4 M4 12h11 M11 8l4 4-4 4'
 const LOGOUT = 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M9 12h11 M16 8l4 4-4 4'
+const CHEVRON = 'M7 10l5 5 5-5'
 const NavIcon: React.FC<{ d: string }> = ({ d }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}
     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
@@ -89,14 +90,14 @@ export const HeaderNav: React.FC<{
           <button type="button" className="pm-user" aria-label="Меню аккаунта" aria-expanded={open} aria-haspopup="true" onClick={() => setOpen(v => !v)}>
             <Avatar seed={me.publicId} size={30} />
             {!mobile && <span className="pm-user-name">{me.firstName}{me.lastName ? ` ${me.lastName[0]}.` : ''}</span>}
-            <span aria-hidden="true">⌄</span>
+            <span className="pm-user-caret"><NavIcon d={CHEVRON} /></span>
           </button>
-          {open && <div className="pm-account-menu">
+          <Presence>{open && <div className="pm-account-menu pm-glass">
             <div className="pm-account-head"><Avatar seed={me.publicId} size={34} /><span><strong>{me.firstName} {me.lastName}</strong>{adminRole && <small>{adminRole === 'super_admin' ? 'Супер-админ' : 'Модератор'}</small>}</span></div>
             <Link to={`/u/${me.publicId}`} onClick={() => setOpen(false)}>Мой профиль</Link>
             {adminRole && <Link to="/admin" onClick={() => setOpen(false)}>Панель модератора</Link>}
             <button type="button" onClick={() => { setOpen(false); onLogout() }}><NavIcon d={LOGOUT} />Выйти</button>
-          </div>}
+          </div>}</Presence>
         </div>
       : <Link to="/login" className="pm-btn-ghost pm-pill pm-login"><NavIcon d={LOGIN} />Войти</Link>}
     {!mobile && <button type="button" className={`pm-btn-light pm-pill${proposeOpen ? ' on' : ''}`} onClick={onPropose}>Предложить событие</button>}

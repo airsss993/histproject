@@ -122,7 +122,13 @@
 .pm-user { display: flex; align-items: center; gap: 10px; padding: 0 14px 0 6px; cursor: pointer; }
 .pm-user svg { flex: none; border-radius: 999px; }
 .pm-user-name { font: 400 14px var(--ui); white-space: nowrap; }
-.pm-account-menu { position: absolute; top: calc(100% + 9px); right: 0; z-index: 30; min-width: 210px; padding: 6px; border: 1px solid var(--rim-in); border-radius: 14px; background: var(--ink); box-shadow: 0 16px 40px rgba(0, 0, 0, .45); }
+.pm-user-caret { display: flex; margin-left: -2px; transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pm-user[aria-expanded="true"] .pm-user-caret { transform: rotate(180deg); }
+/* Стекло светлее фона шапки, иначе меню сливается с ним. */
+.pm-root .pm-account-menu { position: absolute; top: calc(100% + 9px); right: 0; z-index: 30; min-width: 210px; padding: 6px; border-radius: 14px; background: linear-gradient(180deg, rgba(129, 148, 174, 0.12), rgba(129, 148, 174, 0.03) 45%), rgba(14, 22, 42, 0.92); transform-origin: 100% 0; animation: pm-menu-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pm-root .pm-account-menu.out { animation: pm-menu-out 140ms ease-in forwards; }
+@keyframes pm-menu-in { from { opacity: 0; transform: translateY(-6px) scale(0.97); } }
+@keyframes pm-menu-out { to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
 .pm-account-head { display: flex; align-items: center; gap: 10px; padding: 9px 12px 12px; margin-bottom: 5px; border-bottom: 1px solid var(--rim-in); }
 .pm-account-head span { display: grid; gap: 3px; min-width: 0; }
 .pm-account-head strong { color: #fff; font: 500 14px var(--ui); white-space: nowrap; }
