@@ -130,7 +130,7 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
   --r: 0deg;
   position: absolute; display: inline-flex; align-items: center; gap: 12px; padding: 12px 30px; border-radius: 999px; border: 1px solid var(--gold-line);
   font: 400 20px/26px var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-soft); background: var(--ink);
-  transform: rotate(var(--r)); transition: transform 320ms cubic-bezier(0.3, 1.4, 0.5, 1), background 160ms ease-out, border-color 160ms ease-out;
+  transform: rotate(var(--r)); transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1), background 160ms ease-out, border-color 160ms ease-out;
 }
 .pm-about-sticker svg { width: 22px; height: 22px; flex: none; }
 .pm-about-sticker.fill { background: rgba(255, 255, 255, 0.06); border-color: var(--rim-in); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); color: #fff; }
