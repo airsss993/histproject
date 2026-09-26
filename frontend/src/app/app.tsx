@@ -29,6 +29,7 @@ const rootElement = document.getElementById('root');
               <Route path="/guide" element={<Guide />} />
               <Route path="/login" element={<AuthPage key="login" mode="login" />} />
               <Route path="/register" element={<AuthPage key="register" mode="register" />} />
+              <Route path="/user/:id" element={<ProfilePage />} />
               <Route path="/u/:id" element={<ProfilePage />} />
               <Route path="/event/:id" element={<Viewer />} />
               <Route path="/admin" element={<Panel />} />

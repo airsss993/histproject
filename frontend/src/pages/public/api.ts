@@ -59,7 +59,7 @@ export async function setStar(id: number, on: boolean): Promise<StarState | 'gue
 }
 
 // Адреса страниц: в URL только строчные, код профиля бэкенд принимает в любом регистре.
-export const profilePath = (publicId: string) => `/u/${publicId.toLowerCase()}`
+export const profilePath = (publicId: string) => `/user/${publicId.toLowerCase()}`
 export const eventPath = (id: number) => `/event/${id}`
 
 // Просмотр сайта на /event/:id. null - просмотр не пишется (автор смотрит своё) или нет связи.

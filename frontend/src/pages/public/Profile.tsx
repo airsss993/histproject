@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { HeaderNav, Logo, ROMAN, useIsMobile } from './PublicMap.tsx'
 import { PinShape } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
@@ -173,8 +173,9 @@ export const ProfilePage: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const mobile = useIsMobile()
-  // Старые ссылки с кодом капсом (/u/RHU-7K3F9Q) приводим к строчным.
-  useEffect(() => { if (id && id !== id.toLowerCase()) navigate(profilePath(id), { replace: true }) }, [id, navigate])
+  // Старые ссылки /u/RHU-7K3F9Q переписываем на /user/rhu-7k3f9q.
+  const { pathname } = useLocation()
+  useEffect(() => { if (id && pathname !== profilePath(id)) navigate(profilePath(id), { replace: true }) }, [id, pathname, navigate])
   const [state, setState] = useState<{ k: 'load' } | { k: 'ready'; profile: Profile } | { k: 'none' } | { k: 'error' }>({ k: 'load' })
   const [me, setMe] = useState<User | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
