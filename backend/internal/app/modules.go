@@ -35,9 +35,8 @@ type Modules struct {
 func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database.Database, redisClient *redisstore.Store, storageClient *storage.MinIO) Modules {
 	adminRepository := admins.NewRepository(databaseClient.Pool())
 	adminService := admins.NewService(adminRepository)
-	eventService := events.NewService(events.NewRepository(databaseClient.Pool()))
-	eventHandler := events.NewHandler(eventService, logger)
 	submissionRepository := submissions.NewRepository(databaseClient.Pool())
+	eventService := events.NewService(events.NewRepository(databaseClient.Pool()), submissionAuthors{repository: submissionRepository})
 	queueClient := platformqueue.NewClient(redisClient.Client())
 	submissionService := submissions.NewService(
 		submissionRepository,
@@ -50,8 +49,9 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 	notificationRepository := notifications.NewRepository(databaseClient.Pool())
 	userService := users.NewService(
 		users.NewRepository(databaseClient.Pool()), users.NewStore(redisClient.Client()),
-		NewCodeMailer(cfg, logger, notificationRepository), authorWorks{service: submissionService}, cfg.SessionTTL,
+		NewCodeMailer(cfg, logger, notificationRepository), authorWorks{submissions: submissionService, events: eventService}, cfg.SessionTTL,
 	)
+	eventHandler := events.NewHandler(eventService, logger, eventViewer(userService))
 	authHandler := auth.NewHandler(auth.NewService(adminRepository), currentUserEmail(userService), logger)
 	adminHandler := admins.NewHandler(adminService, logger, func(ctx context.Context) (admins.Actor, bool) {
 		identity, ok := auth.IdentityFromContext(ctx)
@@ -130,23 +130,72 @@ func visitorEmail(service *users.Service) submissions.AuthorReader {
 	}
 }
 
-// authorWorks отдаёт профилю заявки автора: модуль users не ходит в таблицы submissions сам.
-type authorWorks struct {
-	service *submissions.Service
+// eventViewer - смотрящий для звёзд и просмотров. Гость - нулевой Viewer без ошибки.
+func eventViewer(service *users.Service) events.ViewerReader {
+	return func(r *http.Request) (events.Viewer, error) {
+		token := ""
+		if cookie, err := r.Cookie(users.SessionCookieName); err == nil {
+			token = cookie.Value
+		}
+		user, err := service.Authenticate(r.Context(), token)
+		if errors.Is(err, users.ErrNoSession) {
+			return events.Viewer{}, nil
+		}
+		if err != nil {
+			return events.Viewer{}, err
+		}
+		return events.Viewer{UserID: user.ID, Email: user.Email}, nil
+	}
 }
 
-func (works authorWorks) ByAuthor(ctx context.Context, email string) ([]users.Work, error) {
-	found, err := works.service.ByAuthor(ctx, email)
+// submissionAuthors - почта автора события для events: так он отличает автора от посетителя.
+type submissionAuthors struct {
+	repository *submissions.Repository
+}
+
+func (authors submissionAuthors) AuthorEmail(ctx context.Context, submissionID int64) (string, error) {
+	submission, err := authors.repository.Get(ctx, submissionID)
+	if errors.Is(err, submissions.ErrSubmissionNotFound) {
+		return "", nil
+	}
+	return submission.Email, err
+}
+
+// authorWorks отдаёт профилю заявки автора со звёздами и просмотрами: модуль users не ходит
+// в таблицы submissions и events сам.
+type authorWorks struct {
+	submissions *submissions.Service
+	events      *events.Service
+}
+
+func (works authorWorks) ByAuthor(ctx context.Context, email string, viewerID int64) ([]users.Work, error) {
+	found, err := works.submissions.ByAuthor(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	published := make([]int64, 0, len(found))
+	for _, submission := range found {
+		if submission.Status == submissions.StatusPublished {
+			published = append(published, submission.ID)
+		}
+	}
+	summaries, err := works.events.Summaries(ctx, published, viewerID)
 	if err != nil {
 		return nil, err
 	}
 	items := make([]users.Work, 0, len(found))
 	for _, submission := range found {
-		items = append(items, users.Work{
+		work := users.Work{
 			PublicID: submission.PublicID, Title: submission.Title, EventDate: submission.EventDate.Format(time.DateOnly),
 			EventType: submission.EventType, Status: string(submission.Status), SiteURL: submission.SiteURL,
 			ScreenshotURL: submission.ScreenshotURL, Comment: submission.AdminComment, CreatedAt: submission.CreatedAt,
-		})
+		}
+		if summary, ok := summaries[submission.ID]; ok {
+			work.EventID = &summary.EventID
+			work.Stars, work.Starred = summary.Stars, summary.Starred
+			work.Stats = &users.WorkStats{Views: summary.Views, Visitors: summary.Visitors, ActiveSeconds: summary.ActiveSeconds}
+		}
+		items = append(items, work)
 	}
 	return items, nil
 }

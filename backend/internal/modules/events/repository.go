@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,8 +35,7 @@ func (repository *Repository) Publish(ctx context.Context, snapshot Snapshot) (E
 			site_url = EXCLUDED.site_url,
 			preview_image_url = EXCLUDED.preview_image_url,
 			updated_at = NOW()
-		RETURNING id, submission_id, title, description, latitude, longitude,
-			event_date, event_type_code, site_url, preview_image_url, created_at, updated_at
+		RETURNING `+eventColumns+`
 	`, snapshot.SubmissionID, snapshot.Title, snapshot.Description, snapshot.Latitude,
 		snapshot.Longitude, snapshot.EventDate, snapshot.EventType,
 		snapshot.SiteURL, snapshot.PreviewImageURL))
@@ -55,9 +55,10 @@ func (repository *Repository) List(ctx context.Context, filter Filter) (Page, er
 	limitPosition := len(args) + 1
 	offsetPosition := len(args) + 2
 	args = append(args, filter.PageSize, (filter.Page-1)*filter.PageSize)
+	viewerPosition := len(args) + 1
+	args = append(args, filter.ViewerID)
 	rows, err := repository.pool.Query(ctx, `
-		SELECT id, submission_id, title, description, latitude, longitude,
-			event_date, event_type_code, site_url, preview_image_url, created_at, updated_at
+		SELECT `+eventColumns+`, `+fmt.Sprintf(starColumns, viewerPosition)+`
 		FROM events.events`+where+fmt.Sprintf(`
 		ORDER BY event_date ASC, id ASC
 		LIMIT $%d OFFSET $%d`, limitPosition, offsetPosition), args...)
@@ -68,10 +69,13 @@ func (repository *Repository) List(ctx context.Context, filter Filter) (Page, er
 
 	items := make([]Event, 0)
 	for rows.Next() {
-		event, err := scanEvent(rows)
+		var stars int64
+		var starred bool
+		event, err := scanEvent(rows, &stars, &starred)
 		if err != nil {
 			return Page{}, fmt.Errorf("scan event: %w", err)
 		}
+		event.Stars, event.Starred = stars, starred
 		items = append(items, event)
 	}
 	if err := rows.Err(); err != nil {
@@ -80,13 +84,15 @@ func (repository *Repository) List(ctx context.Context, filter Filter) (Page, er
 	return Page{Items: items, Page: filter.Page, PageSize: filter.PageSize, Total: total}, nil
 }
 
-func (repository *Repository) Get(ctx context.Context, id int64) (Event, error) {
+func (repository *Repository) Get(ctx context.Context, id, viewerID int64) (Event, error) {
+	var stars int64
+	var starred bool
 	event, err := scanEvent(repository.pool.QueryRow(ctx, `
-		SELECT id, submission_id, title, description, latitude, longitude,
-			event_date, event_type_code, site_url, preview_image_url, created_at, updated_at
+		SELECT `+eventColumns+`, `+fmt.Sprintf(starColumns, 2)+`
 		FROM events.events
 		WHERE id = $1
-	`, id))
+	`, id, viewerID), &stars, &starred)
+	event.Stars, event.Starred = stars, starred
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Event{}, ErrEventNotFound
 	}
@@ -126,9 +132,18 @@ type rowScanner interface {
 	Scan(...any) error
 }
 
-func scanEvent(row rowScanner) (Event, error) {
+const eventColumns = `id, submission_id, title, description, latitude, longitude,
+	event_date, event_type_code, site_url, preview_image_url, created_at, updated_at`
+
+// starColumns - число звёзд и звезда смотрящего; %d - номер параметра с user_id (0 у гостя).
+// Обе выборки идут по первичному ключу events.stars (event_id, user_id).
+const starColumns = `(SELECT COUNT(*) FROM events.stars star WHERE star.event_id = events.id),
+	EXISTS (SELECT 1 FROM events.stars star WHERE star.event_id = events.id AND star.user_id = $%d)`
+
+// scanEvent читает eventColumns, extra - колонки после них.
+func scanEvent(row rowScanner, extra ...any) (Event, error) {
 	var event Event
-	err := row.Scan(
+	err := row.Scan(append([]any{
 		&event.ID,
 		&event.SubmissionID,
 		&event.Title,
@@ -141,7 +156,7 @@ func scanEvent(row rowScanner) (Event, error) {
 		&event.PreviewImageURL,
 		&event.CreatedAt,
 		&event.UpdatedAt,
-	)
+	}, extra...)...)
 	return event, err
 }
 
@@ -164,4 +179,99 @@ func eventWhere(filter Filter) (string, []any) {
 		return "", args
 	}
 	return " WHERE " + strings.Join(conditions, " AND "), args
+}
+
+// SetStar ставит (on) или снимает звезду пользователя и отдаёт состояние после этого.
+// Повтор ничего не меняет: вставку глушит первичный ключ, удаление отсутствующей строки - пустое.
+func (repository *Repository) SetStar(ctx context.Context, eventID, userID int64, on bool) (StarState, error) {
+	query := `DELETE FROM events.stars WHERE event_id = $1 AND user_id = $2`
+	if on {
+		query = `INSERT INTO events.stars (event_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
+	}
+	if _, err := repository.pool.Exec(ctx, query, eventID, userID); err != nil {
+		if isForeignKeyViolation(err) {
+			return StarState{}, ErrEventNotFound
+		}
+		return StarState{}, fmt.Errorf("set star: %w", err)
+	}
+	var state StarState
+	err := repository.pool.QueryRow(ctx, `SELECT `+fmt.Sprintf(starColumns, 2)+` FROM events.events WHERE id = $1`,
+		eventID, userID).Scan(&state.Stars, &state.Starred)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return StarState{}, ErrEventNotFound
+	}
+	if err != nil {
+		return StarState{}, fmt.Errorf("read stars: %w", err)
+	}
+	return state, nil
+}
+
+// StartView записывает начало просмотра. userID 0 - гость.
+func (repository *Repository) StartView(ctx context.Context, eventID, userID int64, visitorID string) (int64, error) {
+	var id int64
+	err := repository.pool.QueryRow(ctx, `
+		INSERT INTO events.views (event_id, user_id, visitor_id)
+		VALUES ($1, NULLIF($2, 0::bigint), $3)
+		RETURNING id
+	`, eventID, userID, visitorID).Scan(&id)
+	if isForeignKeyViolation(err) {
+		return 0, ErrEventNotFound
+	}
+	if err != nil {
+		return 0, fmt.Errorf("start view: %w", err)
+	}
+	return id, nil
+}
+
+// TouchView дописывает активное время просмотра. Время только растёт и не больше прошедшего
+// с начала просмотра (плюс запас на округление): так повтор или подделанное число его не раздуют.
+func (repository *Repository) TouchView(ctx context.Context, eventID, viewID int64, visitorID string, seconds int) error {
+	commandTag, err := repository.pool.Exec(ctx, `
+		UPDATE events.views
+		SET active_seconds = GREATEST(active_seconds,
+			LEAST($4, EXTRACT(EPOCH FROM NOW() - started_at)::int + 5))
+		WHERE id = $1 AND event_id = $2 AND visitor_id = $3
+	`, viewID, eventID, visitorID, seconds)
+	if err != nil {
+		return fmt.Errorf("touch view: %w", err)
+	}
+	if commandTag.RowsAffected() != 1 {
+		return ErrViewNotFound
+	}
+	return nil
+}
+
+// Summaries - звёзды и просмотры событий по заявкам. Уникальный посетитель - аккаунт, а у гостя - браузер.
+func (repository *Repository) Summaries(ctx context.Context, submissionIDs []int64, viewerID int64) ([]Summary, error) {
+	rows, err := repository.pool.Query(ctx, `
+		SELECT events.id, events.submission_id, `+fmt.Sprintf(starColumns, 2)+`,
+			COUNT(view.id), COUNT(DISTINCT COALESCE(view.user_id::text, view.visitor_id::text)),
+			COALESCE(SUM(view.active_seconds), 0)
+		FROM events.events
+		LEFT JOIN events.views view ON view.event_id = events.id
+		WHERE events.submission_id = ANY($1)
+		GROUP BY events.id
+	`, submissionIDs, viewerID)
+	if err != nil {
+		return nil, fmt.Errorf("event summaries: %w", err)
+	}
+	defer rows.Close()
+	items := make([]Summary, 0)
+	for rows.Next() {
+		var item Summary
+		if err := rows.Scan(&item.EventID, &item.SubmissionID, &item.Stars, &item.Starred,
+			&item.Views, &item.Visitors, &item.ActiveSeconds); err != nil {
+			return nil, fmt.Errorf("scan event summary: %w", err)
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate event summaries: %w", err)
+	}
+	return items, nil
+}
+
+func isForeignKeyViolation(err error) bool {
+	var postgresError *pgconn.PgError
+	return errors.As(err, &postgresError) && postgresError.Code == "23503"
 }
