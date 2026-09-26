@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { LoadMark, Splash, SPLASH_DONE_MS, SPLASH_MS, useSettle } from '../../shared/ui/Loader.tsx'
-import { fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent } from './api.ts'
+import { fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent, type StarState } from './api.ts'
+import { StarButton } from './Star.tsx'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { ProposeModal } from './Propose.tsx'
@@ -202,6 +203,11 @@ export const PublicMap: React.FC = () => {
 
   const select = (id: number) => { patch({ event: String(id) }); setLayer('none') }
   const closeCard = () => patch({ event: null })
+  // Звезда меняет само событие из ответа сервера: и в списке, и в отдельно запрошенном.
+  const onStar = (id: number, star: StarState) => {
+    setLoad(l => l.status === 'ready' ? { ...l, events: l.events.map(e => e.id === id ? { ...e, ...star } : e) } : l)
+    setExtra(x => x?.event?.id === id ? { ...x, event: { ...x.event, ...star } } : x)
+  }
   const openLayer = (l: Layer) => {
     if (l === 'filters') setDraft(applied)
     setLayer(cur => (cur === l ? 'none' : l))
@@ -254,7 +260,7 @@ export const PublicMap: React.FC = () => {
     <div className={`pm-root${overlay && overlay.kind !== 'empty' ? ' pm-dim' : ''}`}>
       <MapView ref={mapRef} events={events} isActive={isActive} selectedId={showCard ? selectedId : null}
         onSelect={select} pad={mobile ? 16 : 48} labels={!mobile}
-        callout={showCard && !mobile && <Card key={selectedId} event={selected ?? undefined} onClose={closeCard} />} />
+        callout={showCard && !mobile && <Card key={selectedId} event={selected ?? undefined} onClose={closeCard} onStar={onStar} />} />
 
       {!screen && (
       <>
@@ -329,7 +335,7 @@ export const PublicMap: React.FC = () => {
           </div>
         )}
 
-        <Presence>{showCard && mobile && <Sheet event={selected ?? undefined} onClose={closeCard} />}</Presence>
+        <Presence>{showCard && mobile && <Sheet event={selected ?? undefined} onClose={closeCard} onStar={onStar} />}</Presence>
 
         <Presence>{overlay && (
           <div className={`pm-state pm-glass pm-state-${overlay.kind}`} role={overlay.kind === 'error' ? 'alert' : 'status'}>
@@ -370,7 +376,9 @@ function useShare(e: HistEvent) {
   return { share, copied }
 }
 
-const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = ({ event: e, onClose }) => {
+type OnStar = (id: number, star: StarState) => void
+
+const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void; onStar: OnStar }> = ({ event: e, onClose, onStar }) => {
   if (!e) {
     return (
       <div className="pm-card pm-card-loading" aria-busy="true">
@@ -387,7 +395,7 @@ const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = ({
         <button type="button" className="pm-close" onClick={onClose} aria-label="Закрыть">×</button>
       </div>
       <div className="pm-card-body">
-        <EventInfo e={e} />
+        <EventInfo e={e} onStar={onStar} />
         <EventActions e={e} />
       </div>
     </article>
@@ -395,7 +403,7 @@ const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void }> = ({
 }
 
 /** Общее у карточки и мобильного листа: заголовок, подпись, строки с иконками. */
-const EventInfo: React.FC<{ e: HistEvent }> = ({ e }) => (
+const EventInfo: React.FC<{ e: HistEvent; onStar: OnStar }> = ({ e, onStar }) => (
   <>
     <div className="pm-card-head">
       <h2 className="pm-card-title">{e.title}</h2>
@@ -405,6 +413,7 @@ const EventInfo: React.FC<{ e: HistEvent }> = ({ e }) => (
       <span className={`pm-card-type ${e.eventType}`}>{TYPE_LABEL[e.eventType]}</span>
       <i />
       <span>{formatDate(e.eventDate)}</span>
+      <StarButton id={e.id} stars={e.stars} starred={e.starred} onChange={s => onStar(e.id, s)} className="pm-btn-ghost pm-pill pm-card-star" />
     </div>
     {e.description && (
       <ul className="pm-card-info">
@@ -421,9 +430,9 @@ const EventActions: React.FC<{ e: HistEvent; className?: string }> = ({ e, class
       <button type="button" className="pm-card-share" onClick={share}>
         <Icon d={ICON.share} />{copied ? 'Скопировано' : 'Поделиться'}
       </button>
-      <a className="pm-card-more" href={e.siteUrl} target="_blank" rel="noreferrer">
+      <Link className="pm-card-more" to={`/s/${e.id}`}>
         <Icon d={ICON.open} />Узнать больше
-      </a>
+      </Link>
     </div>
   )
 }
@@ -438,7 +447,7 @@ const Icon: React.FC<{ d: string }> = ({ d }) => (
     stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>
 )
 
-const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void; className?: string }> = ({ event: e, onClose, className = '' }) => {
+const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void; onStar: OnStar; className?: string }> = ({ event: e, onClose, onStar, className = '' }) => {
   const [open, setOpen] = useState(false)
   const startY = useRef<number | null>(null)
   const onUp = (y: number) => {
@@ -463,7 +472,7 @@ const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void; class
               <div className={`pm-sheet-preview${e.previewImageUrl ? '' : ' pm-hatch'}`}>
                 {e.previewImageUrl && <img src={e.previewImageUrl} alt="" />}
               </div>
-              <div className="pm-sheet-body"><EventInfo e={e} /></div>
+              <div className="pm-sheet-body"><EventInfo e={e} onStar={onStar} /></div>
             </div>
             <EventActions e={e} className="pm-card-actions pm-sheet-foot" />
           </>
