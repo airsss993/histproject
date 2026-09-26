@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/airsss993/histproject/backend/internal/modules/admins"
@@ -36,7 +37,8 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 	adminRepository := admins.NewRepository(databaseClient.Pool())
 	adminService := admins.NewService(adminRepository)
 	submissionRepository := submissions.NewRepository(databaseClient.Pool())
-	eventService := events.NewService(events.NewRepository(databaseClient.Pool()), submissionAuthors{repository: submissionRepository})
+	userRepository := users.NewRepository(databaseClient.Pool())
+	eventService := events.NewService(events.NewRepository(databaseClient.Pool()), eventAuthors{submissions: submissionRepository, users: userRepository})
 	queueClient := platformqueue.NewClient(redisClient.Client())
 	submissionService := submissions.NewService(
 		submissionRepository,
@@ -48,7 +50,7 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 	)
 	notificationRepository := notifications.NewRepository(databaseClient.Pool())
 	userService := users.NewService(
-		users.NewRepository(databaseClient.Pool()), users.NewStore(redisClient.Client()),
+		userRepository, users.NewStore(redisClient.Client()),
 		NewCodeMailer(cfg, logger, notificationRepository), authorWorks{submissions: submissionService, events: eventService}, cfg.SessionTTL,
 	)
 	eventHandler := events.NewHandler(eventService, logger, eventViewer(userService))
@@ -148,17 +150,31 @@ func eventViewer(service *users.Service) events.ViewerReader {
 	}
 }
 
-// submissionAuthors - почта автора события для events: так он отличает автора от посетителя.
-type submissionAuthors struct {
-	repository *submissions.Repository
+// eventAuthors - автор события для events: почта заявки отличает автора от посетителя,
+// учётка с этой почтой даёт имя и ссылку на профиль под сайтом.
+type eventAuthors struct {
+	submissions *submissions.Repository
+	users       *users.PostgresRepository
 }
 
-func (authors submissionAuthors) AuthorEmail(ctx context.Context, submissionID int64) (string, error) {
-	submission, err := authors.repository.Get(ctx, submissionID)
+func (authors eventAuthors) Author(ctx context.Context, submissionID int64) (events.Author, error) {
+	submission, err := authors.submissions.Get(ctx, submissionID)
 	if errors.Is(err, submissions.ErrSubmissionNotFound) {
-		return "", nil
+		return events.Author{}, nil
 	}
-	return submission.Email, err
+	if err != nil {
+		return events.Author{}, err
+	}
+	author := events.Author{Email: submission.Email}
+	user, err := authors.users.FindByEmail(ctx, strings.ToLower(strings.TrimSpace(submission.Email)))
+	if errors.Is(err, users.ErrUserNotFound) {
+		return author, nil
+	}
+	if err != nil {
+		return events.Author{}, err
+	}
+	author.PublicID, author.FirstName, author.LastName = user.PublicID, user.FirstName, user.LastName
+	return author, nil
 }
 
 // authorWorks отдаёт профилю заявки автора со звёздами и просмотрами: модуль users не ходит

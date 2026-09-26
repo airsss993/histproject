@@ -42,9 +42,9 @@ type Store interface {
 	Summaries(ctx context.Context, submissionIDs []int64, viewerID int64) ([]Summary, error)
 }
 
-// Authors отдаёт почту автора заявки. Реализует модуль submissions через адаптер в internal/app.
+// Authors отдаёт автора заявки: почту из submissions и учётку из users. Адаптер - в internal/app.
 type Authors interface {
-	AuthorEmail(ctx context.Context, submissionID int64) (string, error)
+	Author(ctx context.Context, submissionID int64) (Author, error)
 }
 
 type Service struct {
@@ -98,7 +98,12 @@ func (service *Service) Get(ctx context.Context, id int64, viewer Viewer) (Event
 	if id <= 0 {
 		return Event{}, invalidID()
 	}
-	return service.store.Get(ctx, id, viewer.UserID)
+	event, err := service.store.Get(ctx, id, viewer.UserID)
+	if err != nil || service.authors == nil {
+		return event, err
+	}
+	event.Author, err = service.authors.Author(ctx, event.SubmissionID)
+	return event, err
 }
 
 // Star ставит или снимает звезду. Гостю - ErrUnauthorized: звезда привязана к аккаунту.
@@ -126,11 +131,11 @@ func (service *Service) StartView(ctx context.Context, id int64, viewer Viewer, 
 		if err != nil {
 			return 0, false, err
 		}
-		author, err := service.authors.AuthorEmail(ctx, event.SubmissionID)
+		author, err := service.authors.Author(ctx, event.SubmissionID)
 		if err != nil {
 			return 0, false, err
 		}
-		if strings.EqualFold(author, viewer.Email) {
+		if strings.EqualFold(author.Email, viewer.Email) {
 			return 0, false, nil
 		}
 	}

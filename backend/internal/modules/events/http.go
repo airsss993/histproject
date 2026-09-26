@@ -104,7 +104,11 @@ func (handler *Handler) get(w http.ResponseWriter, r *http.Request) {
 		handler.writeError(w, r, err)
 		return
 	}
-	_ = httpserver.WriteJSON(w, http.StatusOK, map[string]eventResponse{"event": newEventResponse(event)})
+	response := newEventResponse(event)
+	if event.Author.PublicID != "" {
+		response.Author = &authorResponse{PublicID: event.Author.PublicID, FirstName: event.Author.FirstName, LastName: event.Author.LastName}
+	}
+	_ = httpserver.WriteJSON(w, http.StatusOK, map[string]eventResponse{"event": response})
 }
 
 func (handler *Handler) star(on bool) http.HandlerFunc {
@@ -259,6 +263,14 @@ type eventResponse struct {
 	PreviewImageURL *string `json:"previewImageUrl"`
 	Stars           int64   `json:"stars"`
 	Starred         bool    `json:"starred"`
+	// Author есть только в GET /events/{id} и только у автора с учёткой.
+	Author *authorResponse `json:"author,omitempty"`
+}
+
+type authorResponse struct {
+	PublicID  string `json:"publicId"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
 }
 
 func newEventResponse(event Event) eventResponse {

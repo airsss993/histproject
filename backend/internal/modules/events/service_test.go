@@ -210,7 +210,9 @@ func (stub *eventStoreStub) Summaries(context.Context, []int64, int64) ([]Summar
 
 type authorsStub string
 
-func (stub authorsStub) AuthorEmail(context.Context, int64) (string, error) { return string(stub), nil }
+func (stub authorsStub) Author(context.Context, int64) (Author, error) {
+	return Author{Email: string(stub), PublicID: "RHU-7K3F9Q", FirstName: "Анна"}, nil
+}
 
 func TestServiceStarRequiresAccount(t *testing.T) {
 	store := &eventStoreStub{}
@@ -261,4 +263,12 @@ func mustServiceDate(t *testing.T, value string) time.Time {
 		t.Fatalf("parse date: %v", err)
 	}
 	return date
+}
+
+func TestServiceGetAddsAuthor(t *testing.T) {
+	service := NewService(&eventStoreStub{event: Event{ID: 3, SubmissionID: 7}}, authorsStub("author@example.ru"))
+	event, err := service.Get(t.Context(), 3, Viewer{})
+	if err != nil || event.Author.PublicID != "RHU-7K3F9Q" || event.Author.FirstName != "Анна" {
+		t.Fatalf("Get() author = %#v, %v", event.Author, err)
+	}
 }

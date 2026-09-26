@@ -1334,6 +1334,18 @@ components:
         starred:
           type: boolean
           description: Звезду поставил текущий пользователь, у гостя false
+        author:
+          type: object
+          description: Только в GET /api/v1/events/{id} и только если у почты заявки есть учётка
+          required: [publicId, firstName, lastName]
+          properties:
+            publicId:
+              type: string
+              example: RHU-7K3F9Q
+            firstName:
+              type: string
+            lastName:
+              type: string
     StarState:
       type: object
       required: [stars, starred]

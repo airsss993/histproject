@@ -18,6 +18,16 @@ type Event struct {
 	// Stars - число звёзд, Starred - стоит ли звезда смотрящего. Заполняют только List и Get.
 	Stars   int64
 	Starred bool
+	// Author заполняет только Service.Get. Пустой PublicID - у почты заявки нет учётки на сайте.
+	Author Author
+}
+
+// Author - автор события: учётка посетителя с почтой заявки. Email нужен только сервису.
+type Author struct {
+	Email     string
+	PublicID  string
+	FirstName string
+	LastName  string
 }
 
 // Viewer - кто смотрит. Нулевой - гость.
