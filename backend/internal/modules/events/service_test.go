@@ -10,15 +10,18 @@ import (
 
 func TestListNormalizesFiltersAndPagination(t *testing.T) {
 	store := &eventStoreStub{page: Page{Total: 2}}
-	service := NewService(store)
+	service := NewService(store, nil)
 
 	page, err := service.List(t.Context(), ListInput{
 		EventTypes: []string{" military ", "political"},
 		DateFrom:   "2020-01-02",
 		DateTo:     "2021-03-04",
-	})
+	}, Viewer{UserID: 8})
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
+	}
+	if store.filter.ViewerID != 8 {
+		t.Fatalf("viewer = %d, want 8", store.filter.ViewerID)
 	}
 	if page.Total != 2 {
 		t.Fatalf("List() = %#v", page)
@@ -51,8 +54,8 @@ func TestListRejectsInvalidFilters(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			store := &eventStoreStub{}
-			service := NewService(store)
-			_, err := service.List(t.Context(), test.input)
+			service := NewService(store, nil)
+			_, err := service.List(t.Context(), test.input, Viewer{})
 			var validationError *ValidationError
 			if !errors.As(err, &validationError) || validationError.Fields[test.field] == "" {
 				t.Fatalf("List() error = %v, want %s validation", err, test.field)
@@ -66,9 +69,9 @@ func TestListRejectsInvalidFilters(t *testing.T) {
 
 func TestGetRejectsNonPositiveID(t *testing.T) {
 	store := &eventStoreStub{}
-	service := NewService(store)
+	service := NewService(store, nil)
 
-	_, err := service.Get(t.Context(), 0)
+	_, err := service.Get(t.Context(), 0, Viewer{})
 	var validationError *ValidationError
 	if !errors.As(err, &validationError) || validationError.Fields["id"] == "" {
 		t.Fatalf("Get() error = %v, want id validation", err)
@@ -96,7 +99,7 @@ func TestUpdateCoordinatesValidatesRanges(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			store := &eventStoreStub{}
-			service := NewService(store)
+			service := NewService(store, nil)
 			err := service.UpdateCoordinates(t.Context(), 1, test.latitude, test.longitude)
 			var validationError *ValidationError
 			if !errors.As(err, &validationError) || validationError.Fields[test.field] == "" {
@@ -111,7 +114,7 @@ func TestUpdateCoordinatesValidatesRanges(t *testing.T) {
 
 func TestDeleteDelegatesPositiveID(t *testing.T) {
 	store := &eventStoreStub{}
-	service := NewService(store)
+	service := NewService(store, nil)
 
 	if err := service.Delete(t.Context(), 9); err != nil {
 		t.Fatalf("Delete() error = %v", err)
@@ -123,7 +126,7 @@ func TestDeleteDelegatesPositiveID(t *testing.T) {
 
 func TestPublishDelegatesSnapshot(t *testing.T) {
 	store := &eventStoreStub{event: Event{ID: 12, SubmissionID: 7}}
-	service := NewService(store)
+	service := NewService(store, nil)
 	snapshot := Snapshot{
 		SubmissionID: 7, Title: "Event", Description: "Description",
 		Latitude: 55.5, Longitude: 60.5, EventDate: mustServiceDate(t, "2020-01-02"),
@@ -154,6 +157,10 @@ type eventStoreStub struct {
 	deleteError  error
 	snapshot     Snapshot
 	publishError error
+	starCalled   bool
+	viewUserID   int64
+	viewStarted  bool
+	touchSeconds int
 }
 
 func (stub *eventStoreStub) Publish(_ context.Context, snapshot Snapshot) (Event, error) {
@@ -167,7 +174,7 @@ func (stub *eventStoreStub) List(_ context.Context, filter Filter) (Page, error)
 	return stub.page, stub.listError
 }
 
-func (stub *eventStoreStub) Get(context.Context, int64) (Event, error) {
+func (stub *eventStoreStub) Get(context.Context, int64, int64) (Event, error) {
 	stub.getCalled = true
 	return stub.event, stub.getError
 }
@@ -182,6 +189,73 @@ func (stub *eventStoreStub) Delete(_ context.Context, id int64) error {
 	return stub.deleteError
 }
 
+func (stub *eventStoreStub) SetStar(_ context.Context, _, _ int64, on bool) (StarState, error) {
+	stub.starCalled = true
+	return StarState{Stars: 1, Starred: on}, nil
+}
+
+func (stub *eventStoreStub) StartView(_ context.Context, _, userID int64, _ string) (int64, error) {
+	stub.viewStarted, stub.viewUserID = true, userID
+	return 5, nil
+}
+
+func (stub *eventStoreStub) TouchView(_ context.Context, _, _ int64, _ string, seconds int) error {
+	stub.touchSeconds = seconds
+	return nil
+}
+
+func (stub *eventStoreStub) Summaries(context.Context, []int64, int64) ([]Summary, error) {
+	return nil, nil
+}
+
+type authorsStub string
+
+func (stub authorsStub) Author(context.Context, int64) (Author, error) {
+	return Author{Email: string(stub), PublicID: "RHU-7K3F9Q", FirstName: "Анна"}, nil
+}
+
+func TestServiceStarRequiresAccount(t *testing.T) {
+	store := &eventStoreStub{}
+	service := NewService(store, nil)
+	if _, err := service.Star(t.Context(), 3, Viewer{}, true); !errors.Is(err, ErrUnauthorized) || store.starCalled {
+		t.Fatalf("guest Star() error = %v, store called = %v", err, store.starCalled)
+	}
+	state, err := service.Star(t.Context(), 3, Viewer{UserID: 9}, true)
+	if err != nil || !state.Starred {
+		t.Fatalf("Star() = %#v, %v", state, err)
+	}
+}
+
+func TestServiceStartViewSkipsAuthor(t *testing.T) {
+	const visitor = "1b4e28ba-2fa1-41d2-883f-0016d3cca427"
+	store := &eventStoreStub{event: Event{ID: 3, SubmissionID: 7}}
+	service := NewService(store, authorsStub("Author@Example.ru"))
+
+	if _, recorded, err := service.StartView(t.Context(), 3, Viewer{UserID: 2, Email: "author@example.ru"}, visitor); err != nil || recorded || store.viewStarted {
+		t.Fatalf("author StartView() recorded = %v, error = %v, store called = %v", recorded, err, store.viewStarted)
+	}
+	if viewID, recorded, err := service.StartView(t.Context(), 3, Viewer{UserID: 4, Email: "reader@example.ru"}, visitor); err != nil || !recorded || viewID != 5 || store.viewUserID != 4 {
+		t.Fatalf("reader StartView() = %d, %v, %v, user %d", viewID, recorded, err, store.viewUserID)
+	}
+	var validationError *ValidationError
+	if _, _, err := service.StartView(t.Context(), 3, Viewer{}, "not-a-uuid"); !errors.As(err, &validationError) {
+		t.Fatalf("bad visitor StartView() error = %v", err)
+	}
+}
+
+func TestServiceTouchViewCapsSeconds(t *testing.T) {
+	const visitor = "1b4e28ba-2fa1-41d2-883f-0016d3cca427"
+	store := &eventStoreStub{}
+	service := NewService(store, nil)
+	if err := service.TouchView(t.Context(), 3, 5, visitor, 10*MaxViewSeconds); err != nil || store.touchSeconds != MaxViewSeconds {
+		t.Fatalf("TouchView() error = %v, seconds = %d", err, store.touchSeconds)
+	}
+	var validationError *ValidationError
+	if err := service.TouchView(t.Context(), 3, 5, visitor, -1); !errors.As(err, &validationError) {
+		t.Fatalf("negative TouchView() error = %v", err)
+	}
+}
+
 func mustServiceDate(t *testing.T, value string) time.Time {
 	t.Helper()
 	date, err := time.Parse(time.DateOnly, value)
@@ -189,4 +263,12 @@ func mustServiceDate(t *testing.T, value string) time.Time {
 		t.Fatalf("parse date: %v", err)
 	}
 	return date
+}
+
+func TestServiceGetAddsAuthor(t *testing.T) {
+	service := NewService(&eventStoreStub{event: Event{ID: 3, SubmissionID: 7}}, authorsStub("author@example.ru"))
+	event, err := service.Get(t.Context(), 3, Viewer{})
+	if err != nil || event.Author.PublicID != "RHU-7K3F9Q" || event.Author.FirstName != "Анна" {
+		t.Fatalf("Get() author = %#v, %v", event.Author, err)
+	}
 }

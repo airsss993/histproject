@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { HeaderNav, Logo, ROMAN, useIsMobile } from './PublicMap.tsx'
 import { PinShape } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
+import { StarButton } from './Star.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { Loading, useSettle } from '../../shared/ui/Loader.tsx'
 import {
-  fetchMe, fetchProfile, formatDate, logoutUser, TYPE_LABEL,
-  type Profile, type User, type Work, type WorkStatus,
+  eventPath, fetchMe, fetchProfile, profilePath, formatDate, logoutUser, TYPE_LABEL,
+  type Profile, type StarState, type User, type Work, type WorkStatus,
 } from './api.ts'
 import './public.css'
 import './profile.css'
@@ -88,20 +89,45 @@ const Timeline: React.FC<{ works: Work[] }> = ({ works }) => (
   </div>
 )
 
+// "3 мин 20 с", "45 с", "2 ч 5 мин".
+const duration = (seconds: number) => {
+  const s = Math.round(seconds), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
+  if (h) return m ? `${h} ч ${m} мин` : `${h} ч`
+  if (m) return s % 60 ? `${m} мин ${s % 60} с` : `${m} мин`
+  return `${s} с`
+}
+
+// Статистика просмотров сайта. Сервер отдаёт её только владельцу профиля.
+const WorkStats: React.FC<{ stats: NonNullable<Work['stats']> }> = ({ stats: { views, visitors, activeSeconds } }) => (
+  <span className="pf-tile-stats">
+    <span>{views} {plural(views, 'просмотр', 'просмотра', 'просмотров')}</span>
+    <span>{visitors} {plural(visitors, 'посетитель', 'посетителя', 'посетителей')}</span>
+    <span>всего {duration(activeSeconds)}</span>
+    {views > 0 && <span>в среднем {duration(activeSeconds / views)}</span>}
+  </span>
+)
+
 // Опубликованная работа - плитка-витрина: главное в ней превью сайта, а не строка с датой.
-const Tile: React.FC<{ work: Work; i: number }> = ({ work, i }) => (
-  <a className="pf-tile pm-glass" href={work.siteUrl} target="_blank" rel="noreferrer" style={{ '--i': i } as React.CSSProperties}>
-    <span className="pf-tile-frame">
-      {work.screenshotUrl
-        ? <img className="pf-tile-shot" src={work.screenshotUrl} alt="" loading="lazy" />
-        : <span className="pf-tile-shot pm-hatch" />}
-    </span>
-    <span className="pf-tile-body">
-      <span className="pf-tile-title">{work.title}</span>
-      <span className="pm-dim-text">{TYPE_LABEL[work.eventType]} · {formatDate(work.eventDate)}</span>
-    </span>
-    <span className="pf-tile-go">Открыть сайт</span>
-  </a>
+// Звезда - кнопка, поэтому плитка не ссылка целиком: ссылка растянута под звездой.
+const Tile: React.FC<{ work: Work; i: number; onStar: (star: StarState) => void }> = ({ work, i, onStar }) => (
+  <div className="pf-tile pm-glass" style={{ '--i': i } as React.CSSProperties}>
+    {work.eventId !== undefined && (
+      <StarButton id={work.eventId} stars={work.stars} starred={work.starred} onChange={onStar} className="pm-btn-ghost pm-pill pf-tile-star" />
+    )}
+    <Link className="pf-tile-link" to={work.eventId !== undefined ? eventPath(work.eventId) : '/map'}>
+      <span className="pf-tile-frame">
+        {work.screenshotUrl
+          ? <img className="pf-tile-shot" src={work.screenshotUrl} alt="" loading="lazy" />
+          : <span className="pf-tile-shot pm-hatch" />}
+      </span>
+      <span className="pf-tile-body">
+        <span className="pf-tile-title">{work.title}</span>
+        <span className="pm-dim-text">{TYPE_LABEL[work.eventType]} · {formatDate(work.eventDate)}</span>
+      </span>
+      {work.stats && <WorkStats stats={work.stats} />}
+      <span className="pf-tile-go">Открыть сайт</span>
+    </Link>
+  </div>
 )
 
 // Незавершённая заявка - строка с путём, как в референсе отслеживания заказа. Видит только автор.
@@ -147,6 +173,9 @@ export const ProfilePage: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const mobile = useIsMobile()
+  // Старые ссылки /u/RHU-7K3F9Q переписываем на /user/rhu-7k3f9q.
+  const { pathname } = useLocation()
+  useEffect(() => { if (id && pathname !== profilePath(id)) navigate(profilePath(id), { replace: true }) }, [id, pathname, navigate])
   const [state, setState] = useState<{ k: 'load' } | { k: 'ready'; profile: Profile } | { k: 'none' } | { k: 'error' }>({ k: 'load' })
   const [me, setMe] = useState<User | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
@@ -170,8 +199,11 @@ export const ProfilePage: React.FC = () => {
   }, [id, retry])
 
   const phase = useSettle(state.k === 'load', state.k === 'ready')
+  const onStar = (publicId: string, star: StarState) => setState(st => st.k !== 'ready' ? st : {
+    ...st, profile: { ...st.profile, works: st.profile.works.map(w => w.publicId === publicId ? { ...w, ...star } : w) },
+  })
 
-  if (state.k === 'none') return <NotFound path={`/u/${id}`} kind="profile" />
+  if (state.k === 'none') return <NotFound path={profilePath(id ?? '')} kind="profile" />
 
   const profile = state.k === 'ready' && phase === 'idle' ? state.profile : null
   const works = profile?.works ?? []
@@ -254,7 +286,7 @@ export const ProfilePage: React.FC = () => {
             {shownPublished.length > 0 && (
               <>
                 <Title count={shownPublished.length}>{owner ? 'Опубликовано' : 'Сайты на карте'}</Title>
-                <div className="pf-gallery">{shownPublished.map((w, i) => <Tile key={w.publicId} work={w} i={i} />)}</div>
+                <div className="pf-gallery">{shownPublished.map((w, i) => <Tile key={w.publicId} work={w} i={i} onStar={star => onStar(w.publicId, star)} />)}</div>
               </>
             )}
 

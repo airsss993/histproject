@@ -10,6 +10,7 @@ const About = lazy(() => import('../pages/public/About.tsx').then(m => ({ defaul
 const AuthPage = lazy(() => import('../pages/public/Auth.tsx').then(m => ({ default: m.AuthPage })))
 const ProfilePage = lazy(() => import('../pages/public/Profile.tsx').then(m => ({ default: m.ProfilePage })))
 const Panel = lazy(() => import('../pages/panel/Panel.tsx').then(m => ({ default: m.Panel })))
+const Viewer = lazy(() => import('../pages/public/Viewer.tsx').then(m => ({ default: m.Viewer })))
 const Guide = lazy(() => import('../pages/public/Guide.tsx').then(m => ({ default: m.Guide })))
 const NotFound = lazy(() => import('../pages/public/NotFound.tsx').then(m => ({ default: m.NotFound })))
 
@@ -28,7 +29,9 @@ const rootElement = document.getElementById('root');
               <Route path="/guide" element={<Guide />} />
               <Route path="/login" element={<AuthPage key="login" mode="login" />} />
               <Route path="/register" element={<AuthPage key="register" mode="register" />} />
+              <Route path="/user/:id" element={<ProfilePage />} />
               <Route path="/u/:id" element={<ProfilePage />} />
+              <Route path="/event/:id" element={<Viewer />} />
               <Route path="/admin" element={<Panel />} />
               {['/log', '/adm', '/mad', '/his', '/mod'].map(p => <Route key={p} path={p} element={<Navigate to="/admin" replace />} />)}
               <Route path="*" element={<NotFound />} />

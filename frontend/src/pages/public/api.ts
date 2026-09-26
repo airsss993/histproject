@@ -10,6 +10,10 @@ export interface HistEvent {
   eventType: EventType
   siteUrl: string
   previewImageUrl?: string | null
+  stars: number
+  starred: boolean
+  // Только в fetchEvent и только если у автора есть учётка.
+  author?: { publicId: string; firstName: string; lastName: string }
 }
 
 const API = `${import.meta.env.VITE_API_BASE ?? ''}/api/v1`
@@ -25,7 +29,7 @@ export const formatDate = (iso: string) => iso.slice(0, 10).split('-').reverse()
 export async function fetchAllEvents(signal: AbortSignal): Promise<HistEvent[]> {
   const all: HistEvent[] = []
   for (let page = 1; ; page++) {
-    const res = await fetch(`${API}/events?page=${page}&pageSize=100`, { signal })
+    const res = await fetch(`${API}/events?page=${page}&pageSize=100`, { signal, credentials: 'include' })
     if (!res.ok) throw new Error(`events: HTTP ${res.status}`)
     const body: { items: HistEvent[]; total: number } = await res.json()
     all.push(...body.items)
@@ -35,10 +39,39 @@ export async function fetchAllEvents(signal: AbortSignal): Promise<HistEvent[]> 
 
 // null - события нет (404).
 export async function fetchEvent(id: number, signal: AbortSignal): Promise<HistEvent | null> {
-  const res = await fetch(`${API}/events/${id}`, { signal })
+  const res = await fetch(`${API}/events/${id}`, { signal, credentials: 'include' })
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`event ${id}: HTTP ${res.status}`)
   return (await res.json()).event
+}
+
+export interface StarState { stars: number; starred: boolean }
+
+// null - гость (401) или нет связи; вызывающий отправляет гостя на вход.
+export async function setStar(id: number, on: boolean): Promise<StarState | 'guest' | null> {
+  try {
+    const res = await fetch(`${API}/events/${id}/star`, { method: on ? 'PUT' : 'DELETE', credentials: 'include' })
+    if (res.status === 401) return 'guest'
+    return res.ok ? res.json() : null
+  } catch {
+    return null
+  }
+}
+
+// Адреса страниц: в URL только строчные, код профиля бэкенд принимает в любом регистре.
+export const profilePath = (publicId: string) => `/user/${publicId.toLowerCase()}`
+export const eventPath = (id: number) => `/event/${id}`
+
+// Просмотр сайта на /event/:id. null - просмотр не пишется (автор смотрит своё) или нет связи.
+export async function startView(id: number, visitorId: string): Promise<number | null> {
+  const res = await postJSON<{ viewId: number }>(`/events/${id}/views`, { visitorId })
+  return res.ok && res.data.viewId ? res.data.viewId : null
+}
+
+// sendBeacon переживает закрытие вкладки; он шлёт только POST, поэтому ручка POST.
+export function touchView(id: number, viewId: number, visitorId: string, activeSeconds: number) {
+  const body = new Blob([JSON.stringify({ visitorId, activeSeconds })], { type: 'application/json' })
+  navigator.sendBeacon(`${API}/events/${id}/views/${viewId}`, body)
 }
 
 export interface User { id: number; publicId: string; email: string; firstName: string; lastName: string }
@@ -140,6 +173,11 @@ export interface Work {
   screenshotUrl: string
   comment?: string
   createdAt: string
+  eventId?: number
+  stars: number
+  starred: boolean
+  // Только владельцу профиля.
+  stats?: { views: number; visitors: number; activeSeconds: number }
 }
 
 export interface Profile {

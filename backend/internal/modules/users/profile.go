@@ -22,11 +22,24 @@ type Work struct {
 	ScreenshotURL string    `json:"screenshotUrl"`
 	Comment       string    `json:"comment,omitempty"`
 	CreatedAt     time.Time `json:"createdAt"`
+	// EventID, Stars, Starred есть у опубликованной работы: у неё есть событие на карте.
+	EventID *int64 `json:"eventId,omitempty"`
+	Stars   int64  `json:"stars"`
+	Starred bool   `json:"starred"`
+	// Stats - просмотры сайта, только владельцу профиля.
+	Stats *WorkStats `json:"stats,omitempty"`
 }
 
-// Works отдаёт заявки автора по почте. Реализует модуль submissions через адаптер в internal/app.
+type WorkStats struct {
+	Views         int64 `json:"views"`
+	Visitors      int64 `json:"visitors"`
+	ActiveSeconds int64 `json:"activeSeconds"`
+}
+
+// Works отдаёт заявки автора по почте. viewerID - смотрящий для признака Starred, 0 у гостя.
+// Реализуют модули submissions и events через адаптер в internal/app.
 type Works interface {
-	ByAuthor(ctx context.Context, email string) ([]Work, error)
+	ByAuthor(ctx context.Context, email string, viewerID int64) ([]Work, error)
 }
 
 // Author - автор в чужом профиле: без почты и числового id, их видеть посторонним незачем.
@@ -55,17 +68,19 @@ func (service *Service) Profile(ctx context.Context, publicID, token string) (Pr
 		return Profile{}, err
 	}
 	owner := false
+	var viewerID int64
 	viewer, viewerErr := service.Authenticate(ctx, token)
 	switch {
 	case viewerErr == nil:
 		owner = viewer.ID == user.ID
+		viewerID = viewer.ID
 	case !errors.Is(viewerErr, ErrNoSession):
 		// Сбой хранилища сессий отдаём ошибкой: иначе владелец молча получает гостевой профиль без своих заявок.
 		return Profile{}, viewerErr
 	}
 	works := []Work{}
 	if service.works != nil {
-		works, err = service.works.ByAuthor(ctx, strings.ToLower(user.Email))
+		works, err = service.works.ByAuthor(ctx, strings.ToLower(user.Email), viewerID)
 		if err != nil {
 			return Profile{}, err
 		}
@@ -80,7 +95,8 @@ func (service *Service) Profile(ctx context.Context, publicID, token string) (Pr
 	}, nil
 }
 
-// onlyPublished оставляет опубликованные работы и снимает с них комментарий модератора: он для автора.
+// onlyPublished оставляет опубликованные работы и снимает с них то, что только для автора:
+// комментарий модератора и статистику просмотров.
 func onlyPublished(works []Work) []Work {
 	public := make([]Work, 0, len(works))
 	for _, work := range works {
@@ -88,6 +104,7 @@ func onlyPublished(works []Work) []Work {
 			continue
 		}
 		work.Comment = ""
+		work.Stats = nil
 		public = append(public, work)
 	}
 	return public

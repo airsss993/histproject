@@ -227,7 +227,7 @@ func TestAPISubmissionFlow(t *testing.T) {
 
 	workflow := submissions.NewService(
 		submissions.NewRepository(databaseClient.Pool()),
-		submissionEventPublisher{service: events.NewService(events.NewRepository(databaseClient.Pool()))},
+		submissionEventPublisher{service: events.NewService(events.NewRepository(databaseClient.Pool()), nil)},
 		storageClient,
 		queueClient,
 		nil,

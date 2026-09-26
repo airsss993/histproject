@@ -19,7 +19,7 @@ func TestHTTPListParsesFiltersAndFormatsPage(t *testing.T) {
 		Items: []Event{{ID: 7, Title: "Event", Latitude: 55.5, Longitude: 60.5, EventDate: mustHTTPDate(t, "2020-01-02"), EventType: "military", PreviewImageURL: &preview}},
 		Page:  2, PageSize: 10, Total: 11,
 	}}
-	handler := NewHandler(service, discardEventLogger())
+	handler := NewHandler(service, discardEventLogger(), guestViewer)
 	mux := http.NewServeMux()
 	handler.Register(mux, passEventMiddleware)
 	response := httptest.NewRecorder()
@@ -56,7 +56,7 @@ func TestHTTPListParsesFiltersAndFormatsPage(t *testing.T) {
 
 func TestHTTPListRejectsMalformedPagination(t *testing.T) {
 	service := &eventHTTPServiceStub{}
-	handler := NewHandler(service, discardEventLogger())
+	handler := NewHandler(service, discardEventLogger(), guestViewer)
 	mux := http.NewServeMux()
 	handler.Register(mux, passEventMiddleware)
 	response := httptest.NewRecorder()
@@ -71,7 +71,7 @@ func TestHTTPListRejectsMalformedPagination(t *testing.T) {
 
 func TestHTTPGetMapsMissingEvent(t *testing.T) {
 	service := &eventHTTPServiceStub{getError: ErrEventNotFound}
-	handler := NewHandler(service, discardEventLogger())
+	handler := NewHandler(service, discardEventLogger(), guestViewer)
 	mux := http.NewServeMux()
 	handler.Register(mux, passEventMiddleware)
 	response := httptest.NewRecorder()
@@ -83,7 +83,7 @@ func TestHTTPGetMapsMissingEvent(t *testing.T) {
 
 func TestHTTPUpdateCoordinatesUsesProtectionAndValidation(t *testing.T) {
 	service := &eventHTTPServiceStub{updateError: &ValidationError{Fields: map[string]string{"latitude": "invalid"}}}
-	handler := NewHandler(service, discardEventLogger())
+	handler := NewHandler(service, discardEventLogger(), guestViewer)
 	mux := http.NewServeMux()
 	protected := false
 	handler.Register(mux, func(next http.Handler) http.Handler {
@@ -104,7 +104,7 @@ func TestHTTPUpdateCoordinatesUsesProtectionAndValidation(t *testing.T) {
 
 func TestHTTPDeleteReturnsNoContent(t *testing.T) {
 	service := &eventHTTPServiceStub{}
-	handler := NewHandler(service, discardEventLogger())
+	handler := NewHandler(service, discardEventLogger(), guestViewer)
 	mux := http.NewServeMux()
 	handler.Register(mux, passEventMiddleware)
 	response := httptest.NewRecorder()
@@ -117,25 +117,28 @@ func TestHTTPDeleteReturnsNoContent(t *testing.T) {
 }
 
 type eventHTTPServiceStub struct {
-	listCalled  bool
-	listInput   ListInput
-	page        Page
-	listError   error
-	event       Event
-	getError    error
-	updatedID   int64
-	updateError error
-	deletedID   int64
-	deleteError error
+	listCalled   bool
+	listInput    ListInput
+	page         Page
+	listError    error
+	event        Event
+	getError     error
+	updatedID    int64
+	updateError  error
+	deletedID    int64
+	deleteError  error
+	viewID       int64
+	touchedView  int64
+	touchSeconds int
 }
 
-func (stub *eventHTTPServiceStub) List(_ context.Context, input ListInput) (Page, error) {
+func (stub *eventHTTPServiceStub) List(_ context.Context, input ListInput, _ Viewer) (Page, error) {
 	stub.listCalled = true
 	stub.listInput = input
 	return stub.page, stub.listError
 }
 
-func (stub *eventHTTPServiceStub) Get(context.Context, int64) (Event, error) {
+func (stub *eventHTTPServiceStub) Get(context.Context, int64, Viewer) (Event, error) {
 	return stub.event, stub.getError
 }
 
@@ -147,6 +150,52 @@ func (stub *eventHTTPServiceStub) UpdateCoordinates(_ context.Context, id int64,
 func (stub *eventHTTPServiceStub) Delete(_ context.Context, id int64) error {
 	stub.deletedID = id
 	return stub.deleteError
+}
+
+func (stub *eventHTTPServiceStub) Star(_ context.Context, _ int64, viewer Viewer, on bool) (StarState, error) {
+	if viewer.UserID == 0 {
+		return StarState{}, ErrUnauthorized
+	}
+	return StarState{Stars: 1, Starred: on}, nil
+}
+
+func (stub *eventHTTPServiceStub) StartView(context.Context, int64, Viewer, string) (int64, bool, error) {
+	return stub.viewID, stub.viewID != 0, nil
+}
+
+func (stub *eventHTTPServiceStub) TouchView(_ context.Context, _, viewID int64, _ string, seconds int) error {
+	stub.touchedView, stub.touchSeconds = viewID, seconds
+	return nil
+}
+
+func guestViewer(*http.Request) (Viewer, error) { return Viewer{}, nil }
+
+func TestHTTPStarAndViews(t *testing.T) {
+	service := &eventHTTPServiceStub{}
+	mux := http.NewServeMux()
+	NewHandler(service, discardEventLogger(), guestViewer).Register(mux, passEventMiddleware)
+	send := func(method, target, body string) *httptest.ResponseRecorder {
+		response := httptest.NewRecorder()
+		mux.ServeHTTP(response, httptest.NewRequest(method, target, strings.NewReader(body)))
+		return response
+	}
+
+	if response := send(http.MethodPut, "/api/v1/events/3/star", ""); response.Code != http.StatusUnauthorized {
+		t.Fatalf("guest star status = %d", response.Code)
+	}
+	if response := send(http.MethodPost, "/api/v1/events/3/views", `{"visitorId":"x"}`); response.Code != http.StatusNoContent {
+		t.Fatalf("author view status = %d", response.Code)
+	}
+	service.viewID = 11
+	if response := send(http.MethodPost, "/api/v1/events/3/views", `{"visitorId":"x"}`); response.Code != http.StatusCreated || !strings.Contains(response.Body.String(), `"viewId":11`) {
+		t.Fatalf("view status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if response := send(http.MethodPost, "/api/v1/events/3/views/11", `{"visitorId":"x"}`); response.Code != http.StatusBadRequest {
+		t.Fatalf("touch without seconds status = %d", response.Code)
+	}
+	if response := send(http.MethodPost, "/api/v1/events/3/views/11", `{"visitorId":"x","activeSeconds":42}`); response.Code != http.StatusNoContent || service.touchedView != 11 || service.touchSeconds != 42 {
+		t.Fatalf("touch status = %d, view = %d, seconds = %d", response.Code, service.touchedView, service.touchSeconds)
+	}
 }
 
 func passEventMiddleware(next http.Handler) http.Handler { return next }

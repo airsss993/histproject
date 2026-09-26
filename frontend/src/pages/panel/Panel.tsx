@@ -5,7 +5,7 @@ import { MapView, type MapHandle } from '../public/MapView.tsx'
 import { TYPES, TYPE_LABEL, formatDate, type ApiResult, type EventType } from '../public/api.ts'
 import { Field } from '../../shared/ui/Field.tsx'
 import { Loading, useSettle } from '../../shared/ui/Loader.tsx'
-import { fetchMe, logoutUser } from '../public/api.ts'
+import { fetchMe, logoutUser, profilePath as profileUrl } from '../public/api.ts'
 import * as api from './api.ts'
 import type { AuditEntry, Me, Moderator, Page, Role, Status, Submission, TelegramChat } from './api.ts'
 import '../public/public.css'
@@ -68,7 +68,7 @@ const Icon: React.FC<{ name: keyof typeof ICON }> = ({ name }) => (
 const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => {
   const navigate = useNavigate()
   const [profilePath, setProfilePath] = useState('/map')
-  useEffect(() => { const ac = new AbortController(); fetchMe(ac.signal).then(user => { if (user) setProfilePath(`/u/${user.publicId}`) }).catch(() => {}); return () => ac.abort() }, [])
+  useEffect(() => { const ac = new AbortController(); fetchMe(ac.signal).then(user => { if (user) setProfilePath(profileUrl(user.publicId)) }).catch(() => {}); return () => ac.abort() }, [])
   const mobile = useIsMobile()
   const [params, setParams] = useSearchParams()
   const superAdmin = me.role === 'super_admin'

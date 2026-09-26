@@ -242,6 +242,121 @@ paths:
                     $ref: "#/components/schemas/Event"
         "404":
           $ref: "#/components/responses/NotFound"
+  /api/v1/events/{id}/star:
+    put:
+      tags: [Events]
+      operationId: starEvent
+      description: Поставить звезду. Одна на пользователя, повтор ничего не меняет.
+      security:
+        - userCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: Звёзды после изменения
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StarState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Events]
+      operationId: unstarEvent
+      description: Снять звезду. Снять отсутствующую - не ошибка.
+      security:
+        - userCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: Звёзды после изменения
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StarState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/events/{id}/views:
+    post:
+      tags: [Events]
+      operationId: startEventView
+      description: >
+        Начало просмотра сайта события на странице просмотра. Кука сессии необязательна: вошедший
+        записывается аккаунтом. Просмотр автором своего сайта не записывается (204).
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visitorId]
+              additionalProperties: false
+              properties:
+                visitorId:
+                  $ref: "#/components/schemas/VisitorID"
+      responses:
+        "201":
+          description: Просмотр записан
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [viewId]
+                properties:
+                  viewId:
+                    type: integer
+                    format: int64
+        "204":
+          description: Смотрит автор, просмотр не записан
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/events/{id}/views/{viewId}:
+    post:
+      tags: [Events]
+      operationId: touchEventView
+      description: >
+        Активное время просмотра, всего с его начала. POST, потому что при закрытии страницы запрос
+        уходит через navigator.sendBeacon. Время только растёт, не больше прошедшего с начала
+        просмотра и не больше 7200 секунд. Принимается только с тем же visitorId.
+      parameters:
+        - $ref: "#/components/parameters/ID"
+        - name: viewId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visitorId, activeSeconds]
+              additionalProperties: false
+              properties:
+                visitorId:
+                  $ref: "#/components/schemas/VisitorID"
+                activeSeconds:
+                  type: integer
+                  minimum: 0
+      responses:
+        "204":
+          description: Время записано
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /api/v1/submissions:
     post:
       tags: [Submissions]
@@ -1039,6 +1154,32 @@ components:
               createdAt:
                 type: string
                 format: date-time
+              eventId:
+                type: integer
+                format: int64
+                description: Событие на карте, есть у опубликованной работы
+              stars:
+                type: integer
+                format: int64
+              starred:
+                type: boolean
+                description: Звезду поставил смотрящий
+              stats:
+                type: object
+                description: Просмотры сайта, только своему профилю и только у опубликованной работы
+                required: [views, visitors, activeSeconds]
+                properties:
+                  views:
+                    type: integer
+                    format: int64
+                  visitors:
+                    type: integer
+                    format: int64
+                    description: Уникальные посетители - аккаунт, у гостя - браузер
+                  activeSeconds:
+                    type: integer
+                    format: int64
+                    description: Суммарное активное время всех просмотров
     SessionResponse:
       type: object
       required: [admin]
@@ -1159,7 +1300,7 @@ components:
               enum: [political, military]
     Event:
       type: object
-      required: [id, title, description, latitude, longitude, eventDate, eventType, siteUrl]
+      required: [id, title, description, latitude, longitude, eventDate, eventType, siteUrl, stars, starred]
       properties:
         id:
           type: integer
@@ -1186,6 +1327,38 @@ components:
           type: string
           format: uri
           nullable: true
+        stars:
+          type: integer
+          format: int64
+          description: Число поставивших звезду
+        starred:
+          type: boolean
+          description: Звезду поставил текущий пользователь, у гостя false
+        author:
+          type: object
+          description: Только в GET /api/v1/events/{id} и только если у почты заявки есть учётка
+          required: [publicId, firstName, lastName]
+          properties:
+            publicId:
+              type: string
+              example: RHU-7K3F9Q
+            firstName:
+              type: string
+            lastName:
+              type: string
+    StarState:
+      type: object
+      required: [stars, starred]
+      properties:
+        stars:
+          type: integer
+          format: int64
+        starred:
+          type: boolean
+    VisitorID:
+      type: string
+      format: uuid
+      description: Случайный id браузера посетителя, UUID в нижнем регистре
     EventPage:
       type: object
       required: [items, page, pageSize, total]

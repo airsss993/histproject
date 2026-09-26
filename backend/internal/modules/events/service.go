@@ -9,7 +9,16 @@ import (
 	"time"
 )
 
-var ErrEventNotFound = errors.New("event not found")
+var (
+	ErrEventNotFound = errors.New("event not found")
+	ErrViewNotFound  = errors.New("view not found")
+	ErrUnauthorized  = errors.New("unauthorized")
+)
+
+// MaxViewSeconds - потолок активного времени одного просмотра, как CHECK в events.views.
+const MaxViewSeconds = 2 * 60 * 60
+
+var visitorIDPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 var eventTypePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,49}$`)
 
@@ -24,17 +33,27 @@ func (validationError *ValidationError) Error() string {
 type Store interface {
 	Publish(context.Context, Snapshot) (Event, error)
 	List(context.Context, Filter) (Page, error)
-	Get(context.Context, int64) (Event, error)
+	Get(ctx context.Context, id, viewerID int64) (Event, error)
 	UpdateCoordinates(context.Context, int64, float64, float64) error
 	Delete(context.Context, int64) error
+	SetStar(ctx context.Context, eventID, userID int64, on bool) (StarState, error)
+	StartView(ctx context.Context, eventID, userID int64, visitorID string) (int64, error)
+	TouchView(ctx context.Context, eventID, viewID int64, visitorID string, seconds int) error
+	Summaries(ctx context.Context, submissionIDs []int64, viewerID int64) ([]Summary, error)
+}
+
+// Authors отдаёт автора заявки: почту из submissions и учётку из users. Адаптер - в internal/app.
+type Authors interface {
+	Author(ctx context.Context, submissionID int64) (Author, error)
 }
 
 type Service struct {
-	store Store
+	store   Store
+	authors Authors
 }
 
-func NewService(store Store) *Service {
-	return &Service{store: store}
+func NewService(store Store, authors Authors) *Service {
+	return &Service{store: store, authors: authors}
 }
 
 func (service *Service) Publish(ctx context.Context, snapshot Snapshot) (Event, error) {
@@ -66,19 +85,96 @@ func (service *Service) Publish(ctx context.Context, snapshot Snapshot) (Event, 
 	return service.store.Publish(ctx, snapshot)
 }
 
-func (service *Service) List(ctx context.Context, input ListInput) (Page, error) {
+func (service *Service) List(ctx context.Context, input ListInput, viewer Viewer) (Page, error) {
 	filter, fields := normalizeFilter(input)
 	if len(fields) > 0 {
 		return Page{}, &ValidationError{Fields: fields}
 	}
+	filter.ViewerID = viewer.UserID
 	return service.store.List(ctx, filter)
 }
 
-func (service *Service) Get(ctx context.Context, id int64) (Event, error) {
+func (service *Service) Get(ctx context.Context, id int64, viewer Viewer) (Event, error) {
 	if id <= 0 {
 		return Event{}, invalidID()
 	}
-	return service.store.Get(ctx, id)
+	event, err := service.store.Get(ctx, id, viewer.UserID)
+	if err != nil || service.authors == nil {
+		return event, err
+	}
+	event.Author, err = service.authors.Author(ctx, event.SubmissionID)
+	return event, err
+}
+
+// Star ставит или снимает звезду. Гостю - ErrUnauthorized: звезда привязана к аккаунту.
+func (service *Service) Star(ctx context.Context, id int64, viewer Viewer, on bool) (StarState, error) {
+	if id <= 0 {
+		return StarState{}, invalidID()
+	}
+	if viewer.UserID == 0 {
+		return StarState{}, ErrUnauthorized
+	}
+	return service.store.SetStar(ctx, id, viewer.UserID, on)
+}
+
+// StartView записывает открытие страницы просмотра. Автор своего сайта в статистику не попадает:
+// recorded false, записи нет. Автор узнаётся по почте заявки, как в профиле.
+func (service *Service) StartView(ctx context.Context, id int64, viewer Viewer, visitorID string) (viewID int64, recorded bool, err error) {
+	if id <= 0 {
+		return 0, false, invalidID()
+	}
+	if !visitorIDPattern.MatchString(visitorID) {
+		return 0, false, &ValidationError{Fields: map[string]string{"visitorId": "Ожидается UUID"}}
+	}
+	if viewer.Email != "" && service.authors != nil {
+		event, err := service.store.Get(ctx, id, 0)
+		if err != nil {
+			return 0, false, err
+		}
+		author, err := service.authors.Author(ctx, event.SubmissionID)
+		if err != nil {
+			return 0, false, err
+		}
+		if strings.EqualFold(author.Email, viewer.Email) {
+			return 0, false, nil
+		}
+	}
+	viewID, err = service.store.StartView(ctx, id, viewer.UserID, visitorID)
+	return viewID, err == nil, err
+}
+
+// TouchView дописывает активное время просмотра, seconds - сколько всего с начала просмотра.
+func (service *Service) TouchView(ctx context.Context, id, viewID int64, visitorID string, seconds int) error {
+	fields := make(map[string]string)
+	if id <= 0 || viewID <= 0 {
+		fields["id"] = "Ожидается положительный ID"
+	}
+	if !visitorIDPattern.MatchString(visitorID) {
+		fields["visitorId"] = "Ожидается UUID"
+	}
+	if seconds < 0 {
+		fields["activeSeconds"] = "Не меньше 0"
+	}
+	if len(fields) > 0 {
+		return &ValidationError{Fields: fields}
+	}
+	return service.store.TouchView(ctx, id, viewID, visitorID, min(seconds, MaxViewSeconds))
+}
+
+// Summaries - звёзды и просмотры по заявкам, ключ - id заявки. Заявки без события в ответ не попадают.
+func (service *Service) Summaries(ctx context.Context, submissionIDs []int64, viewerID int64) (map[int64]Summary, error) {
+	result := make(map[int64]Summary, len(submissionIDs))
+	if len(submissionIDs) == 0 {
+		return result, nil
+	}
+	items, err := service.store.Summaries(ctx, submissionIDs, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range items {
+		result[item.SubmissionID] = item
+	}
+	return result, nil
 }
 
 func (service *Service) UpdateCoordinates(ctx context.Context, id int64, latitude, longitude float64) error {

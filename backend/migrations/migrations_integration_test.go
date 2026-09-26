@@ -45,6 +45,8 @@ func TestInitialSchema(t *testing.T) {
 		"submissions.submissions",
 		"submissions.audit_log",
 		"events.events",
+		"events.stars",
+		"events.views",
 		"notifications.deliveries",
 	} {
 		var exists bool
@@ -119,6 +121,9 @@ func assertSchemaConstraints(t *testing.T, ctx context.Context, db *sql.DB) {
 		WHERE constraint_info.contype = 'f'
 			AND child_schema.nspname IN ('auth', 'submissions', 'events', 'notifications')
 			AND child_schema.nspname <> parent_schema.nspname
+			-- Исключение (docs/ai/decisions.md, 2026-09-26): звезда и просмотр ссылаются на аккаунт.
+			AND NOT (child_schema.nspname = 'events' AND child_table.relname IN ('stars', 'views')
+				AND parent_schema.nspname = 'users' AND parent_table.relname = 'users')
 	`).Scan(&crossModuleForeignKeys); err != nil {
 		t.Fatalf("count cross-module foreign keys: %v", err)
 	}
