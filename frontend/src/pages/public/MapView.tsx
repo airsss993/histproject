@@ -125,6 +125,8 @@ interface Props {
   /** Режим выбора места: клик по карте и перетаскивание метки вызывают onPick. */
   pick?: { lat: number; lng: number } | null
   onPick?: (lat: number, lng: number) => void
+  /** Клик по пустому месту карты (метки его не вызывают). */
+  onMapClick?: () => void
   /** Карточка выбранного события: встаёт рядом с его меткой и ездит вместе с картой. */
   callout?: React.ReactNode
 }
@@ -178,13 +180,15 @@ function Callout({ x, y, pin, width, height, out, children }:
 }
 
 export const MapView = forwardRef<MapHandle, Props>(function MapView(
-  { events, isActive, selectedId, onSelect, pad, labels, sea = INK, interactive = true, pick, onPick, callout }, ref) {
+  { events, isActive, selectedId, onSelect, pad, labels, sea = INK, interactive = true, pick, onPick, onMapClick, callout }, ref) {
   const wrap = useRef<HTMLDivElement>(null)
   const hasCallout = !!callout
   const mapRef = useRef<maplibregl.Map | undefined>(undefined)
   const pickRef = useRef<maplibregl.Marker | undefined>(undefined)
   const onPickRef = useRef(onPick)
   onPickRef.current = onPick
+  const onMapClickRef = useRef(onMapClick)
+  onMapClickRef.current = onMapClick
   const labelsRef = useRef(labels)
   labelsRef.current = labels
   const baseZoom = useRef(0)
@@ -205,7 +209,7 @@ export const MapView = forwardRef<MapHandle, Props>(function MapView(
     const redraw = () => setTick(t => t + 1)
     map.on('move', redraw)
     map.on('resize', redraw)
-    map.on('click', e => onPickRef.current?.(e.lngLat.lat, e.lngLat.wrap().lng))
+    map.on('click', e => { onPickRef.current?.(e.lngLat.lat, e.lngLat.wrap().lng); onMapClickRef.current?.() })
     // Камере нужен только стиль: load ждал бы ещё и все тайлы.
     map.once('style.load', () => {
       if (pendingFly.current) map.flyTo({ ...pendingFly.current, duration: 800 })

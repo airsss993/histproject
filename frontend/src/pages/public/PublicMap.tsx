@@ -259,7 +259,7 @@ export const PublicMap: React.FC = () => {
     <>
     <div className={`pm-root${overlay && overlay.kind !== 'empty' ? ' pm-dim' : ''}`}>
       <MapView ref={mapRef} events={events} isActive={isActive} selectedId={showCard ? selectedId : null}
-        onSelect={select} pad={mobile ? 16 : 48} labels={!mobile}
+        onSelect={select} onMapClick={showCard ? closeCard : undefined} pad={mobile ? 16 : 48} labels={!mobile}
         callout={showCard && !mobile && <Card key={selectedId} event={selected ?? undefined} onClose={closeCard} onStar={onStar} />} />
 
       {!screen && (
