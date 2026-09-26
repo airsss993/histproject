@@ -144,7 +144,7 @@
 }
 .pm-close {
   position: absolute; right: 14px; top: 14px; width: 30px; height: 30px; border-radius: 999px;
-  font: 400 16px/28px var(--ui);
+  display: grid; place-items: center; padding: 0; color: #fff;
 }
 .pm-close-sm { width: 28px; height: 28px; border-radius: 999px; color: var(--muted); font: 400 15px/26px var(--ui); }
 

@@ -58,6 +58,7 @@ export const Logo: React.FC<{ short?: boolean; onClick?: () => void }> = ({ shor
 const LOGIN = 'M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4 M4 12h11 M11 8l4 4-4 4'
 const LOGOUT = 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M9 12h11 M16 8l4 4-4 4'
 const CHEVRON = 'M7 10l5 5 5-5'
+const CLOSE = 'M7 7l10 10 M17 7L7 17'
 const NavIcon: React.FC<{ d: string }> = ({ d }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}
     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
@@ -384,7 +385,7 @@ const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void; onStar
       <div className="pm-card pm-card-loading" aria-busy="true">
         <span className="pm-skel-circle" />
         <span className="pm-grow pm-skel-lines"><i /><i /></span>
-        <button type="button" className="pm-close" onClick={onClose} aria-label="Закрыть">×</button>
+        <button type="button" className="pm-close" onClick={onClose} aria-label="Закрыть"><NavIcon d={CLOSE} /></button>
       </div>
     )
   }
@@ -392,7 +393,7 @@ const Card: React.FC<{ event: HistEvent | undefined; onClose: () => void; onStar
     <article className="pm-card">
       <div className={`pm-card-preview${e.previewImageUrl ? '' : ' pm-hatch'}`}>
         {e.previewImageUrl && <img src={e.previewImageUrl} alt="" />}
-        <button type="button" className="pm-close" onClick={onClose} aria-label="Закрыть">×</button>
+        <button type="button" className="pm-close" onClick={onClose} aria-label="Закрыть"><NavIcon d={CLOSE} /></button>
       </div>
       <div className="pm-card-body">
         <EventInfo e={e} onStar={onStar} />
