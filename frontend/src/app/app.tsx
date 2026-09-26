@@ -30,7 +30,7 @@ const rootElement = document.getElementById('root');
               <Route path="/login" element={<AuthPage key="login" mode="login" />} />
               <Route path="/register" element={<AuthPage key="register" mode="register" />} />
               <Route path="/u/:id" element={<ProfilePage />} />
-              <Route path="/s/:id" element={<Viewer />} />
+              <Route path="/event/:id" element={<Viewer />} />
               <Route path="/admin" element={<Panel />} />
               {['/log', '/adm', '/mad', '/his', '/mod'].map(p => <Route key={p} path={p} element={<Navigate to="/admin" replace />} />)}
               <Route path="*" element={<NotFound />} />

@@ -58,7 +58,11 @@ export async function setStar(id: number, on: boolean): Promise<StarState | 'gue
   }
 }
 
-// Просмотр сайта на /s/:id. null - просмотр не пишется (автор смотрит своё) или нет связи.
+// Адреса страниц: в URL только строчные, код профиля бэкенд принимает в любом регистре.
+export const profilePath = (publicId: string) => `/u/${publicId.toLowerCase()}`
+export const eventPath = (id: number) => `/event/${id}`
+
+// Просмотр сайта на /event/:id. null - просмотр не пишется (автор смотрит своё) или нет связи.
 export async function startView(id: number, visitorId: string): Promise<number | null> {
   const res = await postJSON<{ viewId: number }>(`/events/${id}/views`, { visitorId })
   return res.ok && res.data.viewId ? res.data.viewId : null

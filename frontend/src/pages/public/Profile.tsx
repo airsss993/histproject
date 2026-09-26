@@ -7,7 +7,7 @@ import { StarButton } from './Star.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { Loading, useSettle } from '../../shared/ui/Loader.tsx'
 import {
-  fetchMe, fetchProfile, formatDate, logoutUser, TYPE_LABEL,
+  eventPath, fetchMe, fetchProfile, profilePath, formatDate, logoutUser, TYPE_LABEL,
   type Profile, type StarState, type User, type Work, type WorkStatus,
 } from './api.ts'
 import './public.css'
@@ -114,7 +114,7 @@ const Tile: React.FC<{ work: Work; i: number; onStar: (star: StarState) => void 
     {work.eventId !== undefined && (
       <StarButton id={work.eventId} stars={work.stars} starred={work.starred} onChange={onStar} className="pm-btn-ghost pm-pill pf-tile-star" />
     )}
-    <Link className="pf-tile-link" to={work.eventId !== undefined ? `/s/${work.eventId}` : '/map'}>
+    <Link className="pf-tile-link" to={work.eventId !== undefined ? eventPath(work.eventId) : '/map'}>
       <span className="pf-tile-frame">
         {work.screenshotUrl
           ? <img className="pf-tile-shot" src={work.screenshotUrl} alt="" loading="lazy" />
@@ -173,6 +173,8 @@ export const ProfilePage: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const mobile = useIsMobile()
+  // Старые ссылки с кодом капсом (/u/RHU-7K3F9Q) приводим к строчным.
+  useEffect(() => { if (id && id !== id.toLowerCase()) navigate(profilePath(id), { replace: true }) }, [id, navigate])
   const [state, setState] = useState<{ k: 'load' } | { k: 'ready'; profile: Profile } | { k: 'none' } | { k: 'error' }>({ k: 'load' })
   const [me, setMe] = useState<User | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
@@ -200,7 +202,7 @@ export const ProfilePage: React.FC = () => {
     ...st, profile: { ...st.profile, works: st.profile.works.map(w => w.publicId === publicId ? { ...w, ...star } : w) },
   })
 
-  if (state.k === 'none') return <NotFound path={`/u/${id}`} kind="profile" />
+  if (state.k === 'none') return <NotFound path={profilePath(id ?? '')} kind="profile" />
 
   const profile = state.k === 'ready' && phase === 'idle' ? state.profile : null
   const works = profile?.works ?? []

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { LoadMark, Splash, SPLASH_DONE_MS, SPLASH_MS, useSettle } from '../../shared/ui/Loader.tsx'
-import { fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent, type StarState } from './api.ts'
+import { eventPath, profilePath, fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent, type StarState } from './api.ts'
 import { StarButton } from './Star.tsx'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
@@ -96,7 +96,7 @@ export const HeaderNav: React.FC<{
           </button>
           <Presence>{open && <div className="pm-account-menu pm-glass">
             <div className="pm-account-head"><Avatar seed={me.publicId} size={34} /><span><strong>{me.firstName} {me.lastName}</strong>{adminRole && <small>{adminRole === 'super_admin' ? 'Супер-админ' : 'Модератор'}</small>}</span></div>
-            <Link to={`/u/${me.publicId}`} onClick={() => setOpen(false)}>Мой профиль</Link>
+            <Link to={profilePath(me.publicId)} onClick={() => setOpen(false)}>Мой профиль</Link>
             {adminRole && <Link to="/admin" onClick={() => setOpen(false)}>Панель модератора</Link>}
             <button type="button" onClick={() => { setOpen(false); onLogout() }}><NavIcon d={LOGOUT} />Выйти</button>
           </div>}</Presence>
@@ -430,7 +430,7 @@ const EventActions: React.FC<{ e: HistEvent; className?: string }> = ({ e, class
       <button type="button" className="pm-card-share" onClick={share}>
         <Icon d={ICON.share} />{copied ? 'Скопировано' : 'Поделиться'}
       </button>
-      <Link className="pm-card-more" to={`/s/${e.id}`}>
+      <Link className="pm-card-more" to={eventPath(e.id)}>
         <Icon d={ICON.open} />Узнать больше
       </Link>
     </div>

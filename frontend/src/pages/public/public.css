@@ -429,7 +429,7 @@
 .pm-root .pm-star.on { color: var(--gold); border-color: var(--gold-line); }
 .pm-root .pm-star:disabled { opacity: 1; cursor: progress; }
 
-/* Страница просмотра /s/:id: сайт на первый экран, строка с названием под ним, сайт не перекрывает. */
+/* Страница просмотра /event/:id: сайт на первый экран, строка с названием под ним, сайт не перекрывает. */
 .sv-page { overflow-y: auto; overflow-x: hidden; background: var(--ink); }
 .sv-page a { color: inherit; text-decoration: none; }
 .sv-screen { height: 100dvh; display: flex; flex-direction: column; }

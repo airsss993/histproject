@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { NotFound } from './NotFound.tsx'
 import { StarButton } from './Star.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
-import { fetchEvent, formatDate, startView, touchView, TYPE_LABEL, type HistEvent } from './api.ts'
+import { fetchEvent, formatDate, profilePath, startView, touchView, TYPE_LABEL, type HistEvent } from './api.ts'
 import './public.css'
 
 // Через сколько секунд активного просмотра предложить звезду.
@@ -79,7 +79,7 @@ export const Viewer: React.FC = () => {
     }
   }, [ready, id])
 
-  if (id === null || event === null) return <NotFound path={`/s/${param}`} kind="event" />
+  if (id === null || event === null) return <NotFound path={`/event/${param}`} kind="event" />
 
   const dismiss = () => {
     storage.set(dismissedKey(id), '1')
@@ -129,7 +129,7 @@ export const Viewer: React.FC = () => {
           </div>
           {event.description && <p className="sv-text">{event.description}</p>}
           {event.author && (
-            <Link className="sv-author pm-glass" to={`/u/${event.author.publicId}`}>
+            <Link className="sv-author pm-glass" to={profilePath(event.author.publicId)}>
               <Avatar seed={event.author.publicId} size={44} />
               <span>
                 <span className="pm-dim-text">Автор сайта</span>
