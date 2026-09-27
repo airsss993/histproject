@@ -317,8 +317,8 @@ func validatePublication(id int64, latitude, longitude float64, eventType string
 	if id <= 0 {
 		fields["id"] = "Ожидается положительный ID"
 	}
-	if eventType != "" && eventType != "political" && eventType != "military" {
-		fields["eventType"] = "Ожидается political или military"
+	if _, ok := eventTypeLabel[eventType]; eventType != "" && !ok {
+		fields["eventType"] = eventTypeError
 	}
 	validateCoordinates(fields, latitude, longitude)
 	return fields
@@ -356,8 +356,8 @@ func validateCreateInput(input CreateInput, maxUploadBytes int64) map[string]str
 	if input.EventDate.IsZero() {
 		fields["eventDate"] = "Ожидается дата YYYY-MM-DD"
 	}
-	if input.EventType != "political" && input.EventType != "military" {
-		fields["eventType"] = "Ожидается political или military"
+	if _, ok := eventTypeLabel[input.EventType]; !ok {
+		fields["eventType"] = eventTypeError
 	}
 	parsedEmail, err := mail.ParseAddress(email)
 	if err != nil || parsedEmail.Address != email {
@@ -402,5 +402,7 @@ func validStatus(status Status) bool {
 	}
 }
 
-// eventTypeLabel - как тип называется в истории модерации.
-var eventTypeLabel = map[string]string{"political": "политическое", "military": "военное"}
+// eventTypeLabel - допустимые типы и как они называются в истории модерации.
+var eventTypeLabel = map[string]string{"political": "политическое", "military": "военное", "personality": "личность"}
+
+const eventTypeError = "Ожидается political, military или personality"

@@ -13,7 +13,6 @@ import './public.css'
 export const MIN_YEAR = 862
 export const MAX_YEAR = 2026
 export const ROMAN = ['IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI']
-const PRESETS: [number, number][] = [[862, 988], [1237, 1480], [1380, 1917], [1700, 1800], [1914, 1945], [1991, MAX_YEAR]]
 
 const yearLabel = (y: number) => (y >= MAX_YEAR ? 'н.в.' : String(y))
 const plural = (n: number, [one, few, many]: [string, string, string]) => {
@@ -517,7 +516,7 @@ const Filters: React.FC<{
             </button>
           ))}
         </div>
-        {draft.types.length === 0 && <div className="pm-hint">Ничего не выбрано - показываем оба типа</div>}
+        {draft.types.length === 0 && <div className="pm-hint">Ничего не выбрано - показываем все типы</div>}
       </div>
       <div className="pm-panel-sec">
         <div className="pm-label">Период</div>
@@ -533,13 +532,6 @@ const Filters: React.FC<{
           <input type="range" min={MIN_YEAR} max={MAX_YEAR} value={draft.from} aria-label="Начало периода" onChange={e => setFrom(Number(e.target.value))} />
           <input type="range" min={MIN_YEAR} max={MAX_YEAR} value={draft.to} aria-label="Конец периода" onChange={e => setTo(Number(e.target.value))} />
           <div className="pm-range-ends"><span>{MIN_YEAR}</span><span>н.в.</span></div>
-        </div>
-        <div className="pm-chips">
-          {PRESETS.map(([a, b]) => (
-            <button type="button" key={a} className={draft.from === a && draft.to === b ? 'on' : ''} onClick={() => setDraft({ ...draft, from: a, to: b })}>
-              {a} - {yearLabel(b)}
-            </button>
-          ))}
         </div>
       </div>
       {mobile && <div className="pm-grow" />}

@@ -248,6 +248,7 @@
 .pm-card-sub i { width: 6px; height: 6px; border-radius: 999px; background: var(--dim); }
 .pm-card-type.military { color: #C7AE7F; }
 .pm-card-type.political { color: #8194AE; }
+.pm-card-type.personality { color: #B48C9E; }
 .pm-card-info { list-style: none; margin: 14px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 12px; }
 .pm-card-info li { display: flex; gap: 14px; font: 400 16px/24px var(--ui); color: #fff; }
 .pm-card-info .pm-icon { margin-top: 2px; color: var(--muted); }
@@ -288,8 +289,7 @@
 .pm-screen .pm-panel-sec:last-of-type { border-bottom: 0; }
 .pm-label { font: 500 12px/16px var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .pm-hint { font: 400 13px/20px var(--ui); color: var(--dim); margin-top: -4px; }
-.pm-types { display: flex; gap: 10px; }
-.pm-types.col { flex-direction: column; }
+.pm-types { display: flex; flex-direction: column; gap: 8px; }
 .pm-types button {
   flex: 1; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 8px;
   color: var(--text-2); transition: border-color 120ms ease-out, background 120ms ease-out;
