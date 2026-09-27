@@ -228,6 +228,10 @@ export const About: React.FC = () => {
               <img src="/logo.svg" alt="" />
             </button>
             <span>© 2026<br />Россия - страна Героев</span>
+            <nav className="pm-about-legal" aria-label="Документы">
+              <Link to="/privacy">Политика обработки данных</Link>
+              <Link to="/rules">Правила публикации</Link>
+            </nav>
           </div>
         </div>
         <div className="pm-about-bigword" aria-hidden="true">Страна<Star />Героев</div>

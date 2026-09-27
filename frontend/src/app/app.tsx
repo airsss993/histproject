@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Splash } from '../shared/ui/Loader.tsx'
+import { CookieNotice } from '../shared/ui/CookieNotice.tsx'
 import '../pages/public/public.css'
 
 // Страницы грузятся отдельными чанками: карта (MapLibre) не попадает в первый экран.
@@ -12,6 +13,7 @@ const ProfilePage = lazy(() => import('../pages/public/Profile.tsx').then(m => (
 const Panel = lazy(() => import('../pages/panel/Panel.tsx').then(m => ({ default: m.Panel })))
 const Viewer = lazy(() => import('../pages/public/Viewer.tsx').then(m => ({ default: m.Viewer })))
 const Guide = lazy(() => import('../pages/public/Guide.tsx').then(m => ({ default: m.Guide })))
+const Legal = lazy(() => import('../pages/public/Legal.tsx').then(m => ({ default: m.Legal })))
 const NotFound = lazy(() => import('../pages/public/NotFound.tsx').then(m => ({ default: m.NotFound })))
 
 const rootElement = document.getElementById('root');
@@ -29,6 +31,9 @@ const rootElement = document.getElementById('root');
               <Route path="/guide" element={<Guide />} />
               <Route path="/login" element={<AuthPage key="login" mode="login" />} />
               <Route path="/register" element={<AuthPage key="register" mode="register" />} />
+              {['/privacy', '/rules', '/consent/registration', '/consent/submission', '/consent/distribution'].map(p => (
+                <Route key={p} path={p} element={<Legal key={p} path={p} />} />
+              ))}
               <Route path="/user/:id" element={<ProfilePage />} />
               <Route path="/u/:id" element={<ProfilePage />} />
               <Route path="/event/:id" element={<Viewer />} />
@@ -37,6 +42,7 @@ const rootElement = document.getElementById('root');
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          <CookieNotice />
         </BrowserRouter>
       </React.StrictMode>
     );

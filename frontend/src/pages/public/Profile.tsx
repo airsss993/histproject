@@ -6,8 +6,9 @@ import { NotFound } from './NotFound.tsx'
 import { StarButton } from './Star.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { Loading, useSettle } from '../../shared/ui/Loader.tsx'
+import { Check } from '../../shared/ui/Field.tsx'
 import {
-  eventPath, fetchMe, fetchProfile, profilePath, formatDate, logoutUser, TYPE_LABEL,
+  deleteAccount, eventPath, fetchMe, fetchProfile, profilePath, formatDate, logoutUser, setShowLastName, TYPE_LABEL,
   type Profile, type StarState, type User, type Work, type WorkStatus,
 } from './api.ts'
 import './public.css'
@@ -165,6 +166,54 @@ const WorkCard: React.FC<{ work: Work; i: number }> = ({ work, i }) => {
   )
 }
 
+// Настройки видит только владелец: показ фамилии (согласие на распространение) и удаление учётки.
+const Settings: React.FC<{ me: User; onChange: (me: User) => void }> = ({ me, onChange }) => {
+  const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
+  const [confirm, setConfirm] = useState(false)
+  const [error, setError] = useState('')
+  const toggle = async (on: boolean) => {
+    setBusy(true)
+    setError('')
+    const res = await setShowLastName(on)
+    setBusy(false)
+    if (res.ok) onChange(res.data.user)
+    else setError('Не удалось сохранить. Попробуйте ещё раз.')
+  }
+  const remove = async () => {
+    setBusy(true)
+    setError('')
+    const res = await deleteAccount()
+    if (res.ok) return navigate('/map', { replace: true })
+    setBusy(false)
+    setError('Не удалось удалить аккаунт. Попробуйте ещё раз.')
+  }
+  return (
+    <section className="pf-settings pm-glass">
+      <h2 className="pf-title">Настройки</h2>
+      <Check checked={me.showLastName} disabled={busy} onChange={v => { void toggle(v) }}>
+        Показывать мою фамилию целиком в профиле и в авторстве событий
+        (<Link to="/consent/distribution" target="_blank">условия</Link>). Без этого видна только первая буква.
+      </Check>
+      <div className="pf-settings-row">
+        {confirm ? (
+          <>
+            <p>Удалим учётную запись, звёзды и просмотры. Опубликованные события останутся на карте без имени автора. Отменить нельзя.</p>
+            <div className="pf-actions">
+              <button type="button" className="pm-btn danger pm-pill" disabled={busy} onClick={() => { void remove() }}>Удалить навсегда</button>
+              <button type="button" className="pm-btn-ghost pm-pill" disabled={busy} onClick={() => setConfirm(false)}>Отмена</button>
+            </div>
+          </>
+        ) : (
+          <button type="button" className="pm-btn-ghost danger pm-pill" onClick={() => setConfirm(true)}>Удалить аккаунт</button>
+        )}
+        <Link to="/privacy" className="pf-settings-link">Как мы храним данные</Link>
+      </div>
+      {error && <p className="pm-field-error" role="alert">{error}</p>}
+    </section>
+  )
+}
+
 const Title: React.FC<{ count: number; children: React.ReactNode }> = ({ count, children }) => (
   <h2 className="pf-title">{children}<span className="pf-count">{count}</span></h2>
 )
@@ -295,6 +344,16 @@ export const ProfilePage: React.FC = () => {
                 {owner ? 'Пока ни одного сайта на карте. Предложите событие - и оно появится здесь.' : 'У автора пока нет опубликованных сайтов.'}
                 {owner && <Link to="/map?propose=1" className="pm-btn pm-pill">Предложить событие</Link>}
               </div>
+            )}
+
+            {owner && me && (
+              <Settings me={me} onChange={next => {
+                setMe(next)
+                // Владелец видит в шапке то же, что гости: без согласия - первую букву фамилии.
+                setState(st => st.k !== 'ready' ? st : {
+                  ...st, profile: { ...st.profile, user: { ...st.profile.user, lastName: next.showLastName ? next.lastName : `${next.lastName.slice(0, 1)}.` } },
+                })
+              }} />
             )}
           </>
         )}
