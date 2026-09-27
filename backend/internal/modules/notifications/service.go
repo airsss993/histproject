@@ -134,10 +134,10 @@ func adminTelegram(action Action, submission Submission, adminPanelURL string) s
 	if action == ActionReady {
 		status = "готова к проверке"
 	}
+	// Контакты автора сюда не идут: Telegram - трансграничная передача, они есть в панели.
 	return fmt.Sprintf(
-		"<b>Заявка %s %s</b>\nНазвание: %s\nEmail: %s\nTelegram: %s\n<a href=\"%s\">Открыть панель</a>",
-		submission.PublicID, status, html.EscapeString(submission.Title), html.EscapeString(submission.Email),
-		html.EscapeString(telegramName(submission.TelegramUsername)), html.EscapeString(adminPanelURL),
+		"<b>Заявка %s %s</b>\nНазвание: %s\n<a href=\"%s\">Открыть панель</a>",
+		submission.PublicID, status, html.EscapeString(submission.Title), html.EscapeString(adminPanelURL),
 	)
 }
 

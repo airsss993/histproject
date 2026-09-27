@@ -2,10 +2,7 @@ package submissions
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -32,24 +29,16 @@ func NewCreateLimiter(client *redis.Client) *RedisCreateLimiter {
 	return &RedisCreateLimiter{client: client}
 }
 
-func (limiter *RedisCreateLimiter) Allow(ctx context.Context, remoteAddress string) (bool, error) {
+// Allow считает заявки по clientKey - HMAC от IP из httpserver.ClientKey.
+func (limiter *RedisCreateLimiter) Allow(ctx context.Context, clientKey string) (bool, error) {
 	count, err := incrementSubmissionAttempts.Run(
 		ctx,
 		limiter.client,
-		[]string{submissionRateKey(remoteAddress)},
+		[]string{"submissions:create:" + clientKey},
 		submissionRateWindow.Milliseconds(),
 	).Int64()
 	if err != nil {
 		return false, fmt.Errorf("increment submission rate limit: %w", err)
 	}
 	return count <= submissionRateLimit, nil
-}
-
-func submissionRateKey(remoteAddress string) string {
-	host, _, err := net.SplitHostPort(remoteAddress)
-	if err != nil {
-		host = remoteAddress
-	}
-	digest := sha256.Sum256([]byte(host))
-	return "submissions:create:" + hex.EncodeToString(digest[:])
 }
