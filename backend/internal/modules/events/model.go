@@ -18,6 +18,8 @@ type Event struct {
 	// Stars - число звёзд, Starred - стоит ли звезда смотрящего. Заполняют только List и Get.
 	Stars   int64
 	Starred bool
+	// Visitors - уникальные посетители сайта, видны всем. Заполняют только List и Get.
+	Visitors int64
 	// Author заполняет только Service.Get. Пустой PublicID - у почты заявки нет учётки на сайте.
 	Author Author
 }

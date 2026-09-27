@@ -22,10 +22,11 @@ type Work struct {
 	ScreenshotURL string    `json:"screenshotUrl"`
 	Comment       string    `json:"comment,omitempty"`
 	CreatedAt     time.Time `json:"createdAt"`
-	// EventID, Stars, Starred есть у опубликованной работы: у неё есть событие на карте.
-	EventID *int64 `json:"eventId,omitempty"`
-	Stars   int64  `json:"stars"`
-	Starred bool   `json:"starred"`
+	// EventID, Stars, Starred, Visitors есть у опубликованной работы: у неё есть событие на карте.
+	EventID  *int64 `json:"eventId,omitempty"`
+	Stars    int64  `json:"stars"`
+	Starred  bool   `json:"starred"`
+	Visitors int64  `json:"visitors"`
 	// Stats - просмотры сайта, только владельцу профиля.
 	Stats *WorkStats `json:"stats,omitempty"`
 }

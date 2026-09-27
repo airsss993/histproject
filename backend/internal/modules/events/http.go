@@ -263,6 +263,7 @@ type eventResponse struct {
 	PreviewImageURL *string `json:"previewImageUrl"`
 	Stars           int64   `json:"stars"`
 	Starred         bool    `json:"starred"`
+	Visitors        int64   `json:"visitors"`
 	// Author есть только в GET /events/{id} и только у автора с учёткой.
 	Author *authorResponse `json:"author,omitempty"`
 }
@@ -279,7 +280,7 @@ func newEventResponse(event Event) eventResponse {
 		Latitude: event.Latitude, Longitude: event.Longitude,
 		EventDate: event.EventDate.Format(time.DateOnly), EventType: event.EventType,
 		SiteURL: event.SiteURL, PreviewImageURL: event.PreviewImageURL,
-		Stars: event.Stars, Starred: event.Starred,
+		Stars: event.Stars, Starred: event.Starred, Visitors: event.Visitors,
 	}
 }
 

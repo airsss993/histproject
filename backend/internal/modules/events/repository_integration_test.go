@@ -261,6 +261,17 @@ func TestRepositoryStarsAndViews(t *testing.T) {
 			t.Fatalf("unexpected summary %#v", summary)
 		}
 	}
+	if event, err := repository.Get(ctx, 1, 0); err != nil || event.Visitors != 2 {
+		t.Fatalf("Get() visitors = %d, %v", event.Visitors, err)
+	}
+	if page, err = repository.List(ctx, Filter{Page: 1, PageSize: 10}); err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	for _, item := range page.Items {
+		if want := map[bool]int64{true: 2}[item.ID == 1]; item.Visitors != want {
+			t.Fatalf("List() item %d visitors = %d, want %d", item.ID, item.Visitors, want)
+		}
+	}
 
 	if err := repository.Delete(ctx, 1); err != nil {
 		t.Fatalf("Delete() error = %v", err)
