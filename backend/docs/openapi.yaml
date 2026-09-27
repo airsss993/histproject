@@ -1140,7 +1140,7 @@ components:
                 format: date
               eventType:
                 type: string
-                enum: [political, military]
+                enum: [political, military, personality]
               status:
                 type: string
                 enum: [processing, new, review, rejected, published]
@@ -1297,7 +1297,7 @@ components:
             eventType:
               description: Тип, подтверждённый модератором. Пустой или отсутствует - остаётся тип автора.
               type: string
-              enum: [political, military]
+              enum: [political, military, personality]
     Event:
       type: object
       required: [id, title, description, latitude, longitude, eventDate, eventType, siteUrl, stars, starred]
@@ -1392,7 +1392,7 @@ components:
           format: date
         eventType:
           type: string
-          enum: [political, military]
+          enum: [political, military, personality]
         telegramUsername:
           type: string
           pattern: "^[A-Za-z0-9_]{5,32}$"

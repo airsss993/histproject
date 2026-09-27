@@ -1,4 +1,4 @@
-export type EventType = 'military' | 'political'
+export type EventType = 'military' | 'political' | 'personality'
 
 export interface HistEvent {
   id: number
@@ -18,9 +18,9 @@ export interface HistEvent {
 
 const API = `${import.meta.env.VITE_API_BASE ?? ''}/api/v1`
 
-export const TYPE_LABEL: Record<EventType, string> = { military: 'Военное', political: 'Политическое' }
-export const TYPE_PLURAL: Record<EventType, string> = { military: 'Военные', political: 'Политические' }
-export const TYPES: EventType[] = ['military', 'political']
+export const TYPE_LABEL: Record<EventType, string> = { military: 'Военное', political: 'Политическое', personality: 'Личность' }
+export const TYPE_PLURAL: Record<EventType, string> = { military: 'Военные', political: 'Политические', personality: 'Личности' }
+export const TYPES: EventType[] = ['military', 'political', 'personality']
 
 export const yearOf = (e: HistEvent) => parseInt(e.eventDate.slice(0, 4), 10)
 export const formatDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('.')

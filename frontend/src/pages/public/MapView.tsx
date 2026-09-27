@@ -10,7 +10,7 @@ import { LEAVE_MS, Presence } from './presence.tsx'
 // maplibre-gl 6 не находит свой воркер внутри бандла Vite: URL отдаём явно.
 maplibregl.setWorkerUrl(workerUrl)
 
-export const TYPE_COLOR: Record<EventType, string> = { political: '#8194AE', military: '#C7AE7F' }
+export const TYPE_COLOR: Record<EventType, string> = { political: '#8194AE', military: '#C7AE7F', personality: '#B48C9E' }
 const CELL = 56
 const INK = '#010014'
 const MUTED = '#45668E'
@@ -21,6 +21,7 @@ const DROP = 'M32 58C32 58 13 37 13 25A19 19 0 0 1 51 25C51 37 32 58 32 58Z'
 export const GLYPH: Record<EventType, string[]> = {
   military: ['M32 11V19', 'M24.5 19H39.5', 'M28.5 19V29L32 36L35.5 29V19'],
   political: ['M24 16H40', 'M27 16V32', 'M37 16V32', 'M23 32H41'],
+  personality: ['M32 13A4.5 4.5 0 1 1 32 22A4.5 4.5 0 1 1 32 13Z', 'M24.5 34C24.5 28.5 27.5 25.5 32 25.5C36.5 25.5 39.5 28.5 39.5 34'],
 }
 const alpha = (hex: string, a: number) => hex + Math.round(a * 255).toString(16).padStart(2, '0')
 

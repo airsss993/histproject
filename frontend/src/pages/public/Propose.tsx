@@ -35,7 +35,7 @@ const STEPS: { fields: Field[]; title: string; sub: string; icon: string }[] = [
     icon: 'M3.5 5.5h17v13h-17Z M3.5 6.5l8.5 7 8.5-7' },
 ]
 const stepOf = (f: Field) => STEPS.findIndex(s => s.fields.includes(f))
-const TYPE_SUB: Record<EventType, string> = { military: 'Бородино, оборона Севастополя', political: 'Ништадтский мир, Манифест 1861 года' }
+const TYPE_SUB: Record<EventType, string> = { military: 'Бородино, оборона Севастополя', political: 'Ништадтский мир, Манифест 1861 года', personality: 'Ломоносов, Гагарин' }
 const RESULT_ICON = { ok: 'M5 12.5l4.5 4.5L19 7.5', bad: 'M12 6.5v7 M12 17.5v.01', warn: 'M12 7v5l3 2 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z' }
 const ARROW = 'M5 12h14 M13 6l6 6-6 6'
 const SEND = 'M4 12 20 4l-4 16-4-7Z M12 13l8-9'
