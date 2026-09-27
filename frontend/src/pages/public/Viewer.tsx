@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { NotFound } from './NotFound.tsx'
-import { StarButton } from './Star.tsx'
+import { StarButton, Views } from './Star.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { fetchEvent, formatDate, profilePath, startView, touchView, TYPE_LABEL, type HistEvent } from './api.ts'
 import './public.css'
@@ -115,6 +115,7 @@ export const Viewer: React.FC = () => {
                   strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
               </button>
             )}
+            {event && <Views count={event.visitors} />}
             {event && (
               <StarButton id={event.id} stars={event.stars} starred={event.starred}
                 onChange={s => setEvent({ ...event, ...s })} className="pm-btn-ghost pm-pill sv-star" />

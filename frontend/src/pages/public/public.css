@@ -432,7 +432,9 @@
 /* Звезда: StarButton (Star.tsx) в карточке, профиле и на странице просмотра. */
 .pm-root .pm-star { flex: none; gap: 6px; font-variant-numeric: tabular-nums; }
 /* В карточке события звезда стоит в строке "тип - дата": три кнопки в 400 px не влезают. */
-.pm-root .pm-card-star { margin-left: auto; padding: 4px 12px; font-size: 14px; }
+.pm-root .pm-card-star { padding: 4px 12px; font-size: 14px; }
+.pm-views { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pm-card-views { margin-left: auto; }
 .pm-root .pm-star.on { color: var(--gold); border-color: var(--gold-line); }
 .pm-root .pm-star:disabled { opacity: 1; cursor: progress; }
 

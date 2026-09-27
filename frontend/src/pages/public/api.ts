@@ -12,6 +12,8 @@ export interface HistEvent {
   previewImageUrl?: string | null
   stars: number
   starred: boolean
+  // Уникальные посетители сайта: аккаунт, у гостя - браузер. Видны всем.
+  visitors: number
   // Только в fetchEvent и только если у автора есть учётка.
   author?: { publicId: string; firstName: string; lastName: string }
 }
@@ -176,6 +178,7 @@ export interface Work {
   eventId?: number
   stars: number
   starred: boolean
+  visitors: number
   // Только владельцу профиля.
   stats?: { views: number; visitors: number; activeSeconds: number }
 }

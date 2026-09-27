@@ -30,3 +30,14 @@ export const StarButton: React.FC<{
     </button>
   )
 }
+
+const EYE = 'M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z'
+
+// Просмотры сайта: уникальные посетители, как считает сервер. Только показ, не кнопка.
+export const Views: React.FC<{ count: number; className?: string }> = ({ count, className = '' }) => (
+  <span className={`pm-views ${className}`} title="Уникальные посетители" aria-label={`Просмотров: ${count}`}>
+    <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden="true" fill="none" stroke="currentColor"
+      strokeWidth={1.7} strokeLinejoin="round"><path d={EYE} /><circle cx="12" cy="12" r="3" /></svg>
+    {count}
+  </span>
+)
