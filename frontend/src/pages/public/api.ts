@@ -74,18 +74,19 @@ export function touchView(id: number, viewId: number, visitorId: string, activeS
   navigator.sendBeacon(`${API}/events/${id}/views/${viewId}`, body)
 }
 
-export interface User { id: number; publicId: string; email: string; firstName: string; lastName: string }
+// showLastName - действует согласие на распространение: посторонним видна фамилия целиком.
+export interface User { id: number; publicId: string; email: string; firstName: string; lastName: string; showLastName: boolean }
 
 export type ApiResult<T = unknown> =
   | { ok: true; data: T }
   | { ok: false; status: number; code?: string; message?: string; fields?: Record<string, string>; retryAfter?: number }
 
 // status 0 - нет связи.
-async function postJSON<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+async function postJSON<T>(path: string, body: unknown, method = 'POST'): Promise<ApiResult<T>> {
   let res: Response
   try {
     res = await fetch(`${API}${path}`, {
-      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
   } catch {
     return { ok: false, status: 0 }
@@ -99,11 +100,24 @@ async function postJSON<T>(path: string, body: unknown): Promise<ApiResult<T>> {
 }
 
 // Вход посетителя: код на почту, затем verify ставит куку. Регистрация создаёт учётку только после кода.
-export const registerUser = (body: { firstName: string; lastName: string; email: string }) => postJSON('/users/register', body)
+export const registerUser = (body: { firstName: string; lastName: string; email: string; consent: boolean }) => postJSON('/users/register', body)
 export const requestLoginCode = (email: string) => postJSON('/users/login', { email })
 export const verifyLoginCode = (email: string, code: string, remember: boolean) =>
   postJSON<{ user: User }>('/users/verify', { email, code, remember })
 export const logoutUser = () => postJSON('/users/logout', {})
+// Выдача или отзыв согласия на распространение фамилии.
+export const setShowLastName = (enabled: boolean) => postJSON<{ user: User }>('/users/me/distribution', { enabled }, 'PUT')
+// Удаление учётки: бэкенд гасит и сессию.
+export const deleteAccount = () => postJSON('/users/me', {}, 'DELETE')
+
+export interface Place { display_name: string; lat: string; lon: string }
+
+// Поиск места идёт через наш сервер: IP посетителя к Nominatim не попадает.
+export async function geocode(q: string, signal: AbortSignal): Promise<Place[]> {
+  const res = await fetch(`${API}/geocode?q=${encodeURIComponent(q)}`, { signal })
+  if (!res.ok) return []
+  return (await res.json()).places
+}
 
 // null - не вошёл.
 export async function fetchMe(signal: AbortSignal): Promise<User | null> {
