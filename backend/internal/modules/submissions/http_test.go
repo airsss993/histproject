@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/airsss993/histproject/backend/internal/platform/httpserver"
 	"io"
 	"log/slog"
 	"mime/multipart"
@@ -146,7 +147,7 @@ func TestHTTPCreateAppliesRateLimitWithoutContactData(t *testing.T) {
 	mux.ServeHTTP(response, request)
 
 	assertSubmissionError(t, response, http.StatusTooManyRequests, "rate_limited")
-	if limiter.remoteAddress != "203.0.113.9" {
+	if limiter.remoteAddress != httpserver.ClientKey(request) {
 		t.Fatalf("limiter input = %q", limiter.remoteAddress)
 	}
 	if service.createCalled {
@@ -372,7 +373,7 @@ func validSubmissionForm() map[string]string {
 	return map[string]string{
 		"title": "Event", "description": "Description", "eventDate": "2020-01-02",
 		"eventType": "military", "email": "typo@example.test", "telegramUsername": "author_name",
-		"latitude": "55.75", "longitude": "37.62",
+		"latitude": "55.75", "longitude": "37.62", "consent": "true", "rules": "true",
 	}
 }
 

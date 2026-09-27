@@ -42,7 +42,7 @@ type Works interface {
 	ByAuthor(ctx context.Context, email string, viewerID int64) ([]Work, error)
 }
 
-// Author - автор в чужом профиле: без почты и числового id, их видеть посторонним незачем.
+// Author - автор в чужом профиле: без почты и числового id, фамилия - по согласию на распространение.
 type Author struct {
 	PublicID  string    `json:"publicId"`
 	FirstName string    `json:"firstName"`
@@ -89,7 +89,7 @@ func (service *Service) Profile(ctx context.Context, publicID, token string) (Pr
 		works = onlyPublished(works)
 	}
 	return Profile{
-		User:  Author{PublicID: user.PublicID, FirstName: user.FirstName, LastName: user.LastName, CreatedAt: user.CreatedAt},
+		User:  Author{PublicID: user.PublicID, FirstName: user.FirstName, LastName: user.PublicLastName(), CreatedAt: user.CreatedAt},
 		Owner: owner,
 		Works: works,
 	}, nil

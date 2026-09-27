@@ -165,6 +165,93 @@ paths:
                 $ref: "#/components/schemas/UserResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+    delete:
+      tags: [Users]
+      operationId: deleteCurrentUser
+      description: >
+        Удаляет учётку со всеми согласиями, звёздами и просмотрами и гасит сессию. Заявки привязаны
+        к почте и остаются: у них своё согласие и свой срок хранения.
+      security:
+        - userCookie: []
+      responses:
+        "204":
+          description: Учётка удалена
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/users/me/distribution:
+    put:
+      tags: [Users]
+      operationId: setDistributionConsent
+      description: >
+        Согласие на распространение фамилии. Без него посторонним видна только первая буква фамилии
+        (профиль, автор события). Выдача и отзыв пишутся в журнал согласий.
+      security:
+        - userCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        "200":
+          description: Учётка с новым значением showLastName
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/geocode:
+    get:
+      tags: [Events]
+      operationId: geocodePlace
+      description: >
+        Поиск места для заявки. Сервер сам спрашивает Nominatim не чаще раза в секунду, так что IP
+        посетителя к стороннему сервису не уходит.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 200
+      responses:
+        "200":
+          description: До пяти мест
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [places]
+                properties:
+                  places:
+                    type: array
+                    items:
+                      type: object
+                      required: [display_name, lat, lon]
+                      properties:
+                        display_name:
+                          type: string
+                        lat:
+                          type: string
+                        lon:
+                          type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          description: Nominatim не ответил
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/users/{id}:
     get:
       tags: [Users]
@@ -1071,7 +1158,7 @@ components:
                 type: string
     UserRegisterInput:
       type: object
-      required: [firstName, lastName, email]
+      required: [firstName, lastName, email, consent]
       properties:
         firstName:
           type: string
@@ -1083,13 +1170,16 @@ components:
           type: string
           format: email
           maxLength: 254
+        consent:
+          type: boolean
+          description: Согласие на обработку (/consent/registration). false - ошибка поля consent
     UserResponse:
       type: object
       required: [user]
       properties:
         user:
           type: object
-          required: [id, publicId, email, firstName, lastName, createdAt]
+          required: [id, publicId, email, firstName, lastName, createdAt, showLastName]
           properties:
             id:
               type: integer
@@ -1102,9 +1192,13 @@ components:
               type: string
             lastName:
               type: string
+              description: Фамилия целиком - это ответ самому владельцу
             createdAt:
               type: string
               format: date-time
+            showLastName:
+              type: boolean
+              description: Действует согласие на распространение фамилии
     ProfileResponse:
       type: object
       required: [user, owner, works]
@@ -1119,6 +1213,7 @@ components:
               type: string
             lastName:
               type: string
+              description: Без согласия на распространение - первая буква с точкой
             createdAt:
               type: string
               format: date-time
@@ -1346,6 +1441,7 @@ components:
               type: string
             lastName:
               type: string
+              description: Без согласия на распространение - первая буква с точкой
     StarState:
       type: object
       required: [stars, starred]
@@ -1379,7 +1475,7 @@ components:
       enum: [processing, new, review, rejected, published]
     CreateSubmissionInput:
       type: object
-      required: [title, description, eventDate, eventType, telegramUsername, latitude, longitude, archive]
+      required: [title, description, eventDate, eventType, telegramUsername, latitude, longitude, archive, consent, rules]
       properties:
         title:
           type: string
@@ -1410,6 +1506,14 @@ components:
         archive:
           type: string
           format: binary
+        consent:
+          type: string
+          enum: ["true"]
+          description: Согласие на обработку (/consent/submission)
+        rules:
+          type: string
+          enum: ["true"]
+          description: Заверение о соблюдении правил публикации (/rules)
     UserPublicID:
       type: string
       pattern: "^RHU-[0-9A-HJKMNP-TV-Z]{6}$"

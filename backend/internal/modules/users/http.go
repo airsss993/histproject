@@ -28,6 +28,8 @@ func (handler *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/users/login", handler.login)
 	mux.HandleFunc("POST /api/v1/users/verify", handler.verify)
 	mux.HandleFunc("GET /api/v1/users/me", handler.me)
+	mux.HandleFunc("DELETE /api/v1/users/me", handler.deleteMe)
+	mux.HandleFunc("PUT /api/v1/users/me/distribution", handler.distribution)
 	mux.HandleFunc("GET /api/v1/users/{id}", handler.profile)
 	mux.HandleFunc("POST /api/v1/users/logout", handler.logout)
 }
@@ -38,7 +40,7 @@ func (handler *Handler) register(w http.ResponseWriter, r *http.Request) {
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "invalid_json", "Некорректный JSON", nil)
 		return
 	}
-	handler.codeSent(w, r, handler.service.Register(r.Context(), request, httpserver.ClientIP(r)))
+	handler.codeSent(w, r, handler.service.Register(r.Context(), request, httpserver.ClientKey(r)))
 }
 
 func (handler *Handler) login(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +51,7 @@ func (handler *Handler) login(w http.ResponseWriter, r *http.Request) {
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "invalid_json", "Некорректный JSON", nil)
 		return
 	}
-	handler.codeSent(w, r, handler.service.RequestLogin(r.Context(), request.Email, httpserver.ClientIP(r)))
+	handler.codeSent(w, r, handler.service.RequestLogin(r.Context(), request.Email, httpserver.ClientKey(r)))
 }
 
 func (handler *Handler) codeSent(w http.ResponseWriter, r *http.Request, err error) {
@@ -98,6 +100,32 @@ func (handler *Handler) me(w http.ResponseWriter, r *http.Request) {
 	_ = httpserver.WriteJSON(w, http.StatusOK, map[string]any{"user": user})
 }
 
+// distribution - переключатель "показывать фамилию полностью": выдача или отзыв согласия на распространение.
+func (handler *Handler) distribution(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := httpserver.DecodeJSON(w, r, &request); err != nil {
+		_ = httpserver.WriteError(w, http.StatusBadRequest, "invalid_json", "Некорректный JSON", nil)
+		return
+	}
+	user, err := handler.service.SetDistribution(r.Context(), sessionToken(r), request.Enabled)
+	if err != nil {
+		handler.writeError(w, r, err)
+		return
+	}
+	_ = httpserver.WriteJSON(w, http.StatusOK, map[string]any{"user": user})
+}
+
+func (handler *Handler) deleteMe(w http.ResponseWriter, r *http.Request) {
+	if err := handler.service.DeleteAccount(r.Context(), sessionToken(r)); err != nil {
+		handler.writeError(w, r, err)
+		return
+	}
+	handler.clearSession(w)
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // profile - публичный профиль автора. Заявки в нём режет сервис: гостю только опубликованные.
 func (handler *Handler) profile(w http.ResponseWriter, r *http.Request) {
 	profile, err := handler.service.Profile(r.Context(), r.PathValue("id"), sessionToken(r))
@@ -114,16 +142,20 @@ func (handler *Handler) profile(w http.ResponseWriter, r *http.Request) {
 
 func (handler *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	err := handler.service.Logout(r.Context(), sessionToken(r))
-	http.SetCookie(w, &http.Cookie{
-		Name: SessionCookieName, Path: "/", Domain: handler.cookieDomain, Expires: time.Unix(1, 0), MaxAge: -1,
-		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
-	})
-	handler.clearLegacyAdminCookie(w)
+	handler.clearSession(w)
 	if err != nil {
 		handler.writeError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (handler *Handler) clearSession(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name: SessionCookieName, Path: "/", Domain: handler.cookieDomain, Expires: time.Unix(1, 0), MaxAge: -1,
+		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
+	})
+	handler.clearLegacyAdminCookie(w)
 }
 
 func (handler *Handler) clearLegacyAdminCookie(w http.ResponseWriter) {

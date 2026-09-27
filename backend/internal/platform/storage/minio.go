@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
@@ -113,6 +114,20 @@ func (s *MinIO) PutSiteFile(ctx context.Context, objectKey string, reader io.Rea
 func (s *MinIO) DeleteSiteFile(ctx context.Context, objectKey string) error {
 	if err := s.objects.RemoveObject(ctx, s.siteBucket, objectKey, minio.RemoveObjectOptions{}); err != nil {
 		return fmt.Errorf("delete site file: %w", err)
+	}
+	return nil
+}
+
+// DeleteSite удаляет все файлы сайта заявки: они лежат под префиксом slug/.
+func (s *MinIO) DeleteSite(ctx context.Context, slug string) error {
+	if slug == "" || strings.Contains(slug, "/") {
+		return fmt.Errorf("delete site: bad slug %q", slug)
+	}
+	objects := s.client.ListObjects(ctx, s.siteBucket, minio.ListObjectsOptions{Prefix: slug + "/", Recursive: true})
+	for result := range s.client.RemoveObjects(ctx, s.siteBucket, objects, minio.RemoveObjectsOptions{}) {
+		if result.Err != nil {
+			return fmt.Errorf("delete site file %s: %w", result.ObjectName, result.Err)
+		}
 	}
 	return nil
 }

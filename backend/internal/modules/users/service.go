@@ -17,15 +17,18 @@ import (
 )
 
 const (
-	codeTTL         = 10 * time.Minute
-	codeAttempts    = 5
-	codeCooldown    = time.Minute
-	ipCodeLimit     = 10
-	ipCodeWindow    = 10 * time.Minute
-	RememberTTL     = 30 * 24 * time.Hour
-	nameMaxRunes    = 50
-	emailMaxRunes   = 254
-	sessionTokenLen = 32
+	codeTTL      = 10 * time.Minute
+	codeAttempts = 5
+	codeCooldown = time.Minute
+	ipCodeLimit  = 10
+	ipCodeWindow = 10 * time.Minute
+	RememberTTL  = 30 * 24 * time.Hour
+	nameMaxRunes = 50
+	// Версии текстов согласий на /consent/registration и /consent/distribution. Поменялся текст - новая дата.
+	RegistrationConsentVersion = "2026-09-28"
+	DistributionConsentVersion = "2026-09-28"
+	emailMaxRunes              = 254
+	sessionTokenLen            = 32
 )
 
 var (
@@ -44,6 +47,17 @@ type User struct {
 	FirstName string    `json:"firstName"`
 	LastName  string    `json:"lastName"`
 	CreatedAt time.Time `json:"createdAt"`
+	// ShowLastName - действует согласие на распространение: посторонним видна фамилия целиком.
+	ShowLastName bool `json:"showLastName"`
+}
+
+// PublicLastName - фамилия для посторонних: без согласия на распространение только первая буква.
+func (user User) PublicLastName() string {
+	if user.ShowLastName || user.LastName == "" {
+		return user.LastName
+	}
+	first, _ := utf8.DecodeRuneInString(user.LastName)
+	return string(first) + "."
 }
 
 // Pending - то, что ждёт подтверждения кодом. Имя заполнено только у регистрации.
@@ -61,7 +75,9 @@ type Repository interface {
 	FindByEmail(context.Context, string) (User, error)
 	FindByID(context.Context, int64) (User, error)
 	FindByPublicID(context.Context, string) (User, error)
-	Create(context.Context, User) (User, error)
+	Create(ctx context.Context, user User, consentVersion string) (User, error)
+	SetDistribution(ctx context.Context, userID int64, enabled bool, version string) error
+	Delete(ctx context.Context, userID int64) error
 }
 
 type Store interface {
@@ -96,14 +112,19 @@ type RegisterInput struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
 	Email     string `json:"email"`
+	// Consent - галочка согласия на обработку. Без неё код не отправляется.
+	Consent bool `json:"consent"`
 }
 
 // Register шлёт код на почту. Учётка появится только после Verify: неподтверждённых записей в базе нет.
-func (service *Service) Register(ctx context.Context, input RegisterInput, clientIP string) error {
+func (service *Service) Register(ctx context.Context, input RegisterInput, clientKey string) error {
 	fields := ValidationError{}
 	firstName := validateName(fields, "firstName", input.FirstName)
 	lastName := validateName(fields, "lastName", input.LastName)
 	email := validateEmail(fields, input.Email)
+	if !input.Consent {
+		fields["consent"] = "Нужно согласие на обработку данных"
+	}
 	if len(fields) > 0 {
 		return fields
 	}
@@ -112,10 +133,10 @@ func (service *Service) Register(ctx context.Context, input RegisterInput, clien
 	} else if !errors.Is(err, ErrUserNotFound) {
 		return err
 	}
-	return service.sendCode(ctx, email, clientIP, Pending{FirstName: firstName, LastName: lastName})
+	return service.sendCode(ctx, email, clientKey, Pending{FirstName: firstName, LastName: lastName})
 }
 
-func (service *Service) RequestLogin(ctx context.Context, rawEmail, clientIP string) error {
+func (service *Service) RequestLogin(ctx context.Context, rawEmail, clientKey string) error {
 	fields := ValidationError{}
 	email := validateEmail(fields, rawEmail)
 	if len(fields) > 0 {
@@ -124,10 +145,10 @@ func (service *Service) RequestLogin(ctx context.Context, rawEmail, clientIP str
 	if _, err := service.repository.FindByEmail(ctx, email); err != nil {
 		return err
 	}
-	return service.sendCode(ctx, email, clientIP, Pending{})
+	return service.sendCode(ctx, email, clientKey, Pending{})
 }
 
-func (service *Service) sendCode(ctx context.Context, email, clientIP string, pending Pending) error {
+func (service *Service) sendCode(ctx context.Context, email, clientKey string, pending Pending) error {
 	cooldownKey := "users:cooldown:" + digest(email)
 	for _, limit := range []struct {
 		key    string
@@ -135,7 +156,7 @@ func (service *Service) sendCode(ctx context.Context, email, clientIP string, pe
 		window time.Duration
 	}{
 		{cooldownKey, 1, codeCooldown},
-		{"users:ip:" + digest(clientIP), ipCodeLimit, ipCodeWindow},
+		{"users:ip:" + clientKey, ipCodeLimit, ipCodeWindow},
 	} {
 		allowed, err := service.store.Allow(ctx, limit.key, limit.limit, limit.window)
 		if err != nil {
@@ -179,7 +200,7 @@ func (service *Service) Verify(ctx context.Context, rawEmail, code string, remem
 
 	var user User
 	if pending.FirstName != "" {
-		user, err = service.repository.Create(ctx, User{Email: email, FirstName: pending.FirstName, LastName: pending.LastName})
+		user, err = service.repository.Create(ctx, User{Email: email, FirstName: pending.FirstName, LastName: pending.LastName}, RegistrationConsentVersion)
 		if errors.Is(err, ErrEmailTaken) { // две регистрации одной почты подряд: вторая просто входит
 			user, err = service.repository.FindByEmail(ctx, email)
 		}
@@ -218,6 +239,32 @@ func (service *Service) Authenticate(ctx context.Context, token string) (User, e
 		return User{}, ErrNoSession
 	}
 	return user, err
+}
+
+// SetDistribution включает или выключает показ фамилии целиком и отдаёт обновлённую учётку.
+func (service *Service) SetDistribution(ctx context.Context, token string, enabled bool) (User, error) {
+	user, err := service.Authenticate(ctx, token)
+	if err != nil {
+		return User{}, err
+	}
+	if err := service.repository.SetDistribution(ctx, user.ID, enabled, DistributionConsentVersion); err != nil {
+		return User{}, err
+	}
+	user.ShowLastName = enabled
+	return user, nil
+}
+
+// DeleteAccount удаляет учётку владельца сессии. Остальные его сессии отпадут сами:
+// Authenticate не найдёт пользователя и сотрёт сессию.
+func (service *Service) DeleteAccount(ctx context.Context, token string) error {
+	user, err := service.Authenticate(ctx, token)
+	if err != nil {
+		return err
+	}
+	if err := service.repository.Delete(ctx, user.ID); err != nil {
+		return err
+	}
+	return service.store.DeleteSession(ctx, token)
 }
 
 func (service *Service) Logout(ctx context.Context, token string) error {

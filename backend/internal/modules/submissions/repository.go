@@ -22,11 +22,12 @@ func (repository *Repository) Create(ctx context.Context, input CreateRecord) (S
 	submission, err := scanSubmission(repository.pool.QueryRow(ctx, `
 		INSERT INTO submissions.submissions (
 			title, description, event_date, event_type_code,
-			email, telegram_username, latitude, longitude, archive_id, slug, status
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'processing')
+			email, telegram_username, latitude, longitude, archive_id, slug, status,
+			consent_version, consented_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'processing', NULLIF($11, ''), NOW())
 		RETURNING `+submissionColumns+`
 	`, input.Title, input.Description, input.EventDate, input.EventType,
-		input.Email, input.TelegramUsername, input.Latitude, input.Longitude, input.ArchiveID, input.Slug))
+		input.Email, input.TelegramUsername, input.Latitude, input.Longitude, input.ArchiveID, input.Slug, input.ConsentVersion))
 	if err != nil {
 		return Submission{}, fmt.Errorf("create submission: %w", err)
 	}
