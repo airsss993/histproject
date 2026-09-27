@@ -107,14 +107,6 @@ export const Viewer: React.FC = () => {
                 <button type="button" className="pm-close-sm" onClick={dismiss} aria-label="Скрыть подсказку">×</button>
               </span>
             )}
-            {event && (
-              <button type="button" className="pm-btn-ghost pm-pill sv-star sv-more" aria-label="О событии"
-                onClick={() => document.getElementById('sv-info')?.scrollIntoView({ behavior: 'smooth' })}>
-                <span>О событии</span>
-                <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true" fill="none" stroke="currentColor"
-                  strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-              </button>
-            )}
             {event && <Views count={event.visitors} />}
             {event && (
               <StarButton id={event.id} stars={event.stars} starred={event.starred}

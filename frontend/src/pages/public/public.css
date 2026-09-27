@@ -441,8 +441,8 @@
 /* Страница просмотра /event/:id: сайт на первый экран, строка с названием под ним, сайт не перекрывает. */
 .sv-page { overflow-y: auto; overflow-x: hidden; background: var(--ink); }
 .sv-page a { color: inherit; text-decoration: none; }
-.sv-screen { height: 100dvh; display: flex; flex-direction: column; padding: 16px; }
-.sv-window { flex: 1; min-height: 0; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; }
+.sv-screen { height: calc(100dvh - 56px); display: flex; flex-direction: column; padding: 20px 32px; }
+.sv-window { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
 .sv-frame { flex: 1; min-height: 0; width: 100%; border: 0; background: #fff; }
 .sv-frame-empty { display: grid; place-items: center; background: var(--sea); color: var(--muted); }
 .sv-bar {
@@ -457,7 +457,7 @@
   background: var(--gold-wash); color: var(--gold-soft); font-size: 14px; white-space: nowrap;
   animation: pm-in 200ms ease-out;
 }
-.sv-info { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 16px; }
+.sv-info { max-width: 760px; margin: 0 auto; padding: 4px 16px 64px; display: flex; flex-direction: column; gap: 16px; }
 .sv-info .pm-card-sub { margin: 0; flex-wrap: wrap; row-gap: 4px; }
 .sv-text { color: var(--text-2); font-size: 16px; line-height: 1.6; white-space: pre-line; }
 .sv-author { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); }
@@ -468,7 +468,5 @@
   .sv-bar { gap: 8px; padding: 8px 12px; }
   .sv-title { font-size: 16px; }
   .sv-prompt { order: 1; flex-basis: 100%; justify-content: space-between; white-space: normal; }
-  .sv-more span { display: none; }
-  .pm-root .sv-more { padding: 7px 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .sv-prompt { animation: none; } }
