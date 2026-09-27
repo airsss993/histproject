@@ -132,13 +132,44 @@ services:
         mc mb --ignore-existing "local/$$MINIO_ARCHIVE_BUCKET";
         mc mb --ignore-existing "local/$$MINIO_SITE_BUCKET";
         printf '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::%s/*"]}]}' "$$MINIO_SITE_BUCKET" > /tmp/site-policy.json;
-        mc anonymous set-json /tmp/site-policy.json "local/$$MINIO_SITE_BUCKET"
+        mc anonymous set-json /tmp/site-policy.json "local/$$MINIO_SITE_BUCKET";
+        for b in "$$MINIO_ARCHIVE_BUCKET" "$$MINIO_SITE_BUCKET"; do
+        mc version enable "local/$$b" &&
+        printf '{"Rules":[{"ID":"backup-30d","Status":"Enabled","Filter":{"Prefix":""},"NoncurrentVersionExpiration":{"NoncurrentDays":30}}]}' | mc ilm import "local/$$b" || exit 1;
+        done
     depends_on:
       minio:
         condition: service_healthy
     networks:
       - app_internal
     restart: "no"
+
+  # Резервная копия базы раз в сутки, копии старше 30 дней удаляются (срок из политики /privacy).
+  # Файлы в MinIO бережёт версионирование: удалённое и перезаписанное живёт 30 дней (minio-init).
+  # Восстановление: docker compose -f docker-compose.prod.yml exec backup pg_restore -h db -d "$POSTGRES_DB" --clean /backups/db-ДАТА.dump
+  backup:
+    image: postgres:18.6-alpine3.23
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        while :; do
+        f=/backups/db-$$(date +%F).dump;
+        pg_dump -Fc -f "$$f.tmp" && mv "$$f.tmp" "$$f" &&
+        find /backups -name 'db-*.dump' -mtime +29 -delete;
+        sleep 86400; done
+    volumes:
+      - db-backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_internal
+    restart: always
 
   chrome:
     image: chromedp/headless-shell:151.0.7922.109
@@ -177,6 +208,7 @@ services:
 
 volumes:
   db-data:
+  db-backups:
   minio-storage:
   redis-data:
   caddy-data:
