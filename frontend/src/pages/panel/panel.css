@@ -59,6 +59,7 @@
 .mod-title { font: 400 26px/34px var(--display); overflow-wrap: anywhere; }
 .mod-page h3 { margin: 0; font: 400 18px/26px var(--display); }
 .mod-dim { color: var(--dim); font: 400 13px/20px var(--ui); }
+.ui-loading.mod-dim { padding: 48px 0; }
 .mod-error { margin: 0; color: var(--danger); font: 400 13px/18px var(--ui); }
 .mod-note { margin: 0; color: #8FC79B; font: 400 13px/18px var(--ui); }
 .mod-empty { padding: 40px 0; text-align: center; }
