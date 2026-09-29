@@ -239,7 +239,7 @@
 @keyframes ui-load-spin { to { transform: rotate(360deg); } }
 @keyframes ui-load-pop { 40% { transform: scale(1.12); } }
 /* Строка появляется плавно, подпись сменяется наплывом, после галочки строка гаснет (DONE_MS = 1000). */
-.ui-loading { display: flex; align-items: center; gap: 14px; animation: pm-fade 320ms ease-out; }
+.ui-loading { display: flex; align-items: center; justify-content: center; gap: 14px; animation: pm-fade 320ms ease-out; }
 .ui-loading span { animation: pm-fade 320ms ease-out; }
 .ui-loading.done { animation: pm-fade-out 280ms ease-in 720ms forwards; }
 .ui-loading.done span { color: #8FC7A0; }

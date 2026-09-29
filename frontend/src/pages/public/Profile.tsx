@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { HeaderNav, Logo, ROMAN, useIsMobile } from './PublicMap.tsx'
 import { PinShape } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
-import { StarButton } from './Star.tsx'
+import { StarButton, Views } from './Star.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { Loading, useSettle } from '../../shared/ui/Loader.tsx'
 import { Check } from '../../shared/ui/Field.tsx'
@@ -123,7 +123,10 @@ const Tile: React.FC<{ work: Work; i: number; onStar: (star: StarState) => void 
       </span>
       <span className="pf-tile-body">
         <span className="pf-tile-title">{work.title}</span>
-        <span className="pm-dim-text">{TYPE_LABEL[work.eventType]} · {formatDate(work.eventDate)}</span>
+        <span className="pm-dim-text pf-tile-meta">
+          {TYPE_LABEL[work.eventType]} · {formatDate(work.eventDate)}
+          {work.eventId !== undefined && <Views count={work.visitors} />}
+        </span>
       </span>
       {work.stats && <WorkStats stats={work.stats} />}
       <span className="pf-tile-go">Открыть сайт</span>

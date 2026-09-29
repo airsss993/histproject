@@ -1259,6 +1259,10 @@ components:
               starred:
                 type: boolean
                 description: Звезду поставил смотрящий
+              visitors:
+                type: integer
+                format: int64
+                description: Уникальные посетители сайта, видны всем, есть у опубликованной работы
               stats:
                 type: object
                 description: Просмотры сайта, только своему профилю и только у опубликованной работы
@@ -1395,7 +1399,7 @@ components:
               enum: [political, military, personality]
     Event:
       type: object
-      required: [id, title, description, latitude, longitude, eventDate, eventType, siteUrl, stars, starred]
+      required: [id, title, description, latitude, longitude, eventDate, eventType, siteUrl, stars, starred, visitors]
       properties:
         id:
           type: integer
@@ -1429,6 +1433,10 @@ components:
         starred:
           type: boolean
           description: Звезду поставил текущий пользователь, у гостя false
+        visitors:
+          type: integer
+          format: int64
+          description: Уникальные посетители сайта - аккаунт, у гостя - браузер. Просмотры автора не считаются
         author:
           type: object
           description: Только в GET /api/v1/events/{id} и только если у почты заявки есть учётка

@@ -52,14 +52,17 @@ func (service *Service) Deliver(ctx context.Context, submissionID int64, action 
 	if submissionID <= 0 || !action.Valid() {
 		return ErrInvalidAction
 	}
+	if action == ActionReady {
+		return nil
+	}
 	submission, err := service.submissions.NotificationSubmission(ctx, submissionID)
 	if err != nil {
 		return fmt.Errorf("load submission for notification: %w", err)
 	}
 	eventKey := fmt.Sprintf("submission:%d:%s", submissionID, action)
 
-	if action == ActionCreated || action == ActionReady {
-		return service.deliverToAdmins(ctx, eventKey, action, submission)
+	if action == ActionCreated {
+		return service.deliverToAdmins(ctx, eventKey, submission)
 	}
 	if service.email == nil || strings.TrimSpace(submission.Email) == "" {
 		return nil
@@ -73,14 +76,14 @@ func (service *Service) Deliver(ctx context.Context, submissionID int64, action 
 	})
 }
 
-func (service *Service) deliverToAdmins(ctx context.Context, eventKey string, action Action, submission Submission) error {
+func (service *Service) deliverToAdmins(ctx context.Context, eventKey string, submission Submission) error {
 	var deliveryErr error
 	if service.email != nil && service.admins != nil {
 		emails, err := service.admins.NotificationAdminEmails(ctx)
 		if err != nil {
 			deliveryErr = errors.Join(deliveryErr, fmt.Errorf("load notification admin emails: %w", err))
 		} else if len(emails) > 0 {
-			message, err := adminEmail(action, submission, emails, service.adminPanelURL)
+			message, err := adminEmail(submission, emails, service.adminPanelURL)
 			if err != nil {
 				deliveryErr = errors.Join(deliveryErr, err)
 			} else {
@@ -95,7 +98,7 @@ func (service *Service) deliverToAdmins(ctx context.Context, eventKey string, ac
 		if err != nil {
 			deliveryErr = errors.Join(deliveryErr, fmt.Errorf("load telegram recipients: %w", err))
 		}
-		message := adminTelegram(action, submission, service.adminPanelURL)
+		message := adminTelegram(submission, service.adminPanelURL)
 		// Журнал доставки ведётся по каждому чату: повтор после сбоя не шлёт дубль тем, до кого уже дошло.
 		for _, chatID := range chats {
 			deliveryErr = errors.Join(deliveryErr, service.deliver(ctx, fmt.Sprintf("%s:%d", eventKey, chatID), ChannelTelegram, func(ctx context.Context) error {
@@ -129,15 +132,11 @@ func (service *Service) deliver(ctx context.Context, eventKey string, channel Ch
 	return nil
 }
 
-func adminTelegram(action Action, submission Submission, adminPanelURL string) string {
-	status := "создана и обрабатывается"
-	if action == ActionReady {
-		status = "готова к проверке"
-	}
+func adminTelegram(submission Submission, adminPanelURL string) string {
 	// Контакты автора сюда не идут: Telegram - трансграничная передача, они есть в панели.
 	return fmt.Sprintf(
-		"<b>Заявка %s %s</b>\nНазвание: %s\n<a href=\"%s\">Открыть панель</a>",
-		submission.PublicID, status, html.EscapeString(submission.Title), html.EscapeString(adminPanelURL),
+		"<b>Заявка %s создана и обрабатывается</b>\nНазвание: %s\n<a href=\"%s\">Открыть панель</a>",
+		submission.PublicID, html.EscapeString(submission.Title), html.EscapeString(adminPanelURL),
 	)
 }
 

@@ -10,6 +10,9 @@ import (
 	"path"
 	"strings"
 	"unicode"
+	"unicode/utf8"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 var (
@@ -84,7 +87,14 @@ func OpenArchive(ctx context.Context, reader io.ReaderAt, size int64, limits Lim
 			return nil, err
 		}
 
-		cleanPath, err := safeArchivePath(zipFile.Name)
+		name := zipFile.Name
+		if !utf8.ValidString(name) {
+			name, err = charmap.CodePage866.NewDecoder().String(name)
+			if err != nil {
+				return nil, fmt.Errorf("%w: decode file name: %v", ErrInvalidArchive, err)
+			}
+		}
+		cleanPath, err := safeArchivePath(name)
 		if err != nil {
 			return nil, err
 		}

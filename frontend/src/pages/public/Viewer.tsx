@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { NotFound } from './NotFound.tsx'
-import { StarButton } from './Star.tsx'
+import { StarButton, Views } from './Star.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { fetchEvent, formatDate, profilePath, startView, touchView, TYPE_LABEL, type HistEvent } from './api.ts'
 import './public.css'
@@ -91,33 +91,28 @@ export const Viewer: React.FC = () => {
     <div className="pm-root sv-page">
       {/* Первый экран: сайт и строка под ним. Остальное о событии - ниже, прокруткой. */}
       <div className="sv-screen">
-        {event
-          ? <iframe className="sv-frame" src={event.siteUrl} title={event.title} sandbox="allow-scripts allow-forms allow-popups" />
-          : <div className="sv-frame sv-frame-empty">{failed ? 'Нет связи с сервером' : 'Загружаем...'}</div>}
-        <div className="sv-bar pm-glass">
-          <Link className="pm-close-sm sv-back" to={`/map?event=${id}`} aria-label="Назад к карте">
-            <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true" fill="none" stroke="currentColor"
-              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
-          </Link>
-          <h1 className="sv-title">{event?.title}</h1>
-          {showPrompt && (
-            <span className="sv-prompt" role="status">
-              Понравился сайт? Поставьте звезду
-              <button type="button" className="pm-close-sm" onClick={dismiss} aria-label="Скрыть подсказку">×</button>
-            </span>
-          )}
-          {event && (
-            <button type="button" className="pm-btn-ghost pm-pill sv-star sv-more" aria-label="О событии"
-              onClick={() => document.getElementById('sv-info')?.scrollIntoView({ behavior: 'smooth' })}>
-              <span>О событии</span>
+        <div className="sv-window pm-glass">
+          {event
+            ? <iframe className="sv-frame" src={event.siteUrl} title={event.title} sandbox="allow-scripts allow-forms allow-popups" />
+            : <div className="sv-frame sv-frame-empty">{failed ? 'Нет связи с сервером' : 'Загружаем...'}</div>}
+          <div className="sv-bar">
+            <Link className="pm-close-sm sv-back" to={`/map?event=${id}`} aria-label="Назад к карте">
               <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true" fill="none" stroke="currentColor"
-                strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-            </button>
-          )}
-          {event && (
-            <StarButton id={event.id} stars={event.stars} starred={event.starred}
-              onChange={s => setEvent({ ...event, ...s })} className="pm-btn-ghost pm-pill sv-star" />
-          )}
+                strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+            </Link>
+            <h1 className="sv-title">{event?.title}</h1>
+            {showPrompt && (
+              <span className="sv-prompt" role="status">
+                Понравился сайт? Поставьте звезду
+                <button type="button" className="pm-close-sm" onClick={dismiss} aria-label="Скрыть подсказку">×</button>
+              </span>
+            )}
+            {event && <Views count={event.visitors} />}
+            {event && (
+              <StarButton id={event.id} stars={event.stars} starred={event.starred}
+                onChange={s => setEvent({ ...event, ...s })} className="pm-btn-ghost pm-pill sv-star" />
+            )}
+          </div>
         </div>
       </div>
       {event && (
@@ -126,17 +121,15 @@ export const Viewer: React.FC = () => {
             <span className={`pm-card-type ${event.eventType}`}>{TYPE_LABEL[event.eventType]}</span>
             <i />
             <span>{formatDate(event.eventDate)}</span>
+            {event.author && (<>
+              <i />
+              <Link className="sv-author" to={profilePath(event.author.publicId)} aria-label={`Автор сайта: ${event.author.firstName} ${event.author.lastName}`}>
+                <Avatar seed={event.author.publicId} size={24} />
+                {event.author.firstName} {event.author.lastName}
+              </Link>
+            </>)}
           </div>
           {event.description && <p className="sv-text">{event.description}</p>}
-          {event.author && (
-            <Link className="sv-author pm-glass" to={profilePath(event.author.publicId)}>
-              <Avatar seed={event.author.publicId} size={44} />
-              <span>
-                <span className="pm-dim-text">Автор сайта</span>
-                <span className="sv-author-name">{event.author.firstName} {event.author.lastName}</span>
-              </span>
-            </Link>
-          )}
         </section>
       )}
     </div>

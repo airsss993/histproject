@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { LoadMark, Splash, SPLASH_DONE_MS, SPLASH_MS, useSettle } from '../../shared/ui/Loader.tsx'
 import { eventPath, profilePath, fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent, type StarState } from './api.ts'
-import { StarButton } from './Star.tsx'
+import { StarButton, Views } from './Star.tsx'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { ProposeModal } from './Propose.tsx'
@@ -413,6 +413,7 @@ const EventInfo: React.FC<{ e: HistEvent; onStar: OnStar }> = ({ e, onStar }) =>
       <span className={`pm-card-type ${e.eventType}`}>{TYPE_LABEL[e.eventType]}</span>
       <i />
       <span>{formatDate(e.eventDate)}</span>
+      <Views count={e.visitors} className="pm-card-views" />
       <StarButton id={e.id} stars={e.stars} starred={e.starred} onChange={s => onStar(e.id, s)} className="pm-btn-ghost pm-pill pm-card-star" />
     </div>
     {e.description && (

@@ -432,19 +432,22 @@
 /* Звезда: StarButton (Star.tsx) в карточке, профиле и на странице просмотра. */
 .pm-root .pm-star { flex: none; gap: 6px; font-variant-numeric: tabular-nums; }
 /* В карточке события звезда стоит в строке "тип - дата": три кнопки в 400 px не влезают. */
-.pm-root .pm-card-star { margin-left: auto; padding: 4px 12px; font-size: 14px; }
+.pm-root .pm-card-star { padding: 4px 12px; font-size: 14px; }
+.pm-views { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pm-card-views { margin-left: auto; }
 .pm-root .pm-star.on { color: var(--gold); border-color: var(--gold-line); }
 .pm-root .pm-star:disabled { opacity: 1; cursor: progress; }
 
 /* Страница просмотра /event/:id: сайт на первый экран, строка с названием под ним, сайт не перекрывает. */
 .sv-page { overflow-y: auto; overflow-x: hidden; background: var(--ink); }
 .sv-page a { color: inherit; text-decoration: none; }
-.sv-screen { height: 100dvh; display: flex; flex-direction: column; }
+.sv-screen { height: calc(100dvh - 56px); display: flex; flex-direction: column; padding: 20px 32px; }
+.sv-window { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
 .sv-frame { flex: 1; min-height: 0; width: 100%; border: 0; background: #fff; }
 .sv-frame-empty { display: grid; place-items: center; background: var(--sea); color: var(--muted); }
 .sv-bar {
   flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 16px;
-  border-width: 1px 0 0; box-shadow: none;
+  border-top: 1px solid var(--line);
 }
 .sv-back { flex: none; display: inline-flex; align-items: center; justify-content: center; }
 .sv-title { flex: 1; min-width: 0; font: 400 18px/26px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -454,18 +457,16 @@
   background: var(--gold-wash); color: var(--gold-soft); font-size: 14px; white-space: nowrap;
   animation: pm-in 200ms ease-out;
 }
-.sv-info { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 16px; }
-.sv-info .pm-card-sub { margin: 0; }
+.sv-info { max-width: 760px; margin: 0 auto; padding: 4px 16px 64px; display: flex; flex-direction: column; gap: 16px; }
+.sv-info .pm-card-sub { margin: 0; flex-wrap: wrap; row-gap: 4px; }
 .sv-text { color: var(--text-2); font-size: 16px; line-height: 1.6; white-space: pre-line; }
-.sv-author { align-self: flex-start; display: flex; align-items: center; gap: 12px; padding: 10px 18px 10px 10px; border-radius: 999px; }
-.sv-author > span { display: flex; flex-direction: column; }
-.sv-author-name { font-size: 16px; }
-.sv-author:hover { border-color: var(--gold-line); }
+.sv-author { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); }
+.sv-author:hover { color: var(--gold-soft); }
 @media (max-width: 640px) {
+  .sv-screen { padding: 8px; }
+  .sv-window { border-radius: 12px; }
   .sv-bar { gap: 8px; padding: 8px 12px; }
   .sv-title { font-size: 16px; }
   .sv-prompt { order: 1; flex-basis: 100%; justify-content: space-between; white-space: normal; }
-  .sv-more span { display: none; }
-  .pm-root .sv-more { padding: 7px 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .sv-prompt { animation: none; } }

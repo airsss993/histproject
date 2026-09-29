@@ -40,6 +40,19 @@ func TestServiceDeliversCreatedNotificationOncePerChannel(t *testing.T) {
 	}
 }
 
+func TestServiceSkipsReadyNotification(t *testing.T) {
+	source := &submissionSourceStub{}
+	emailSender := &emailSenderStub{}
+	telegramSender := &telegramSenderStub{}
+	service := NewService(&deliveryStoreStub{}, source, &adminSourceStub{}, emailSender, telegramSender, "")
+	if err := service.Deliver(t.Context(), 7, ActionReady); err != nil {
+		t.Fatal(err)
+	}
+	if source.called || len(emailSender.messages) != 0 || len(telegramSender.messages) != 0 {
+		t.Fatal("ready notification reached recipients")
+	}
+}
+
 func TestServiceSkipsAlreadyDeliveredChannel(t *testing.T) {
 	store := &deliveryStoreStub{claims: map[Channel]bool{ChannelEmail: false}}
 	emailSender := &emailSenderStub{}

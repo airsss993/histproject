@@ -213,7 +213,7 @@ func (works authorWorks) ByAuthor(ctx context.Context, email string, viewerID in
 		}
 		if summary, ok := summaries[submission.ID]; ok {
 			work.EventID = &summary.EventID
-			work.Stars, work.Starred = summary.Stars, summary.Starred
+			work.Stars, work.Starred, work.Visitors = summary.Stars, summary.Starred, summary.Visitors
 			work.Stats = &users.WorkStats{Views: summary.Views, Visitors: summary.Visitors, ActiveSeconds: summary.ActiveSeconds}
 		}
 		items = append(items, work)

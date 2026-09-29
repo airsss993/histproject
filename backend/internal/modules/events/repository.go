@@ -58,7 +58,7 @@ func (repository *Repository) List(ctx context.Context, filter Filter) (Page, er
 	viewerPosition := len(args) + 1
 	args = append(args, filter.ViewerID)
 	rows, err := repository.pool.Query(ctx, `
-		SELECT `+eventColumns+`, `+fmt.Sprintf(starColumns, viewerPosition)+`
+		SELECT `+eventColumns+`, `+fmt.Sprintf(starColumns, viewerPosition)+`, `+visitorsColumn+`
 		FROM events.events`+where+fmt.Sprintf(`
 		ORDER BY event_date ASC, id ASC
 		LIMIT $%d OFFSET $%d`, limitPosition, offsetPosition), args...)
@@ -69,13 +69,13 @@ func (repository *Repository) List(ctx context.Context, filter Filter) (Page, er
 
 	items := make([]Event, 0)
 	for rows.Next() {
-		var stars int64
+		var stars, visitors int64
 		var starred bool
-		event, err := scanEvent(rows, &stars, &starred)
+		event, err := scanEvent(rows, &stars, &starred, &visitors)
 		if err != nil {
 			return Page{}, fmt.Errorf("scan event: %w", err)
 		}
-		event.Stars, event.Starred = stars, starred
+		event.Stars, event.Starred, event.Visitors = stars, starred, visitors
 		items = append(items, event)
 	}
 	if err := rows.Err(); err != nil {
@@ -85,14 +85,14 @@ func (repository *Repository) List(ctx context.Context, filter Filter) (Page, er
 }
 
 func (repository *Repository) Get(ctx context.Context, id, viewerID int64) (Event, error) {
-	var stars int64
+	var stars, visitors int64
 	var starred bool
 	event, err := scanEvent(repository.pool.QueryRow(ctx, `
-		SELECT `+eventColumns+`, `+fmt.Sprintf(starColumns, 2)+`
+		SELECT `+eventColumns+`, `+fmt.Sprintf(starColumns, 2)+`, `+visitorsColumn+`
 		FROM events.events
 		WHERE id = $1
-	`, id, viewerID), &stars, &starred)
-	event.Stars, event.Starred = stars, starred
+	`, id, viewerID), &stars, &starred, &visitors)
+	event.Stars, event.Starred, event.Visitors = stars, starred, visitors
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Event{}, ErrEventNotFound
 	}
@@ -139,6 +139,10 @@ const eventColumns = `id, submission_id, title, description, latitude, longitude
 // Обе выборки идут по первичному ключу events.stars (event_id, user_id).
 const starColumns = `(SELECT COUNT(*) FROM events.stars star WHERE star.event_id = events.id),
 	EXISTS (SELECT 1 FROM events.stars star WHERE star.event_id = events.id AND star.user_id = $%d)`
+
+// visitorsColumn - уникальные посетители сайта события: аккаунт, а у гостя - браузер. Как в Summaries.
+const visitorsColumn = `(SELECT COUNT(DISTINCT COALESCE(view.user_id::text, view.visitor_id::text))
+	FROM events.views view WHERE view.event_id = events.id)`
 
 // scanEvent читает eventColumns, extra - колонки после них.
 func scanEvent(row rowScanner, extra ...any) (Event, error) {
