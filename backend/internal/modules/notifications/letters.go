@@ -118,22 +118,16 @@ func checkEmail(to string) (Email, error) {
 	}.email([]string{to}, "Проверка почты")
 }
 
-func adminEmail(action Action, submission Submission, recipients []string, adminPanelURL string) (Email, error) {
+func adminEmail(submission Submission, recipients []string, adminPanelURL string) (Email, error) {
 	view := letterView{
 		Icon:      "processing",
 		Preheader: submission.Title,
 		Title:     fmt.Sprintf("Новая заявка %s", submission.PublicID),
-		Lead:      "Заявка создана, архив сайта обрабатывается. Когда обработка закончится, придёт отдельное письмо.",
+		Lead:      "Заявка создана, архив сайта обрабатывается. Проверяйте статус в панели.",
 		Fields:    submissionFields(submission),
 		Action:    linkAction("Открыть панель", adminPanelURL),
 	}
 	subject := fmt.Sprintf("Заявка %s создана и обрабатывается", submission.PublicID)
-	if action == ActionReady {
-		view.Icon = "new"
-		view.Title = fmt.Sprintf("Заявка %s готова к проверке", submission.PublicID)
-		view.Lead = "Архив обработан, превью сайта собрано. Заявку можно проверять."
-		subject = fmt.Sprintf("Заявка %s готова к проверке", submission.PublicID)
-	}
 	return view.email(recipients, subject)
 }
 

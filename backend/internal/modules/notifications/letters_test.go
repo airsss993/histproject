@@ -28,10 +28,8 @@ func allLetters(t *testing.T) map[string]Email {
 	add("code", message, err)
 	message, err = checkEmail("admin@example.test")
 	add("check", message, err)
-	for _, action := range []Action{ActionCreated, ActionReady} {
-		message, err := adminEmail(action, submission, []string{"admin@example.test"}, "https://russia-heroes.ru/panel")
-		add(string(action), message, err)
-	}
+	message, err = adminEmail(submission, []string{"admin@example.test"}, "https://russia-heroes.ru/panel")
+	add("created", message, err)
 	for _, action := range []Action{ActionReviewed, ActionRejected, ActionPublished} {
 		message, err := authorEmail(action, submission)
 		add(string(action), message, err)
@@ -63,7 +61,6 @@ func TestLettersContent(t *testing.T) {
 	checks := map[string][]string{
 		"code":      {"123456", "10 минут"},
 		"created":   {"author@example.test", "@hero", "https://russia-heroes.ru/panel"},
-		"ready":     {"готова к проверке", "https://russia-heroes.ru/panel"},
 		"reviewed":  {"на проверке"},
 		"rejected":  {"Исправьте описание", "Комментарий модератора"},
 		"published": {"https://russia-heroes.ru/sites/7/", "Открыть событие"},
@@ -75,7 +72,7 @@ func TestLettersContent(t *testing.T) {
 			}
 		}
 	}
-	withoutURL, err := adminEmail(ActionReady, Submission{PublicID: "RH-000001", Title: "Т", Email: "a@example.test"}, []string{"a@example.test"}, "")
+	withoutURL, err := adminEmail(Submission{PublicID: "RH-000001", Title: "Т", Email: "a@example.test"}, []string{"a@example.test"}, "")
 	if err != nil || strings.Contains(withoutURL.HTML, "Открыть панель") {
 		t.Errorf("без ADMIN_PANEL_URL кнопки быть не должно: err=%v", err)
 	}

@@ -49,6 +49,20 @@ func TestOpenArchiveAcceptsSafeSite(t *testing.T) {
 	}
 }
 
+func TestOpenArchiveDecodesCP866FileName(t *testing.T) {
+	data := makeZIP(t,
+		zipEntry{name: "index.html", body: "site"},
+		zipEntry{name: "images/\xa2\xa8\xad\xad\xa0\xef.jpg", body: "image"},
+	)
+	archive, err := OpenArchive(t.Context(), bytes.NewReader(data), int64(len(data)), testLimits())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := archive.Files()[1].Path; got != "images/винная.jpg" {
+		t.Fatalf("decoded path = %q", got)
+	}
+}
+
 func TestOpenArchiveRequiresRootIndex(t *testing.T) {
 	data := makeZIP(t, zipEntry{name: "site/index.html", body: "site"})
 
