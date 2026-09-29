@@ -29,6 +29,9 @@ func TestServiceDeliversCreatedNotificationOncePerChannel(t *testing.T) {
 	if len(emailSender.messages[0].To) != 1 || emailSender.messages[0].To[0] != "admin@example.test" {
 		t.Fatalf("email recipients = %#v", emailSender.messages[0].To)
 	}
+	if strings.Contains(telegramSender.messages[0], "author@example.test") || strings.Contains(telegramSender.messages[0], "@author") {
+		t.Fatalf("telegram message exposes author contacts: %q", telegramSender.messages[0])
+	}
 	if strings.Contains(emailSender.messages[0].HTML, "<script>") || strings.Contains(telegramSender.messages[0], "<script>") {
 		t.Fatal("notification content contains unescaped title")
 	}

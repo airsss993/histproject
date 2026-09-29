@@ -57,7 +57,7 @@ func TestAPIHTTPFlow(t *testing.T) {
 		t.Fatalf("flush Redis: %v", err)
 	}
 
-	if _, err := users.NewRepository(databaseClient.Pool()).Create(ctx, users.User{Email: "editor@example.test", FirstName: "Редактор", LastName: ""}); err != nil {
+	if _, err := users.NewRepository(databaseClient.Pool()).Create(ctx, users.User{Email: "editor@example.test", FirstName: "Редактор", LastName: ""}, ""); err != nil {
 		t.Fatalf("create editor user: %v", err)
 	}
 	adminService := admins.NewService(admins.NewRepository(databaseClient.Pool()))
@@ -199,7 +199,7 @@ func TestAPISubmissionFlow(t *testing.T) {
 	}
 	storageClient := prepareAppTestStorage(t, ctx, minioEndpoint, minioAccessKey, minioSecretKey)
 
-	if _, err := users.NewRepository(databaseClient.Pool()).Create(ctx, users.User{Email: "editor@example.test", FirstName: "Редактор", LastName: ""}); err != nil {
+	if _, err := users.NewRepository(databaseClient.Pool()).Create(ctx, users.User{Email: "editor@example.test", FirstName: "Редактор", LastName: ""}, ""); err != nil {
 		t.Fatalf("create editor user: %v", err)
 	}
 	adminService := admins.NewService(admins.NewRepository(databaseClient.Pool()))
@@ -311,7 +311,7 @@ func visitorLoginExisting(t *testing.T, ctx context.Context, databaseClient *dat
 // visitorLogin заводит посетителя и кладёт его сессию в Redis в обход кода на почту.
 func visitorLogin(t *testing.T, ctx context.Context, databaseClient *database.Database, redisClient *redisstore.Store, email string) *http.Cookie {
 	t.Helper()
-	user, err := users.NewRepository(databaseClient.Pool()).Create(ctx, users.User{Email: email, FirstName: "Автор", LastName: "Тестовый"})
+	user, err := users.NewRepository(databaseClient.Pool()).Create(ctx, users.User{Email: email, FirstName: "Автор", LastName: "Тестовый"}, "")
 	if err != nil {
 		t.Fatalf("create visitor %q: %v", email, err)
 	}
@@ -329,7 +329,7 @@ func createSubmissionRequest(t *testing.T, handler http.Handler, cookie *http.Co
 	writer := multipart.NewWriter(body)
 	fields := map[string]string{
 		"title": title, "description": "Description", "eventDate": "2020-01-02",
-		"eventType": "military", "telegramUsername": telegram, "latitude": "55.5", "longitude": "60.5",
+		"eventType": "military", "telegramUsername": telegram, "latitude": "55.5", "longitude": "60.5", "consent": "true", "rules": "true",
 	}
 	for key, value := range fields {
 		if err := writer.WriteField(key, value); err != nil {

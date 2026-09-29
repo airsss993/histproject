@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { GLYPH, MapView, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { Presence, useLeaving } from './presence.tsx'
-import { submitProposal, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType } from './api.ts'
+import { geocode, submitProposal, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType, type Place } from './api.ts'
+import { Check } from '../../shared/ui/Field.tsx'
 import { useNavigate } from 'react-router-dom'
 import './propose.css'
 
@@ -14,12 +15,13 @@ interface Draft {
   lat: number | null; lng: number | null
   telegram: string; file: File | null
   zip: 'none' | 'checking' | 'ok' | string // строка - текст ошибки архива
+  consent: boolean; rules: boolean // согласие на обработку и заверение о материалах
 }
-const EMPTY: Draft = { title: '', date: '', type: '', description: '', lat: null, lng: null, telegram: '', file: null, zip: 'none' }
+const EMPTY: Draft = { title: '', date: '', type: '', description: '', lat: null, lng: null, telegram: '', file: null, zip: 'none', consent: false, rules: false }
 
-type Field = 'type' | 'title' | 'date' | 'description' | 'place' | 'archive' | 'telegram'
+type Field = 'type' | 'title' | 'date' | 'description' | 'place' | 'archive' | 'telegram' | 'consent' | 'rules'
 type Errors = Partial<Record<Field, string>>
-const FIELDS: Field[] = ['type', 'title', 'date', 'description', 'place', 'archive', 'telegram']
+const FIELDS: Field[] = ['type', 'title', 'date', 'description', 'place', 'archive', 'telegram', 'consent', 'rules']
 
 // Шаги мастера. icon - путь 24x24 для плитки в шапке карточки.
 const STEPS: { fields: Field[]; title: string; sub: string; icon: string }[] = [
@@ -31,7 +33,7 @@ const STEPS: { fields: Field[]; title: string; sub: string; icon: string }[] = [
     icon: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z M12 12.2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z' },
   { fields: ['archive'], title: 'Сайт события', sub: 'ZIP-архив, index.html лежит в его корне',
     icon: 'M4 7.5 12 3.5l8 4v9l-8 4-8-4Z M4 7.5l8 4 8-4 M12 11.5v9' },
-  { fields: ['telegram'], title: 'Контакты', sub: 'Не публикуется. Статус заявки придёт на почту аккаунта',
+  { fields: ['telegram', 'consent', 'rules'], title: 'Контакты', sub: 'Не публикуется. Статус заявки придёт на почту аккаунта',
     icon: 'M3.5 5.5h17v13h-17Z M3.5 6.5l8.5 7 8.5-7' },
 ]
 const stepOf = (f: Field) => STEPS.findIndex(s => s.fields.includes(f))
@@ -43,7 +45,7 @@ const PLUS = 'M12 5v14 M5 12h14'
 const CROSS = 'M6 6l12 12 M18 6 6 18'
 const SERVER_FIELD: Record<string, Field> = {
   title: 'title', eventDate: 'date', eventType: 'type', description: 'description', latitude: 'place', longitude: 'place',
-  archive: 'archive', telegramUsername: 'telegram',
+  archive: 'archive', telegramUsername: 'telegram', consent: 'consent', rules: 'rules',
 }
 
 type Phase =
@@ -52,7 +54,6 @@ type Phase =
   | { k: 'done'; publicId: string }
   | { k: 'fail'; status: number; message?: string; retryAfter?: number }
 
-interface Place { place_id: number; display_name: string; lat: string; lon: string }
 
 // Мелкие файлы не показываем как "0 МБ".
 const mb = (bytes: number) => (bytes > 0 && bytes < 10486 ? 0.01 : bytes / 1048576)
@@ -92,6 +93,8 @@ function validate(d: Draft): Errors {
   else if (d.zip === 'checking') e.archive = 'Архив ещё проверяется'
   else if (d.zip !== 'ok') e.archive = d.zip
   if (!/^[A-Za-z0-9_]{5,32}$/.test(d.telegram.trim())) e.telegram = 'Без "@", только латиница, цифры и _, от 5 до 32 символов'
+  if (!d.consent) e.consent = 'Без согласия заявку не отправить'
+  if (!d.rules) e.rules = 'Подтвердите, что соблюдаете правила'
   return e
 }
 
@@ -136,14 +139,13 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
     return () => window.removeEventListener('keydown', onKey)
   }, [open, sending])
 
-  // Поиск места через Nominatim: не чаще раза в 500 мс, как требуют правила сервиса.
+  // Поиск места через наш сервер (он ходит в Nominatim): запрос не чаще раза в 500 мс.
   useEffect(() => {
     const q = query.trim()
     if (q.length < 3 || q === chosenRef.current) { setPlaces([]); return }
     const ctrl = new AbortController()
     const t = setTimeout(() => {
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ru&q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
-        .then(r => r.json() as Promise<Place[]>).then(setPlaces).catch(() => undefined)
+      geocode(q, ctrl.signal).then(setPlaces).catch(() => undefined)
     }, 500)
     return () => { clearTimeout(t); ctrl.abort() }
   }, [query])
@@ -214,6 +216,8 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
     body.set('longitude', String(d.lng))
     body.set('telegramUsername', d.telegram.trim())
     body.set('archive', d.file!)
+    body.set('consent', String(d.consent))
+    body.set('rules', String(d.rules))
     setPhase({ k: 'sending', loaded: 0, total: d.file!.size })
     const req = submitProposal(body, (loaded, total) => setPhase({ k: 'sending', loaded, total }))
     abortRef.current = req.abort
@@ -371,7 +375,7 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
               <Presence>{places.length > 0 && (
                 <ul className="pp-places" role="listbox">
                   {places.map(p => (
-                    <li key={p.place_id}>
+                    <li key={`${p.lat},${p.lon},${p.display_name}`}>
                       <button type="button" role="option" aria-selected={false} onClick={() => choosePlace(p)}>{p.display_name}</button>
                     </li>
                   ))}
@@ -415,6 +419,13 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
               <input value={d.telegram} maxLength={33} placeholder="ivan_petrov" autoCapitalize="none" spellCheck={false} autoFocus={!mobile}
                 onChange={e => set('telegram', e.target.value.replace(/^@/, ''), 'telegram')} onBlur={() => d.telegram && show('telegram')} />
             </Text>
+            <Check checked={d.consent} error={visible('consent')} disabled={sending} onChange={v => set('consent', v, 'consent')}>
+              Даю <a href="/consent/submission" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и
+              принимаю <a href="/privacy" target="_blank" rel="noopener">политику</a>
+            </Check>
+            <Check checked={d.rules} error={visible('rules')} disabled={sending} onChange={v => set('rules', v, 'rules')}>
+              Подтверждаю, что соблюдаю <a href="/rules" target="_blank" rel="noopener">правила публикации материалов о третьих лицах</a>
+            </Check>
           </div>
         )}
       </fieldset>

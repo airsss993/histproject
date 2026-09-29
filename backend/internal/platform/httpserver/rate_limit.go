@@ -2,6 +2,8 @@ package httpserver
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"log/slog"
@@ -26,8 +28,7 @@ func RateLimit(allow ClientRateLimiter, limit int64, window time.Duration, logge
 				next.ServeHTTP(w, r)
 				return
 			}
-			digest := sha256.Sum256([]byte(ClientIP(r)))
-			allowed, err := allow(r.Context(), "api:client:"+hex.EncodeToString(digest[:]), limit, window)
+			allowed, err := allow(r.Context(), "api:client:"+ClientKey(r), limit, window)
 			if err != nil {
 				logger.WarnContext(r.Context(), "rate limit unavailable", "request_id", RequestIDFromContext(r.Context()), "error", err)
 				next.ServeHTTP(w, r)
@@ -41,4 +42,21 @@ func RateLimit(allow ClientRateLimiter, limit int64, window time.Duration, logge
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// clientKeySecret живёт только в памяти процесса: без него хеш не сопоставить с IP перебором
+// всех адресов. Перезапуск сбрасывает счётчики лимитов - окна у них не длиннее часа.
+var clientKeySecret = func() []byte {
+	secret := make([]byte, 32)
+	if _, err := rand.Read(secret); err != nil {
+		panic(err)
+	}
+	return secret
+}()
+
+// ClientKey - HMAC-SHA256 от IP клиента для ключей ограничения частоты. Сам IP в Redis не попадает.
+func ClientKey(r *http.Request) string {
+	mac := hmac.New(sha256.New, clientKeySecret)
+	mac.Write([]byte(ClientIP(r)))
+	return hex.EncodeToString(mac.Sum(nil))
 }

@@ -64,18 +64,6 @@
 @keyframes pp-spin { to { transform: rotate(360deg); } }
 
 .au-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; min-height: 24px; }
-.au-check { display: inline-flex; align-items: center; gap: 10px; font: 400 14px/20px var(--ui); color: var(--text-2); cursor: pointer; user-select: none; }
-.pm-root .au-check input {
-  appearance: none; -webkit-appearance: none; width: 20px; height: 20px; margin: 0; flex: none; display: grid; place-items: center;
-  border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.03); cursor: pointer;
-  transition: background 160ms ease-out, border-color 160ms ease-out;
-}
-.pm-root .au-check:hover input { border-color: var(--gold-line); }
-.pm-root .au-check input:checked { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 12px rgba(199, 174, 127, 0.35); }
-.pm-root .au-check input:checked::after {
-  content: ''; width: 9px; height: 5px; margin-top: -2px; border: solid var(--ink); border-width: 0 0 2px 2px; transform: rotate(-45deg);
-}
-
 .au-error { min-height: 0; font: 400 13px/18px var(--ui); color: var(--danger); padding-left: 20px; }
 .au-error:empty { display: none; }
 .au-hint { margin-top: 10px !important; padding-left: 20px; font: 400 13px/18px var(--ui); }
@@ -143,3 +131,4 @@
 @media (prefers-reduced-motion: reduce) {
   .au-card, .au-step, .au-code.bad, .au-digit.on:empty { animation: none; }
 }
+.au-consent { margin-top: 18px; }

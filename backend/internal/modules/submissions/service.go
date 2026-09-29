@@ -101,7 +101,7 @@ func (service *Service) Create(ctx context.Context, input CreateInput) (Submissi
 		EventType: strings.TrimSpace(input.EventType), Email: strings.TrimSpace(input.Email),
 		TelegramUsername: strings.TrimPrefix(strings.TrimSpace(input.TelegramUsername), "@"),
 		Latitude:         input.Latitude, Longitude: input.Longitude,
-		ArchiveID: archiveID, Slug: slugValue + "-" + archiveID,
+		ArchiveID: archiveID, Slug: slugValue + "-" + archiveID, ConsentVersion: ConsentVersion,
 	})
 	if err != nil {
 		deleteErr := service.archives.DeleteArchive(ctx, archiveID)
@@ -339,6 +339,12 @@ func invalidSubmissionID() *ValidationError {
 
 func validateCreateInput(input CreateInput, maxUploadBytes int64) map[string]string {
 	fields := make(map[string]string)
+	if !input.Consent {
+		fields["consent"] = "Нужно согласие на обработку данных"
+	}
+	if !input.Rules {
+		fields["rules"] = "Нужно подтвердить правила публикации"
+	}
 	title := strings.TrimSpace(input.Title)
 	description := strings.TrimSpace(input.Description)
 	email := strings.TrimSpace(input.Email)

@@ -133,10 +133,10 @@ func (service *Service) deliver(ctx context.Context, eventKey string, channel Ch
 }
 
 func adminTelegram(submission Submission, adminPanelURL string) string {
+	// Контакты автора сюда не идут: Telegram - трансграничная передача, они есть в панели.
 	return fmt.Sprintf(
-		"<b>Заявка %s создана и обрабатывается</b>\nНазвание: %s\nEmail: %s\nTelegram: %s\n<a href=\"%s\">Открыть панель</a>",
-		submission.PublicID, html.EscapeString(submission.Title), html.EscapeString(submission.Email),
-		html.EscapeString(telegramName(submission.TelegramUsername)), html.EscapeString(adminPanelURL),
+		"<b>Заявка %s создана и обрабатывается</b>\nНазвание: %s\n<a href=\"%s\">Открыть панель</a>",
+		submission.PublicID, html.EscapeString(submission.Title), html.EscapeString(adminPanelURL),
 	)
 }
 

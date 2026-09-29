@@ -102,6 +102,24 @@
 .pm-root :is(.pm-btn-ghost, .pm-btn-text).danger:hover { color: #E08A7D; }
 .pm-root .pm-btn-ghost.danger:hover { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
 
+/* Галочка. Текст рядом может переноситься и содержать ссылки; .bad - не отмечена обязательная. */
+.pm-check { display: inline-flex; align-items: flex-start; gap: 10px; font: 400 14px/20px var(--ui); color: var(--text-2); cursor: pointer; user-select: none; text-align: left; }
+.pm-root .pm-check input {
+  appearance: none; -webkit-appearance: none; width: 20px; height: 20px; margin: 0; flex: none; display: grid; place-items: center;
+  border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.03); cursor: pointer;
+  transition: background 160ms ease-out, border-color 160ms ease-out;
+}
+.pm-root .pm-check:hover input { border-color: var(--gold-line); }
+.pm-root .pm-check input:focus-visible { outline: 2px solid var(--gold-line); outline-offset: 2px; }
+.pm-root .pm-check input:checked { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 12px rgba(199, 174, 127, 0.35); }
+.pm-root .pm-check input:checked::after {
+  content: ''; width: 9px; height: 5px; margin-top: -2px; border: solid var(--ink); border-width: 0 0 2px 2px; transform: rotate(-45deg);
+}
+.pm-root .pm-check.bad input { border-color: color-mix(in srgb, var(--danger) 70%, transparent); }
+.pm-root .pm-check a { color: var(--gold-soft); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--gold-line); }
+.pm-check ~ .pm-field-error { margin-top: 6px; padding-left: 30px; }
+.pm-root .pm-check a:hover { color: var(--gold); text-decoration-color: var(--gold); }
+
 /* Рамка поля. Стоит до свечения: рамку при наведении и фокусе задаёт .pm-glow. */
 .pm-root .pm-field {
   display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 0 14px; border-radius: 12px; cursor: text;
@@ -258,4 +276,15 @@
   .ui-splash-logo { height: 104px; }
   .ui-splash-name { font-size: 13px; letter-spacing: 0.16em; }
   .ui-splash-line { font-size: 14px; }
+}
+
+/* Уведомление о cookie (CookieNotice.tsx): .pm-root здесь только ради токенов, поэтому свои размеры вместо inset: 0. */
+.pm-root.pm-cookie {
+  inset: auto 16px 16px; z-index: 50; margin: 0 auto; max-width: 620px; overflow: visible;
+  display: flex; align-items: center; gap: 18px; padding: 14px 14px 14px 20px; border-radius: 18px; background: var(--glass);
+}
+.pm-cookie p { margin: 0; font: 400 13px/20px var(--ui); color: var(--text-2); }
+.pm-cookie a { color: var(--gold-soft); text-decoration: underline; text-decoration-color: var(--gold-line); text-underline-offset: 3px; }
+@media (max-width: 560px) {
+  .pm-root.pm-cookie { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px; }
 }

@@ -136,6 +136,9 @@ a.pm-about-shot:hover .pm-about-shot-img { transform: scale(1.05); }
 .pm-about-sticker.fill { background: rgba(255, 255, 255, 0.06); border-color: var(--rim-in); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); color: #fff; }
 .pm-about-sticker:hover { transform: rotate(0deg) scale(1.06); border-color: var(--gold); z-index: 1; }
 .pm-about-foot-side { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; font: 400 13px/20px var(--ui); color: var(--dim); text-align: right; }
+.pm-about-legal { display: flex; flex-direction: column; gap: 4px; }
+.pm-about-legal a { color: var(--dim); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.pm-about-legal a:hover { color: #fff; }
 .pm-about .pm-about-badge { --logo: 76px; position: relative; width: 148px; height: 148px; border-radius: 999px; display: grid; place-items: center; }
 .pm-about-badge svg { position: absolute; inset: 0; width: 100%; height: 100%; animation: pm-spin 22s linear infinite; }
 .pm-about-badge text { font: 400 10px var(--ui); letter-spacing: 0.1em; text-transform: uppercase; fill: var(--gold-soft); }

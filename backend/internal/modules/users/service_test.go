@@ -15,16 +15,16 @@ func TestRegisterVerifyLoginFlow(t *testing.T) {
 	service := NewService(repo, store, mailer, nil, 12*time.Hour)
 
 	var fields ValidationError
-	if err := service.Register(ctx, RegisterInput{FirstName: " ", LastName: "Ivanov1", Email: "bad"}, "ip"); !errors.As(err, &fields) || len(fields) != 3 {
+	if err := service.Register(ctx, RegisterInput{FirstName: " ", LastName: "Ivanov1", Email: "bad"}, "ip"); !errors.As(err, &fields) || len(fields) != 4 {
 		t.Fatalf("invalid register error = %v", err)
 	}
-	if err := service.Register(ctx, RegisterInput{FirstName: " Анна  Мария ", LastName: "Петрова-Водкина", Email: " Anna@Example.RU "}, "ip"); err != nil {
+	if err := service.Register(ctx, RegisterInput{FirstName: " Анна  Мария ", LastName: "Петрова-Водкина", Email: " Anna@Example.RU ", Consent: true}, "ip"); err != nil {
 		t.Fatalf("Register() error = %v", err)
 	}
 	if mailer.email != "anna@example.ru" || len(mailer.code) != 6 {
 		t.Fatalf("mail = %q %q", mailer.email, mailer.code)
 	}
-	if err := service.Register(ctx, RegisterInput{FirstName: "А", LastName: "Б", Email: "anna@example.ru"}, "ip"); !errors.Is(err, ErrRateLimited) {
+	if err := service.Register(ctx, RegisterInput{FirstName: "А", LastName: "Б", Email: "anna@example.ru", Consent: true}, "ip"); !errors.Is(err, ErrRateLimited) {
 		t.Fatalf("second code within cooldown error = %v, want rate limited", err)
 	}
 
@@ -49,7 +49,7 @@ func TestRegisterVerifyLoginFlow(t *testing.T) {
 		t.Fatalf("Authenticate() = %#v, %v", me, err)
 	}
 
-	if err := service.Register(ctx, RegisterInput{FirstName: "А", LastName: "Б", Email: "anna@example.ru"}, "ip2"); !errors.Is(err, ErrEmailTaken) {
+	if err := service.Register(ctx, RegisterInput{FirstName: "А", LastName: "Б", Email: "anna@example.ru", Consent: true}, "ip2"); !errors.Is(err, ErrEmailTaken) {
 		t.Fatalf("register taken error = %v", err)
 	}
 	if err := service.RequestLogin(ctx, "nobody@example.ru", "ip"); !errors.Is(err, ErrUserNotFound) {
@@ -73,6 +73,24 @@ func TestRegisterVerifyLoginFlow(t *testing.T) {
 }
 
 type memoryRepository struct{ users []User }
+
+func (r *memoryRepository) SetDistribution(_ context.Context, userID int64, enabled bool, _ string) error {
+	for i := range r.users {
+		if r.users[i].ID == userID {
+			r.users[i].ShowLastName = enabled
+		}
+	}
+	return nil
+}
+
+func (r *memoryRepository) Delete(_ context.Context, userID int64) error {
+	for i, u := range r.users {
+		if u.ID == userID {
+			r.users = append(r.users[:i], r.users[i+1:]...)
+		}
+	}
+	return nil
+}
 
 func (r *memoryRepository) FindByEmail(_ context.Context, email string) (User, error) {
 	for _, u := range r.users {
@@ -101,7 +119,7 @@ func (r *memoryRepository) FindByPublicID(_ context.Context, code string) (User,
 	return User{}, ErrUserNotFound
 }
 
-func (r *memoryRepository) Create(ctx context.Context, user User) (User, error) {
+func (r *memoryRepository) Create(ctx context.Context, user User, _ string) (User, error) {
 	if _, err := r.FindByEmail(ctx, user.Email); err == nil {
 		return User{}, ErrEmailTaken
 	}
@@ -237,5 +255,54 @@ func TestProfileHidesUnpublishedFromGuest(t *testing.T) {
 		if _, err := service.Profile(ctx, id, ""); !errors.Is(err, ErrUserNotFound) {
 			t.Fatalf("Profile(%q) error = %v, want ErrUserNotFound", id, err)
 		}
+	}
+}
+
+func TestPublicLastNameNeedsDistributionConsent(t *testing.T) {
+	for _, tc := range []struct {
+		user User
+		want string
+	}{
+		{User{LastName: "Ёлкина"}, "Ё."},
+		{User{LastName: "Ёлкина", ShowLastName: true}, "Ёлкина"},
+		{User{LastName: ""}, ""},
+	} {
+		if got := tc.user.PublicLastName(); got != tc.want {
+			t.Fatalf("PublicLastName(%#v) = %q, want %q", tc.user, got, tc.want)
+		}
+	}
+}
+
+func TestDistributionAndDeleteAccount(t *testing.T) {
+	ctx := t.Context()
+	repo := &memoryRepository{users: []User{{ID: 1, PublicID: "RHU-7K3F9Q", Email: "anna@example.ru", FirstName: "Анна", LastName: "Петрова"}}}
+	store := &memoryStore{codes: map[string]Pending{}, counts: map[string]int{}, sessions: map[string]int64{"token": 1, "other": 1}}
+	service := NewService(repo, store, &lastCode{}, nil, time.Hour)
+
+	if _, err := service.SetDistribution(ctx, "", true); !errors.Is(err, ErrNoSession) {
+		t.Fatalf("guest SetDistribution() error = %v", err)
+	}
+	user, err := service.SetDistribution(ctx, "token", true)
+	if err != nil || !user.ShowLastName {
+		t.Fatalf("SetDistribution() = %#v, %v", user, err)
+	}
+	if profile, err := service.Profile(ctx, "RHU-7K3F9Q", ""); err != nil || profile.User.LastName != "Петрова" {
+		t.Fatalf("profile with consent = %#v, %v", profile.User, err)
+	}
+	if _, err := service.SetDistribution(ctx, "token", false); err != nil {
+		t.Fatalf("revoke error = %v", err)
+	}
+	if profile, err := service.Profile(ctx, "RHU-7K3F9Q", ""); err != nil || profile.User.LastName != "П." {
+		t.Fatalf("profile without consent = %#v, %v", profile.User, err)
+	}
+
+	if err := service.DeleteAccount(ctx, "token"); err != nil {
+		t.Fatalf("DeleteAccount() error = %v", err)
+	}
+	if len(repo.users) != 0 {
+		t.Fatalf("users after delete = %#v", repo.users)
+	}
+	if _, err := service.Authenticate(ctx, "other"); !errors.Is(err, ErrNoSession) {
+		t.Fatalf("other session after delete error = %v", err)
 	}
 }

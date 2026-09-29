@@ -192,3 +192,15 @@
   /* Без наведения подпись-ссылку надо показывать сразу. */
   .pf-tile-go { opacity: 1; transform: none; }
 }
+
+/* Настройки владельца */
+.pf-settings { display: flex; flex-direction: column; gap: 18px; margin-top: 16px; padding: 22px 26px; border-radius: 20px; }
+.pf-settings .pf-title { margin: 0; }
+.pf-settings-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.pf-settings-row p { flex-basis: 100%; margin: 0; font: 400 14px/22px var(--ui); color: var(--text-2); }
+.pf-page .pf-settings-link { margin-left: auto; font: 400 14px/20px var(--ui); color: var(--muted); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.pf-page .pf-settings-link:hover { color: #fff; }
+@media (max-width: 860px) {
+  .pf-settings { padding: 18px; }
+  .pf-page .pf-settings-link { margin-left: 0; }
+}

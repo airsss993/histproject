@@ -98,6 +98,7 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 		Title: r.FormValue("title"), Description: r.FormValue("description"), EventDate: eventDate,
 		EventType: r.FormValue("eventType"), Email: email,
 		TelegramUsername: r.FormValue("telegramUsername"), Latitude: latitude, Longitude: longitude, Archive: archive,
+		Consent: r.FormValue("consent") == "true", Rules: r.FormValue("rules") == "true",
 	}
 	if archiveHeader != nil {
 		input.ArchiveName = archiveHeader.Filename
@@ -122,7 +123,7 @@ func (handler *Handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if handler.limiter != nil {
-		allowed, err := handler.limiter.Allow(r.Context(), httpserver.ClientIP(r))
+		allowed, err := handler.limiter.Allow(r.Context(), httpserver.ClientKey(r))
 		if err != nil {
 			handler.writeError(w, r, err)
 			return

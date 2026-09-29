@@ -85,6 +85,7 @@ type CreateRecord struct {
 	Longitude        float64
 	ArchiveID        string
 	Slug             string
+	ConsentVersion   string
 }
 
 type CreateInput struct {
@@ -99,7 +100,13 @@ type CreateInput struct {
 	ArchiveName      string
 	ArchiveSize      int64
 	Archive          io.Reader
+	// Consent и Rules - две галочки формы: согласие на обработку и заверение о материалах.
+	Consent bool
+	Rules   bool
 }
+
+// ConsentVersion - версия текстов /consent/submission и /rules. Поменялся текст - новая дата.
+const ConsentVersion = "2026-09-28"
 
 type ListFilter struct {
 	Status   Status

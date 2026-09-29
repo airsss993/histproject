@@ -72,3 +72,18 @@ func TestRateLimitPassesRequestWhenLimiterFails(t *testing.T) {
 		t.Fatalf("status = %d, want 204", response.Code)
 	}
 }
+
+func TestClientKeyHidesIPAndIgnoresPort(t *testing.T) {
+	request := func(remoteAddr string) *http.Request {
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		r.RemoteAddr = remoteAddr
+		return r
+	}
+	key := ClientKey(request("203.0.113.9:1000"))
+	if strings.Contains(key, "203.0.113.9") || len(key) != 64 {
+		t.Fatalf("key = %q", key)
+	}
+	if key != ClientKey(request("203.0.113.9:2000")) || key == ClientKey(request("203.0.113.10:1000")) {
+		t.Fatalf("key must depend on IP only")
+	}
+}

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Logo, useIsMobile } from './PublicMap.tsx'
 import { registerUser, requestLoginCode, verifyLoginCode, type ApiResult } from './api.ts'
+import { Check } from '../../shared/ui/Field.tsx'
 import './public.css'
 import './auth.css'
 
@@ -14,7 +15,7 @@ const TAKEN = 'Эта почта уже зарегистрирована'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 type Mode = 'login' | 'register'
-type Field = 'firstName' | 'lastName' | 'email' | 'code'
+type Field = 'firstName' | 'lastName' | 'email' | 'code' | 'consent'
 type Errors = Partial<Record<Field, string>>
 
 const COPY: Record<Mode, { title: string; sub: string; backSub: string; alt: string; altLink: string; altTo: string }> = {
@@ -44,6 +45,7 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
 
   const [form, setForm] = useState({ firstName: '', lastName: '', email: prefill })
   const [remember, setRemember] = useState(false)
+  const [consent, setConsent] = useState(false)
   const [errors, setErrors] = useState<Errors>({})
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -70,6 +72,7 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
     if (mode === 'register') {
       if (!form.firstName.trim()) next.firstName = 'Введите имя'
       if (!form.lastName.trim()) next.lastName = 'Введите фамилию'
+      if (!consent) next.consent = 'Без согласия зарегистрироваться нельзя'
     }
     if (!email) next.email = 'Введите почту'
     else if (!EMAIL_RE.test(email)) next.email = 'Похоже, в адресе опечатка'
@@ -79,7 +82,7 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
 
     setBusy(true)
     const res = mode === 'register'
-      ? await registerUser({ firstName: form.firstName, lastName: form.lastName, email })
+      ? await registerUser({ firstName: form.firstName, lastName: form.lastName, email, consent })
       : await requestLoginCode(email)
     setBusy(false)
     if (res.ok) {
@@ -178,11 +181,15 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
                   </p>
                 )}
 
+                {mode === 'register' && (
+                  <Check className="au-consent" checked={consent} error={errors.consent}
+                    onChange={v => { setConsent(v); setErrors(er => ({ ...er, consent: undefined })) }}>
+                    Даю <a href="/consent/registration" target="_blank" rel="noopener">согласие на обработку персональных данных</a> и
+                    принимаю <a href="/privacy" target="_blank" rel="noopener">политику</a>
+                  </Check>
+                )}
                 <div className="au-row">
-                  <label className="au-check">
-                    <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} />
-                    Запомнить меня
-                  </label>
+                  <Check checked={remember} onChange={setRemember}>Запомнить меня</Check>
                 </div>
                 {note && <p className="au-error" role="alert">{note}</p>}
 

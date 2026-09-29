@@ -30,6 +30,7 @@ type Modules struct {
 	users       *users.Handler
 	bot         *notifications.BotHandler
 	mail        *notifications.MailHandler
+	geocoder    *Geocoder
 	rateLimit   httpserver.ClientRateLimiter
 }
 
@@ -74,7 +75,8 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 	botHandler := notifications.NewBotHandler(notifications.NewBot(notificationRepository, cfg.NotificationTimeout), logger)
 	return Modules{
 		auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, users: userHandler,
-		bot: botHandler, mail: NewMailHandler(cfg, logger, notificationRepository), rateLimit: redisClient.Allow,
+		bot: botHandler, mail: NewMailHandler(cfg, logger, notificationRepository), geocoder: NewGeocoder(logger),
+		rateLimit: redisClient.Allow,
 	}
 }
 
@@ -100,6 +102,9 @@ func (modules Modules) Register(mux *http.ServeMux) {
 	}
 	if modules.mail != nil {
 		modules.mail.Register(mux, superAdminOnly)
+	}
+	if modules.geocoder != nil {
+		modules.geocoder.Register(mux)
 	}
 }
 
@@ -173,7 +178,7 @@ func (authors eventAuthors) Author(ctx context.Context, submissionID int64) (eve
 	if err != nil {
 		return events.Author{}, err
 	}
-	author.PublicID, author.FirstName, author.LastName = user.PublicID, user.FirstName, user.LastName
+	author.PublicID, author.FirstName, author.LastName = user.PublicID, user.FirstName, user.PublicLastName()
 	return author, nil
 }
 

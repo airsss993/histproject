@@ -118,6 +118,7 @@ func runWorker(ctx context.Context, cfg config.Config, logger *slog.Logger, depe
 		return fmt.Errorf("start worker: %w", err)
 	}
 	logger.Info("worker started", "concurrency", 1)
+	go app.NewRetention(dependencies.Database.Pool(), dependencies.Storage, logger).Loop(ctx)
 	<-ctx.Done()
 	server.Shutdown()
 	if !errors.Is(ctx.Err(), context.Canceled) {
