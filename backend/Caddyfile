@@ -39,7 +39,7 @@
 	}
 
 	handle_path /preview/* {
-		redir /sites{path} 302
+		redir * /sites{path} 302
 	}
 
 	handle /sites/* {
