@@ -96,12 +96,7 @@
   padding: 0 16px 14px; font: 400 13px/20px var(--ui); color: var(--gold);
   opacity: 0; transform: translateY(-4px); transition: opacity 160ms ease-out, transform 160ms ease-out;
 }
-.pf-tile:hover .pf-tile-go, .pf-tile-link:focus-visible .pf-tile-go { opacity: 1; transform: none; }
-.pf-tile-link { display: flex; flex-direction: column; flex: 1; border-radius: inherit; }
-.pm-root .pf-tile-star { position: absolute; top: 12px; right: 12px; z-index: 1; padding: 6px 12px; font-size: 14px; }
-.pf-tile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
-.pf-tile-meta .pm-views { font-size: 13px; }
-.pf-tile-stats { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 0 16px 8px; font: 400 13px/20px var(--ui); color: var(--muted); }
+.pf-tile:hover .pf-tile-go, .pf-tile:focus-visible .pf-tile-go { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .pf-tile, .pf-tile-shot, .pf-tile-go { transition: none; }
   .pf-main > *, .pf-list > *, .pf-gallery > * { animation: none; }
