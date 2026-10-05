@@ -26,7 +26,7 @@ const (
 	nameMaxRunes = 50
 	// Версии текстов согласий на /consent/registration и /consent/distribution. Поменялся текст - новая дата.
 	RegistrationConsentVersion = "2026-09-28"
-	DistributionConsentVersion = "2026-09-28"
+	DistributionConsentVersion = "2026-10-05"
 	emailMaxRunes              = 254
 	sessionTokenLen            = 32
 )
