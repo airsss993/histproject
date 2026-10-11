@@ -6,107 +6,125 @@
 <style>
   @font-face { font-family: 'Tenor Sans'; src: url(../../frontend/public/fonts/tenor-sans-cyrillic.woff2) format('woff2'); unicode-range: U+0400-045F; }
   @font-face { font-family: 'Tenor Sans'; src: url(../../frontend/public/fonts/tenor-sans-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
-  :root { --ink: #010011; --gold: #C7AE7F; --gold-soft: #D8C9A2; --text-2: #A9B4C8; --line: rgba(199, 174, 127, 0.22); }
+  :root { --ink: #010011; --gold: #C7AE7F; --gold-soft: #D8C9A2; --text-2: #A9B4C8; --line: rgba(199, 174, 127, 0.24); --card: rgba(16, 20, 42, 0.72); }
   * { box-sizing: border-box; }
   html, body { margin: 0; width: 1600px; height: 900px; overflow: hidden; }
-  body {
-    font-family: 'Tenor Sans', sans-serif; color: #fff; position: relative;
-    background:
-      radial-gradient(900px 600px at 78% 58%, rgba(69, 102, 142, 0.35), transparent 70%),
-      radial-gradient(700px 500px at 12% 8%, rgba(199, 174, 127, 0.16), transparent 70%),
-      var(--ink);
-  }
-  /* Тонкая сетка меридианов, гаснет к краям. */
-  body::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background-image: linear-gradient(rgba(129, 148, 174, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(129, 148, 174, 0.07) 1px, transparent 1px);
-    background-size: 64px 64px;
-    mask-image: radial-gradient(ellipse at 60% 50%, #000 20%, transparent 75%);
-  }
-  .copy { position: absolute; left: 96px; top: 96px; width: 560px; z-index: 2; }
-  .brand { display: flex; align-items: center; gap: 16px; font-size: 17px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-soft); }
-  .brand img { height: 56px; }
-  .eyebrow { margin-top: 64px; display: inline-flex; align-items: center; gap: 12px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 999px; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
-  .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px var(--gold); }
-  h1 { margin: 28px 0 0; font-weight: 400; font-size: 76px; line-height: 1.02; text-transform: uppercase; letter-spacing: 0.01em; }
-  h1 em { font-style: normal; color: var(--gold); }
-  p { margin: 28px 0 0; font-size: 22px; line-height: 1.5; color: var(--text-2); }
-  .chips { margin-top: 36px; display: flex; gap: 12px; flex-wrap: wrap; }
-  .chip { display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 17px; }
-  .chip i { width: 10px; height: 10px; border-radius: 50%; }
-
-  .browser {
-    position: absolute; border-radius: 18px; overflow: hidden; background: #0C1023;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 50px 120px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(199, 174, 127, 0.08), 0 0 80px rgba(69, 102, 142, 0.25);
-  }
-  .browser .bar { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: #10142A; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
-  .browser .bar b { width: 11px; height: 11px; border-radius: 50%; background: #2A3050; }
-  .browser .bar span { margin-left: 18px; flex: 1; max-width: 360px; height: 22px; border-radius: 8px; background: #1A1F3A; color: #6E7D99; font-size: 12px; line-height: 22px; padding-left: 12px; }
-  .browser img { display: block; width: 100%; }
-
-  .phone {
-    position: absolute; width: 270px; padding: 10px; border-radius: 44px; background: #05061A;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), inset 0 0 0 2px #1A1F3A;
-  }
-  .phone img { display: block; width: 100%; border-radius: 34px; }
-
-  section { display: none; }
+  body { font-family: 'Tenor Sans', sans-serif; color: #fff; position: relative; background: var(--ink); }
+  section { display: none; position: absolute; inset: 0; }
   body.hero #hero, body.event #event, body.guide #guide { display: block; }
+
+  /* Фон: свечение сверху и снизу, сетка меридианов гаснет к краям. */
+  .bg { position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(1100px 520px at 50% -8%, rgba(199, 174, 127, 0.22), transparent 70%),
+                radial-gradient(900px 600px at 50% 110%, rgba(69, 102, 142, 0.35), transparent 70%); }
+  .bg::before { content: ''; position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(129, 148, 174, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(129, 148, 174, 0.08) 1px, transparent 1px);
+    background-size: 56px 56px; mask-image: radial-gradient(ellipse at 50% 30%, #000 10%, transparent 70%); }
+
+  .brand { display: inline-flex; align-items: center; gap: 14px; font-size: 15px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-soft); }
+  .brand img { height: 44px; }
+  .pill { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px; border: 1px solid var(--line); border-radius: 999px; background: rgba(199, 174, 127, 0.06);
+    font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+  .pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+  h1 { margin: 0; font-weight: 400; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1; }
+  h1 em { font-style: normal; background: linear-gradient(180deg, #F1E3BF, #C7AE7F 60%, #8E7647); -webkit-background-clip: text; color: transparent; }
+  .sub { margin: 0; color: var(--text-2); font-size: 22px; line-height: 1.45; }
+
+  .browser { border-radius: 16px; overflow: hidden; background: #0C1023; border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 60px 140px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(199, 174, 127, 0.1), 0 -20px 120px rgba(199, 174, 127, 0.12); }
+  .browser .bar { height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 14px; background: #10142A; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+  .browser .bar b { width: 10px; height: 10px; border-radius: 50%; background: #2A3050; }
+  .browser .bar span { margin: 0 auto; width: 300px; height: 20px; border-radius: 7px; background: #1A1F3A; color: #6E7D99; font-size: 11px; line-height: 20px; text-align: center; }
+  .browser img { display: block; width: 100%; }
+  .phone { padding: 9px; border-radius: 42px; background: #05061A; border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.85), inset 0 0 0 2px #1A1F3A, 0 0 60px rgba(199, 174, 127, 0.15); }
+  .phone img { display: block; width: 100%; border-radius: 33px; }
+
+  /* hero: заголовок по центру, окно в перспективе уходит за нижний край. */
+  #hero .top { position: absolute; top: 64px; left: 0; right: 0; text-align: center; z-index: 3; }
+  #hero h1 { margin-top: 30px; font-size: 80px; }
+  #hero .sub { margin: 22px auto 0; width: 760px; }
+  #hero .stage { position: absolute; left: 50%; top: 420px; width: 1180px; margin-left: -590px; perspective: 2200px; z-index: 1; }
+  #hero .stage .browser { transform: rotateX(20deg); transform-origin: 50% 0; }
+  /* Метки на юго-западе карты: показываем низ кадра, пустую Арктику срезаем. */
+  #hero .stage .browser img { height: 520px; object-fit: cover; object-position: 30% 92%; }
+  #hero .phone { position: absolute; left: 1250px; top: 410px; width: 230px; transform: rotate(4deg); z-index: 2; }
+  #hero .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 200px; z-index: 2; background: linear-gradient(transparent, var(--ink)); }
+
+  /* event: bento-сетка. */
+  #event .grid { position: absolute; inset: 48px; display: grid; gap: 18px; grid-template-columns: 470px 1fr 330px; grid-template-rows: 1fr 1fr 1fr; }
+  .cell { position: relative; border-radius: 26px; overflow: hidden; background: var(--card); border: 1px solid rgba(255, 255, 255, 0.08); }
+  .cell.text { padding: 40px; display: flex; flex-direction: column; }
+  .cell.text h1 { margin-top: auto; font-size: 56px; }
+  .cell.text .sub { margin-top: 20px; font-size: 19px; }
+  .crop { position: absolute; inset: 0; background-repeat: no-repeat; }
+  .stat { padding: 30px 32px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .stat b { font-weight: 400; font-size: 64px; line-height: 1; color: var(--gold); }
+  .stat span { margin-top: 10px; font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); }
+  .label { position: absolute; left: 20px; bottom: 20px; padding: 8px 14px; border-radius: 999px; background: rgba(1, 0, 17, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); font-size: 14px; color: var(--gold-soft); }
+
+  /* guide: заголовок слева, два окна веером справа. */
+  #guide .copy { position: absolute; left: 96px; top: 0; bottom: 0; width: 600px; display: flex; flex-direction: column; justify-content: center; z-index: 3; }
+  #guide h1 { margin-top: 30px; font-size: 76px; }
+  #guide .sub { margin-top: 26px; }
+  #guide .steps { margin-top: 34px; display: flex; gap: 10px; }
+  #guide .steps span { padding: 9px 16px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.04); font-size: 16px; color: var(--text-2); }
+  #guide .fan { position: absolute; left: 700px; top: 120px; width: 900px; height: 700px; perspective: 1800px; }
+  #guide .fan .browser { position: absolute; width: 680px; }
+  #guide .fan .back { left: 120px; top: 0; transform: rotateY(-16deg) rotateZ(3deg); opacity: 0.85; }
+  #guide .fan .front { left: 20px; top: 200px; transform: rotateY(-12deg) rotateZ(-2deg); }
 </style>
 <body>
 
 <section id="hero">
-  <div class="copy">
+  <div class="bg"></div>
+  <div class="top">
     <div class="brand"><img src="../../frontend/public/logo.svg" alt="">Россия - страна Героев</div>
-    <div class="eyebrow">Интерактивная карта истории</div>
-    <h1>История России <em>на&nbsp;карте</em></h1>
-    <p>События IX-XXI веков в местах, где они произошли. У каждого - свой сайт, сделанный участником проекта.</p>
-    <div class="chips">
-      <span class="chip"><i style="background:#C7AE7F"></i>Военные</span>
-      <span class="chip"><i style="background:#8194AE"></i>Политические</span>
-      <span class="chip"><i style="background:#B48C9E"></i>Личности</span>
-    </div>
+    <h1>История России <em>на карте</em></h1>
+    <p class="sub">События IX-XXI веков в местах, где они произошли. У каждого свой сайт, сделанный участником проекта.</p>
   </div>
-  <div class="browser" style="left: 690px; top: 150px; width: 820px;">
-    <div class="bar"><b></b><b></b><b></b><span>russia-heroes.ru/map</span></div>
-    <img src="../screenshots/map.png" alt="">
+  <div class="stage">
+    <div class="browser"><div class="bar"><b></b><b></b><b></b><span>russia-heroes.ru</span></div><img src="../screenshots/map.png" alt=""></div>
   </div>
-  <div class="phone" style="left: 1310px; top: 300px; width: 240px;"><img src="../screenshots/mobile-map.png" alt=""></div>
+  <div class="phone"><img src="../screenshots/mobile-map.png" alt=""></div>
+  <div class="fade"></div>
 </section>
 
 <section id="event">
-  <div class="copy">
-    <div class="brand"><img src="../../frontend/public/logo.svg" alt="">Россия - страна Героев</div>
-    <div class="eyebrow">Событие</div>
-    <h1>Метка <em>открывает</em> историю</h1>
-    <p>Карточка с датой и описанием, а за ней - целый сайт о событии. Посетители ставят звёзды, просмотры считаются честно - по активному времени.</p>
-  </div>
-  <div class="browser" style="left: 680px; top: 90px; width: 780px;">
-    <div class="bar"><b></b><b></b><b></b><span>russia-heroes.ru/map</span></div>
-    <img src="../screenshots/map-event.png" alt="">
-  </div>
-  <div class="browser" style="left: 1010px; top: 470px; width: 520px;">
-    <div class="bar"><b></b><b></b><b></b><span>russia-heroes.ru/event/31</span></div>
-    <img src="../screenshots/event.png" alt="">
+  <div class="bg"></div>
+  <div class="grid">
+    <div class="cell text" style="grid-row: 1 / 4;">
+      <div class="brand"><img src="../../frontend/public/logo.svg" alt="">Страна Героев</div>
+      <h1>Метка <em>открывает</em> историю</h1>
+      <p class="sub">Нажмите на точку - откроется карточка, а за ней целый сайт о событии.</p>
+    </div>
+    <div class="cell" style="grid-row: 1 / 3;">
+      <div class="crop" style="background-image: url(../screenshots/map-event.png); background-size: 215%; background-position: 6% 78%;"></div>
+      <span class="label" style="top: 20px; bottom: auto;">Карточка события</span>
+    </div>
+    <div class="cell stat"><b>16</b><span>событий на карте</span></div>
+    <div class="cell" style="grid-row: 2 / 4; grid-column: 3;">
+      <div class="crop" style="background-image: url(../screenshots/mobile-map.png); background-size: 100%; background-position: 50% 30%;"></div>
+      <span class="label">С телефона</span>
+    </div>
+    <div class="cell">
+      <div class="crop" style="background-image: url(../screenshots/event.png); background-size: 100%; background-position: 50% 15%;"></div>
+      <span class="label">Сайт автора</span>
+    </div>
   </div>
 </section>
 
 <section id="guide">
+  <div class="bg"></div>
   <div class="copy">
-    <div class="brand"><img src="../../frontend/public/logo.svg" alt="">Россия - страна Героев</div>
-    <div class="eyebrow">Для авторов</div>
+    <div class="pill">Для авторов</div>
     <h1>Сайт о событии <em>сделает каждый</em></h1>
-    <p>Инструкция из восьми шагов, ZIP-архив в форме заявки, точка на карте. Модератор проверит и опубликует.</p>
+    <p class="sub">Инструкция, ZIP-архив в форме заявки и точка на карте. Модератор проверит и опубликует.</p>
+    <div class="steps"><span>8 шагов</span><span>12 минут</span><span>без кода</span></div>
   </div>
-  <div class="browser" style="left: 700px; top: 90px; width: 820px;">
-    <div class="bar"><b></b><b></b><b></b><span>russia-heroes.ru/guide</span></div>
-    <img src="../screenshots/guide.png" alt="">
-  </div>
-  <div class="browser" style="left: 1010px; top: 500px; width: 520px;">
-    <div class="bar"><b></b><b></b><b></b><span>russia-heroes.ru/about</span></div>
-    <img src="../screenshots/about.png" alt="">
+  <div class="fan">
+    <div class="browser back"><div class="bar"><b></b><b></b><b></b><span>russia-heroes.ru/about</span></div><img src="../screenshots/about.png" alt=""></div>
+    <div class="browser front"><div class="bar"><b></b><b></b><b></b><span>russia-heroes.ru/guide</span></div><img src="../screenshots/guide.png" alt=""></div>
   </div>
 </section>
 
