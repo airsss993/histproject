@@ -1,7 +1,7 @@
 # Фронтенд "Россия - страна Героев"
 
 Публичная карта событий, заявка на событие, вход автора, профиль и панель модерации.
-Vite 4, React 19, TypeScript, React Router, MapLibre GL.
+Vite 8, React 19, TypeScript, React Router, MapLibre GL.
 
 ## Запуск
 

@@ -67,28 +67,20 @@ go run ./cmd/bootstrap-admin --apply
 
 ## API
 
-API предоставляет:
+Полный список - в `docs/openapi.yaml`, по группам:
 
-- `GET /api/v1/auth/session`
-- `GET /api/v1/events`
-- `GET /api/v1/events/{id}`
-- `POST /api/v1/submissions`
-- `GET /api/v1/admin/admins`
-- `POST /api/v1/admin/admins`
-- `PATCH /api/v1/admin/admins/{id}/role`
-- `DELETE /api/v1/admin/admins/{id}`
-- `PATCH /api/v1/admin/events/{id}/coordinates`
-- `DELETE /api/v1/admin/events/{id}`
-- `GET /api/v1/admin/submissions`
-- `GET /api/v1/admin/submissions/{id}`
-- `POST /api/v1/admin/submissions/{id}/review`
-- `POST /api/v1/admin/submissions/{id}/reject`
-- `POST /api/v1/admin/submissions/{id}/publish`
-- `GET /api/v1/admin/audit-log`
+| Префикс `/api/v1` | Что там | Доступ |
+|---|---|---|
+| `auth/session`, `users/*` | регистрация, подтверждение почты, вход и выход, профиль, согласие на распространение | все, `users/me*` - вошедший |
+| `events`, `events/{id}` | события для карты и страницы события | все |
+| `events/{id}/star`, `events/{id}/views*` | звёзды и учёт просмотров | звезда - вошедший, просмотры - все |
+| `geocode` | поиск места для заявки через Nominatim | все |
+| `submissions` | приём заявки с ZIP | вошедший |
+| `admin/submissions*`, `admin/events/*` | модерация: review, reject, publish, координаты, удаление | `admin`, `super_admin` |
+| `admin/admins*`, `admin/audit-log` | роли и журнал действий | `super_admin` |
+| `admin/bot*`, `admin/mail*` | Telegram-бот и почта уведомлений | `super_admin` |
 
-Admins routes требуют session с ролью `super_admin`. Events и submissions moderation routes доступны ролям `admin` и `super_admin`. Submissions audit доступен только `super_admin`.
-
-Login ограничен пятью попытками в минуту для пары login и client IP. Public submission form ограничен пятью попытками в час для client IP. Redis keys содержат только SHA-256 digests, без login, email и Telegram username.
+Login ограничен пятью попытками в минуту для пары login и client IP. Public submission form ограничен пятью попытками в час для client IP. IP в ключах Redis хранится как HMAC-SHA256 с ключом в памяти процесса: после рестарта счётчики обнуляются.
 
 `GET /api/v1/events` принимает repeated `eventType`, `dateFrom`, `dateTo`, `page` и `pageSize`. Default page size равен `50`, maximum - `100`. Сортировка стабильная: `eventDate ASC`, затем `id ASC`.
 
