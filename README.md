@@ -11,7 +11,7 @@
 
 </div>
 
-![Карта событий](docs/screenshots/map.png)
+![Россия - страна Героев: карта событий](docs/banners/hero.jpg)
 
 ## Что внутри
 
@@ -30,15 +30,24 @@
 
 ## Скриншоты
 
-| Событие на карте | Сайт события |
-|---|---|
-| ![Карточка события на карте](docs/screenshots/map-event.png) | ![Страница события](docs/screenshots/event.png) |
-| **О проекте** | **Как сделать сайт** |
-| ![О проекте](docs/screenshots/about.png) | ![Гайд для авторов](docs/screenshots/guide.png) |
+![Карточка события и сайт события](docs/banners/event.jpg)
 
-<p align="center">
-  <img src="docs/screenshots/mobile-map.png" alt="Карта на телефоне" width="300">
-</p>
+![Инструкция для авторов и страница о проекте](docs/banners/guide.jpg)
+
+<details>
+<summary>Исходные скриншоты</summary>
+
+| Карта | Событие на карте |
+|---|---|
+| ![Карта событий](docs/screenshots/map.png) | ![Карточка события на карте](docs/screenshots/map-event.png) |
+| **Сайт события** | **О проекте** |
+| ![Страница события](docs/screenshots/event.png) | ![О проекте](docs/screenshots/about.png) |
+| **Как сделать сайт** | **Телефон** |
+| ![Гайд для авторов](docs/screenshots/guide.png) | <img src="docs/screenshots/mobile-map.png" alt="Карта на телефоне" width="260"> |
+
+Баннеры собираются из этих кадров: шаблон `docs/banners/banner.html`, рендер `sh docs/banners/render.sh`.
+
+</details>
 
 ## Устройство
 
