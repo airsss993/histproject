@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -134,4 +135,37 @@ func (s *MinIO) DeleteSite(ctx context.Context, slug string) error {
 
 func (s *MinIO) Client() *minio.Client {
 	return s.client
+}
+
+// RewriteSiteHTML прогоняет через rewrite каждый HTML в bucket сайтов и сохраняет те, что он изменил.
+// Отдаёт число перезаписанных файлов.
+// ponytail: читает весь bucket при каждом вызове; при тысячах сайтов - помечать обработанные.
+func (s *MinIO) RewriteSiteHTML(ctx context.Context, isHTML func(string) bool, rewrite func([]byte) ([]byte, bool)) (int, error) {
+	rewritten := 0
+	for object := range s.client.ListObjects(ctx, s.siteBucket, minio.ListObjectsOptions{Recursive: true}) {
+		if object.Err != nil {
+			return rewritten, fmt.Errorf("list site files: %w", object.Err)
+		}
+		if !isHTML(object.Key) {
+			continue
+		}
+		reader, err := s.objects.GetObject(ctx, s.siteBucket, object.Key, minio.GetObjectOptions{})
+		if err != nil {
+			return rewritten, fmt.Errorf("get site file %s: %w", object.Key, err)
+		}
+		content, err := io.ReadAll(reader)
+		_ = reader.Close()
+		if err != nil {
+			return rewritten, fmt.Errorf("read site file %s: %w", object.Key, err)
+		}
+		updated, changed := rewrite(content)
+		if !changed {
+			continue
+		}
+		if err := s.PutSiteFile(ctx, object.Key, bytes.NewReader(updated), int64(len(updated)), "text/html; charset=utf-8"); err != nil {
+			return rewritten, err
+		}
+		rewritten++
+	}
+	return rewritten, nil
 }

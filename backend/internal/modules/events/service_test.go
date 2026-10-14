@@ -199,7 +199,7 @@ func (stub *eventStoreStub) StartView(_ context.Context, _, userID int64, _ stri
 	return 5, nil
 }
 
-func (stub *eventStoreStub) TouchView(_ context.Context, _, _ int64, _ string, seconds int) error {
+func (stub *eventStoreStub) TouchView(_ context.Context, _, _ int64, _ string, seconds, _ int) error {
 	stub.touchSeconds = seconds
 	return nil
 }
@@ -247,11 +247,11 @@ func TestServiceTouchViewCapsSeconds(t *testing.T) {
 	const visitor = "1b4e28ba-2fa1-41d2-883f-0016d3cca427"
 	store := &eventStoreStub{}
 	service := NewService(store, nil)
-	if err := service.TouchView(t.Context(), 3, 5, visitor, 10*MaxViewSeconds); err != nil || store.touchSeconds != MaxViewSeconds {
+	if err := service.TouchView(t.Context(), 3, 5, visitor, 10*MaxViewSeconds, 0); err != nil || store.touchSeconds != MaxViewSeconds {
 		t.Fatalf("TouchView() error = %v, seconds = %d", err, store.touchSeconds)
 	}
 	var validationError *ValidationError
-	if err := service.TouchView(t.Context(), 3, 5, visitor, -1); !errors.As(err, &validationError) {
+	if err := service.TouchView(t.Context(), 3, 5, visitor, -1, 0); !errors.As(err, &validationError) {
 		t.Fatalf("negative TouchView() error = %v", err)
 	}
 }

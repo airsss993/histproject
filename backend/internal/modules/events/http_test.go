@@ -163,7 +163,7 @@ func (stub *eventHTTPServiceStub) StartView(context.Context, int64, Viewer, stri
 	return stub.viewID, stub.viewID != 0, nil
 }
 
-func (stub *eventHTTPServiceStub) TouchView(_ context.Context, _, viewID int64, _ string, seconds int) error {
+func (stub *eventHTTPServiceStub) TouchView(_ context.Context, _, viewID int64, _ string, seconds, _ int) error {
 	stub.touchedView, stub.touchSeconds = viewID, seconds
 	return nil
 }

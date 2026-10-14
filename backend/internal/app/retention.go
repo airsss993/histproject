@@ -16,6 +16,7 @@ const (
 	rejectedRetention = "90 days"
 	auditRetention    = "3 years"
 	viewsRetention    = "12 months"
+	actionsRetention  = "12 months"
 	retentionBatch    = 100
 )
 
@@ -57,7 +58,7 @@ func (retention *Retention) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	var audit, views int64
+	var audit, views, actions int64
 	err = retention.inRetention(ctx, func(tx pgx.Tx) error {
 		tag, err := tx.Exec(ctx, `DELETE FROM submissions.audit_log WHERE created_at < NOW() - $1::interval`, auditRetention)
 		if err != nil {
@@ -69,13 +70,18 @@ func (retention *Retention) Run(ctx context.Context) error {
 			return fmt.Errorf("delete old views: %w", err)
 		}
 		views = tag.RowsAffected()
+		tag, err = tx.Exec(ctx, `DELETE FROM metrics.actions WHERE created_at < NOW() - $1::interval`, actionsRetention)
+		if err != nil {
+			return fmt.Errorf("delete old actions: %w", err)
+		}
+		actions = tag.RowsAffected()
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-	if removed+audit+views > 0 {
-		retention.logger.InfoContext(ctx, "retention cleanup", "rejected_submissions", removed, "audit_rows", audit, "views", views)
+	if removed+audit+views+actions > 0 {
+		retention.logger.InfoContext(ctx, "retention cleanup", "rejected_submissions", removed, "audit_rows", audit, "views", views, "actions", actions)
 	}
 	return nil
 }

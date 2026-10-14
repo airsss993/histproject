@@ -141,6 +141,9 @@ func (processor *Processor) Process(ctx context.Context, submissionID int64, arc
 }
 
 func (processor *Processor) uploadFile(ctx context.Context, directory string, file File, objectKey string) error {
+	if IsHTML(file.Path) {
+		return processor.uploadHTML(ctx, directory, file, objectKey)
+	}
 	source, err := os.Open(filepath.Join(directory, filepath.FromSlash(file.Path)))
 	if err != nil {
 		return fmt.Errorf("open extracted site file: %w", err)
@@ -283,4 +286,17 @@ func (reader contextReader) Read(buffer []byte) (int, error) {
 		return 0, err
 	}
 	return reader.reader.Read(buffer)
+}
+
+// uploadHTML выкладывает страницу сайта со скриптом прокрутки в конце.
+func (processor *Processor) uploadHTML(ctx context.Context, directory string, file File, objectKey string) error {
+	content, err := os.ReadFile(filepath.Join(directory, filepath.FromSlash(file.Path)))
+	if err != nil {
+		return fmt.Errorf("read extracted site file: %w", err)
+	}
+	content, _ = InjectScrollScript(content)
+	if err := processor.storage.PutSiteFile(ctx, objectKey, bytes.NewReader(content), int64(len(content)), mime.TypeByExtension(path.Ext(file.Path))); err != nil {
+		return fmt.Errorf("upload site file %s: %w", file.Path, err)
+	}
+	return nil
 }

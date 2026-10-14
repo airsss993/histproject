@@ -229,13 +229,14 @@ func (repository *Repository) StartView(ctx context.Context, eventID, userID int
 
 // TouchView дописывает активное время просмотра. Время только растёт и не больше прошедшего
 // с начала просмотра (плюс запас на округление): так повтор или подделанное число его не раздуют.
-func (repository *Repository) TouchView(ctx context.Context, eventID, viewID int64, visitorID string, seconds int) error {
+func (repository *Repository) TouchView(ctx context.Context, eventID, viewID int64, visitorID string, seconds, scroll int) error {
 	commandTag, err := repository.pool.Exec(ctx, `
 		UPDATE events.views
 		SET active_seconds = GREATEST(active_seconds,
-			LEAST($4, EXTRACT(EPOCH FROM NOW() - started_at)::int + 5))
+			LEAST($4, EXTRACT(EPOCH FROM NOW() - started_at)::int + 5)),
+			scroll_percent = GREATEST(scroll_percent, $5)
 		WHERE id = $1 AND event_id = $2 AND visitor_id = $3
-	`, viewID, eventID, visitorID, seconds)
+	`, viewID, eventID, visitorID, seconds, scroll)
 	if err != nil {
 		return fmt.Errorf("touch view: %w", err)
 	}
