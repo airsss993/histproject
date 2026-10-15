@@ -26,26 +26,33 @@ type Action struct {
 	VisitorID string
 }
 
+// Totals - итоги за окно дат. EventsTotal и StarsTotal считаются на конец окна, остальное внутри него.
+type Totals struct {
+	Submissions      int64   `json:"submissions"`
+	Approved         int64   `json:"approved"`
+	Rejected         int64   `json:"rejected"`
+	Published        int64   `json:"published"`
+	EventsTotal      int64   `json:"eventsTotal"`
+	Views            int64   `json:"views"`
+	Visitors         int64   `json:"visitors"`
+	AvgActiveSeconds float64 `json:"avgActiveSeconds"`
+	Stars            int64   `json:"stars"`
+	StarsTotal       int64   `json:"starsTotal"`
+	CardOpens        int64   `json:"cardOpens"`
+	CardClicks       int64   `json:"cardClicks"`
+	AvgScroll        float64 `json:"avgScroll"`
+	ReadThrough      int64   `json:"readThrough"`
+	ScrolledViews    int64   `json:"scrolledViews"`
+}
+
+// Report - итоги за последние Days дней и за такие же Days дней перед ними.
 type Report struct {
-	Days             int          `json:"days"`
-	Submissions      int64        `json:"submissions"`
-	Approved         int64        `json:"approved"`
-	Rejected         int64        `json:"rejected"`
-	Published        int64        `json:"published"`
-	EventsTotal      int64        `json:"eventsTotal"`
-	Views            int64        `json:"views"`
-	Visitors         int64        `json:"visitors"`
-	AvgActiveSeconds float64      `json:"avgActiveSeconds"`
-	Stars            int64        `json:"stars"`
-	StarsTotal       int64        `json:"starsTotal"`
-	CardOpens        int64        `json:"cardOpens"`
-	CardClicks       int64        `json:"cardClicks"`
-	AvgScroll        float64      `json:"avgScroll"`
-	ReadThrough      int64        `json:"readThrough"`
-	ScrolledViews    int64        `json:"scrolledViews"`
-	Funnel           []FunnelStep `json:"funnel"`
-	Daily            []Day        `json:"daily"`
-	Events           []EventRow   `json:"events"`
+	Days int `json:"days"`
+	Totals
+	Previous Totals       `json:"previous"`
+	Funnel   []FunnelStep `json:"funnel"`
+	Daily    []Day        `json:"daily"`
+	Events   []EventRow   `json:"events"`
 }
 
 type FunnelStep struct {
