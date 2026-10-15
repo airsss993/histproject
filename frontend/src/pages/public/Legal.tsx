@@ -15,7 +15,7 @@ import './legal.css'
 
 // Публичные документы по персональным данным. Тексты в legal/*.md, внутренние документы - в docs/legal.
 // Поменялся текст согласия - новая дата здесь и версия согласия на бэкенде (users/service.go, submissions).
-const EDITION = '28.09.2026'
+const EDITION = '15.10.2026'
 const DOCS: Record<string, { title: string; tag: string; text: string }> = {
   '/privacy': { title: 'Политика обработки персональных данных', tag: 'Политика', text: privacy },
   '/rules': { title: 'Правила публикации материалов о третьих лицах', tag: 'Правила', text: rules },

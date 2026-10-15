@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { GLYPH, MapView, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { Presence, useLeaving } from './presence.tsx'
-import { geocode, submitProposal, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType, type Place } from './api.ts'
+import { geocode, submitProposal, track, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType, type Place } from './api.ts'
 import { Check } from '../../shared/ui/Field.tsx'
 import { useNavigate } from 'react-router-dom'
 import './propose.css'
@@ -125,6 +125,9 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
   const leaving = useLeaving(open)
   // Отправленную заявку сбрасываем после анимации ухода, иначе окно гаснет уже с пустой формой.
   const resetOnHide = useRef(false)
+  // Воронка формы для панели: 0 - открыта, 1..5 - шаги мастера, 6 - заявка отправлена.
+  const funnelStep = !open ? -1 : phase.k === 'done' ? STEPS.length + 1 : ready ? step + 1 : 0
+  useEffect(() => { if (funnelStep >= 0) track('form_step', funnelStep) }, [funnelStep])
   useEffect(() => {
     if (open || leaving || !resetOnHide.current) return
     resetOnHide.current = false

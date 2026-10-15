@@ -17,7 +17,7 @@ export const CookieNotice: React.FC = () => {
   return (
     <div className="pm-root pm-cookie pm-glass" role="region" aria-label="Уведомление о cookie">
       <p>
-        Сайт хранит в браузере cookie для входа в аккаунт и случайный номер для подсчёта просмотров.
+        Сайт хранит в браузере cookie для входа в аккаунт и случайный номер для подсчёта просмотров и статистики.
         Подробнее - в <Link to="/privacy">Политике обработки персональных данных</Link>.
       </p>
       <button type="button" className="pm-btn pm-pill" onClick={close}>Понятно</button>

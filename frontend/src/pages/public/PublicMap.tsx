@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { LoadMark, Splash, SPLASH_DONE_MS, SPLASH_MS, useSettle } from '../../shared/ui/Loader.tsx'
-import { eventPath, profilePath, fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent, type StarState } from './api.ts'
+import { eventPath, profilePath, fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, track, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent, type StarState } from './api.ts'
 import { StarButton, Views } from './Star.tsx'
 import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
@@ -198,6 +198,9 @@ export const PublicMap: React.FC = () => {
   }, [selectedId, inList, load.status, extra])
   const selected = inList ?? (extra?.id === selectedId ? extra.event : undefined)
 
+  // Показ карточки для CTR "карточка -> сайт"; повторы одного посетителя схлопывает отчёт.
+  const cardShown = layer === 'none' && selectedId !== null
+  useEffect(() => { if (cardShown && selectedId !== null) track('card_open', selectedId) }, [cardShown, selectedId])
   if (selectedId !== null && selected === null) return <NotFound path={`/map?event=${selectedId}`} kind="event" />
   if (eventParam !== null && selectedId === null) return <NotFound path={`/map?event=${eventParam}`} kind="event" />
 
@@ -431,7 +434,7 @@ const EventActions: React.FC<{ e: HistEvent; className?: string }> = ({ e, class
       <button type="button" className="pm-card-share" onClick={share}>
         <Icon d={ICON.share} />{copied ? 'Скопировано' : 'Поделиться'}
       </button>
-      <Link className="pm-card-more" to={eventPath(e.id)}>
+      <Link className="pm-card-more" to={eventPath(e.id)} onClick={() => track('card_click', e.id)}>
         <Icon d={ICON.open} />Узнать больше
       </Link>
     </div>

@@ -113,3 +113,17 @@ export function problem(res: Extract<ApiResult, { ok: false }>) {
 
 export const dateTime = (iso: string) =>
   new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+
+export interface MetricsEvent {
+  id: number; title: string; views: number; visitors: number; avgActiveSeconds: number
+  avgScroll: number; readThrough: number; scrolledViews: number; stars: number; cardOpens: number; cardClicks: number
+}
+export interface Metrics {
+  days: number; submissions: number; approved: number; rejected: number; published: number; eventsTotal: number
+  views: number; visitors: number; avgActiveSeconds: number; stars: number; starsTotal: number
+  cardOpens: number; cardClicks: number; avgScroll: number; readThrough: number; scrolledViews: number
+  funnel: { step: number; visitors: number }[]
+  daily: { date: string; views: number; visitors: number }[]
+  events: MetricsEvent[]
+}
+export const getMetrics = (days: number) => call<Metrics>('GET', `/admin/metrics?days=${days}`)

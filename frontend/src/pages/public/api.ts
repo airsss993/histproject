@@ -71,9 +71,34 @@ export async function startView(id: number, visitorId: string): Promise<number |
 }
 
 // sendBeacon переживает закрытие вкладки; он шлёт только POST, поэтому ручка POST.
-export function touchView(id: number, viewId: number, visitorId: string, activeSeconds: number) {
-  const body = new Blob([JSON.stringify({ visitorId, activeSeconds })], { type: 'application/json' })
-  navigator.sendBeacon(`${API}/events/${id}/views/${viewId}`, body)
+export function touchView(id: number, viewId: number, visitorId: string, activeSeconds: number, scrollPercent: number) {
+  beacon(`/events/${id}/views/${viewId}`, { visitorId, activeSeconds, scrollPercent })
+}
+
+function beacon(path: string, body: unknown) {
+  navigator.sendBeacon(`${API}${path}`, new Blob([JSON.stringify(body)], { type: 'application/json' }))
+}
+
+let memoryVisitor = ''
+// Случайный id браузера: по нему считаются уникальные гости. Без localStorage живёт до перезагрузки.
+export function visitorId() {
+  try {
+    const saved = localStorage.getItem('hp-visitor')
+    if (saved) return saved
+  } catch { /* приватное окно */ }
+  memoryVisitor ||= crypto.randomUUID()
+  try { localStorage.setItem('hp-visitor', memoryVisitor) } catch { /* приватное окно */ }
+  return memoryVisitor
+}
+
+// Действие для метрик панели. Через sendBeacon: переход по ссылке не обрывает запрос.
+// step у form_step: 0 - форма открыта, 1..5 - шаги мастера, 6 - заявка отправлена.
+export function track(action: 'card_open' | 'card_click', eventId: number): void
+export function track(action: 'form_step', step: number): void
+export function track(action: string, value: number) {
+  beacon('/metrics/actions', action === 'form_step'
+    ? { action, step: value, visitorId: visitorId() }
+    : { action, eventId: value, visitorId: visitorId() })
 }
 
 // showLastName - действует согласие на распространение: посторонним видна фамилия целиком.
