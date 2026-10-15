@@ -459,7 +459,9 @@ paths:
       description: >
         Действие посетителя для метрик панели: card_open - открыта карточка события на карте,
         card_click - из карточки перешли на сайт события (нужен eventId), form_step - посетитель
-        дошёл до шага формы заявки (нужен step: 0 - открыл форму, 1-5 - шаги, 6 - заявка отправлена).
+        дошёл до шага формы заявки (нужен step: 0 - открыл форму, 1-5 - шаги, 6 - заявка отправлена),
+        auth_step - гость нажал "Предложить событие" и проходит вход (нужен step: 0 - открыл вход
+        или регистрацию, 1 - запросил код, 2 - вошёл).
       requestBody:
         required: true
         content:
@@ -471,7 +473,7 @@ paths:
               properties:
                 action:
                   type: string
-                  enum: [card_open, card_click, form_step]
+                  enum: [card_open, card_click, form_step, auth_step]
                 eventId:
                   type: integer
                   format: int64
@@ -859,6 +861,14 @@ paths:
                     description: Те же итоги за days дней перед периодом
                   funnel:
                     type: array
+                    items:
+                      type: object
+                      properties:
+                        step: { type: integer }
+                        visitors: { type: integer }
+                  authFunnel:
+                    type: array
+                    description: Вход гостя перед формой заявки, шаги auth_step
                     items:
                       type: object
                       properties:

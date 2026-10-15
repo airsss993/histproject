@@ -12,6 +12,8 @@ func TestValidate(t *testing.T) {
 	}{
 		{"card open", Action{Name: "card_open", EventID: 3, VisitorID: visitor}, ""},
 		{"form step", Action{Name: "form_step", Step: step(0), VisitorID: visitor}, ""},
+		{"auth step", Action{Name: "auth_step", Step: step(2), VisitorID: visitor}, ""},
+		{"auth step with event", Action{Name: "auth_step", Step: step(1), EventID: 3, VisitorID: visitor}, "eventId"},
 		{"card without event", Action{Name: "card_click", VisitorID: visitor}, "eventId"},
 		{"step without number", Action{Name: "form_step", VisitorID: visitor}, "step"},
 		{"step too far", Action{Name: "form_step", Step: step(21), VisitorID: visitor}, "step"},

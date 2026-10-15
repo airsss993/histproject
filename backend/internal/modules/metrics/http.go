@@ -49,10 +49,11 @@ type Totals struct {
 type Report struct {
 	Days int `json:"days"`
 	Totals
-	Previous Totals       `json:"previous"`
-	Funnel   []FunnelStep `json:"funnel"`
-	Daily    []Day        `json:"daily"`
-	Events   []EventRow   `json:"events"`
+	Previous   Totals       `json:"previous"`
+	Funnel     []FunnelStep `json:"funnel"`
+	AuthFunnel []FunnelStep `json:"authFunnel"`
+	Daily      []Day        `json:"daily"`
+	Events     []EventRow   `json:"events"`
 }
 
 type FunnelStep struct {
@@ -131,9 +132,9 @@ func validate(action Action) map[string]string {
 			fields["eventId"] = "Ожидается положительный ID"
 		}
 		if action.Step != nil {
-			fields["step"] = "Только для form_step"
+			fields["step"] = "Только для form_step и auth_step"
 		}
-	case "form_step":
+	case "form_step", "auth_step":
 		if action.Step == nil || *action.Step < 0 || *action.Step > 20 {
 			fields["step"] = "От 0 до 20"
 		}
@@ -141,7 +142,7 @@ func validate(action Action) map[string]string {
 			fields["eventId"] = "Только для card_open и card_click"
 		}
 	default:
-		fields["action"] = "card_open, card_click или form_step"
+		fields["action"] = "card_open, card_click, form_step или auth_step"
 	}
 	if !visitorIDPattern.MatchString(action.VisitorID) {
 		fields["visitorId"] = "Ожидается UUID"
