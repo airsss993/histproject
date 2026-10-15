@@ -25,12 +25,6 @@
 .mod-side-brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .mod-side-brand .pm-logo-mark { height: 40px; }
 .mod-side-brand .pm-logo-text { white-space: nowrap; }
-.pm-root .mod-side-back {
-  flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: var(--muted);
-  background: rgba(255, 255, 255, 0.04); border: 1px solid; border-color: var(--rim-in); transition: color 160ms, border-color 160ms;
-}
-.pm-root .mod-side-back:hover { color: #fff; border-color: var(--gold-line); }
-.mod-side-back svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .mod-side-hello { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
 .mod-side-hello h2 { margin: 0; font: 400 26px/32px var(--display); overflow-wrap: anywhere; }
 .mod-side-nav { display: flex; flex-direction: column; gap: 4px; }
@@ -178,7 +172,6 @@
 .mod-status b { font-weight: 400; color: var(--gold-soft); }
 .mod-dot { flex: none; width: 10px; height: 10px; margin-top: 7px; border-radius: 50%; background: var(--danger); }
 .mod-dot.on { background: #8FC79B; box-shadow: 0 0 10px rgba(143, 199, 155, 0.6); }
-.pm-root .mod-side-back.on { color: var(--gold); border-color: var(--gold-line); }
 .pm-root .mod-select select { padding: 8px 22px 8px 0; font-size: 14px; }
 
 @media (max-width: 1100px) {
