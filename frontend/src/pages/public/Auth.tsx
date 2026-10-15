@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Logo, useIsMobile } from './PublicMap.tsx'
-import { registerUser, requestLoginCode, verifyLoginCode, type ApiResult } from './api.ts'
+import { registerUser, requestLoginCode, track, verifyLoginCode, type ApiResult } from './api.ts'
 import { Check } from '../../shared/ui/Field.tsx'
 import './public.css'
 import './auth.css'
@@ -42,6 +42,9 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
   // back - куда вернуть после входа; переходы вход <-> регистрация его сохраняют.
   const { email: prefill = '', back } = (useLocation().state as { email?: string; back?: string } | null) ?? {}
   const copy = COPY[mode]
+  // Вход перед формой заявки для воронки панели. Повторы одного посетителя схлопывает отчёт.
+  const proposing = back === '/map?propose=1'
+  useEffect(() => { if (proposing) track('auth_step', 0) }, [proposing])
 
   const [form, setForm] = useState({ firstName: '', lastName: '', email: prefill })
   const [remember, setRemember] = useState(false)
@@ -86,6 +89,7 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
       : await requestLoginCode(email)
     setBusy(false)
     if (res.ok) {
+      if (proposing) track('auth_step', 1)
       setSentTo(email)
       setCode('')
       setCooldown(60)
@@ -104,6 +108,7 @@ export const AuthPage: React.FC<{ mode: Mode }> = ({ mode }) => {
     const res = await verifyLoginCode(sentTo, value, remember)
     setBusy(false)
     if (res.ok) {
+      if (proposing) track('auth_step', 2)
       navigate(back ?? '/map', { replace: true })
       return
     }

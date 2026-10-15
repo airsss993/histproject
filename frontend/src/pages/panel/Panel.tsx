@@ -532,6 +532,7 @@ const History: React.FC = () => {
 
 const METRIC_PERIODS: [number, string][] = [[7, '7 дней'], [30, '30 дней'], [90, '90 дней'], [365, 'Год']]
 // Шаги воронки формы, как их шлёт track('form_step') в Propose.tsx.
+const AUTH_FUNNEL_LABEL = ['Открыли вход', 'Запросили код', 'Вошли']
 const FUNNEL_LABEL = ['Открыли форму', 'Тип события', 'О событии', 'Место', 'Сайт', 'Контакты', 'Отправили заявку']
 
 const pct = (part: number, whole: number) => whole > 0 ? `${Math.round(part / whole * 100)}%` : '-'
@@ -827,8 +828,11 @@ const MetricsBody: React.FC<{ m: api.Metrics }> = ({ m }) => {
       delta: ppDelta(read, ratio(p.readThrough, p.scrolledViews)),
     },
   ]
-  const funnel = FUNNEL_LABEL.map((label, step) => ({ label, visitors: m.funnel.find(f => f.step === step)?.visitors ?? 0 }))
+  const steps = (labels: string[], rows: api.Metrics['funnel']) =>
+    labels.map((label, step) => ({ label, visitors: rows.find(f => f.step === step)?.visitors ?? 0 }))
+  const funnel = steps(FUNNEL_LABEL, m.funnel)
   const sent = funnel[funnel.length - 1].visitors
+  const auth = steps(AUTH_FUNNEL_LABEL, m.authFunnel)
   return (
     <div className="mod-metrics-body">
       <section className="mod-panel mod-hero">
@@ -854,6 +858,16 @@ const MetricsBody: React.FC<{ m: api.Metrics }> = ({ m }) => {
           <span className="mod-dim">{funnel[0].visitors ? `до отправки дошли ${pct(sent, funnel[0].visitors)}` : 'форму за период не открывали'}</span>
         </div>
         <Funnel steps={funnel} />
+      </section>
+
+      <section className="mod-panel">
+        <div className="mod-panel-head">
+          <h2>Вход перед заявкой</h2>
+          <span className="mod-dim">{auth[0].visitors
+            ? `гости из "Предложить событие": ушли до входа ${pct(auth[0].visitors - auth[2].visitors, auth[0].visitors)}`
+            : 'гости за период не нажимали "Предложить событие"'}</span>
+        </div>
+        <Funnel steps={auth} />
       </section>
 
       <section className="mod-panel">
