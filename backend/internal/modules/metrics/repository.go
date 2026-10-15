@@ -32,34 +32,12 @@ func (repository *Repository) Record(ctx context.Context, action Action) error {
 // Сайты, опубликованные до скрипта прокрутки, присылают 0, поэтому прокрутка считается по scroll_percent > 0.
 func (repository *Repository) Report(ctx context.Context, days int) (Report, error) {
 	report := Report{Days: days, Funnel: []FunnelStep{}, Daily: []Day{}, Events: []EventRow{}}
-	err := repository.pool.QueryRow(ctx, `
-		WITH period AS (SELECT NOW() - make_interval(days => $1) AS since),
-		submitted AS (SELECT status FROM submissions.submissions, period WHERE created_at >= period.since),
-		viewed AS (SELECT * FROM events.views, period WHERE started_at >= period.since),
-		acted AS (SELECT * FROM metrics.actions, period WHERE created_at >= period.since)
-		SELECT
-			(SELECT COUNT(*) FROM submitted),
-			(SELECT COUNT(*) FROM submitted WHERE status = 'published'),
-			(SELECT COUNT(*) FROM submitted WHERE status = 'rejected'),
-			(SELECT COUNT(*) FROM events.events, period WHERE created_at >= period.since),
-			(SELECT COUNT(*) FROM events.events),
-			(SELECT COUNT(*) FROM viewed),
-			(SELECT COUNT(DISTINCT COALESCE(user_id::text, visitor_id::text)) FROM viewed),
-			(SELECT COALESCE(AVG(active_seconds), 0) FROM viewed),
-			(SELECT COUNT(*) FROM events.stars, period WHERE created_at >= period.since),
-			(SELECT COUNT(*) FROM events.stars),
-			(SELECT COUNT(DISTINCT (visitor_id, event_id)) FROM acted WHERE action = 'card_open'),
-			(SELECT COUNT(DISTINCT (visitor_id, event_id)) FROM acted WHERE action = 'card_click'),
-			(SELECT COALESCE(AVG(scroll_percent), 0) FROM viewed WHERE scroll_percent > 0),
-			(SELECT COUNT(*) FILTER (WHERE scroll_percent >= $2) FROM viewed),
-			(SELECT COUNT(*) FROM viewed WHERE scroll_percent > 0)
-	`, days, ReadThroughPercent).Scan(
-		&report.Submissions, &report.Approved, &report.Rejected, &report.Published, &report.EventsTotal,
-		&report.Views, &report.Visitors, &report.AvgActiveSeconds, &report.Stars, &report.StarsTotal,
-		&report.CardOpens, &report.CardClicks, &report.AvgScroll, &report.ReadThrough, &report.ScrolledViews,
-	)
-	if err != nil {
-		return Report{}, fmt.Errorf("metrics totals: %w", err)
+	var err error
+	if report.Totals, err = repository.totals(ctx, days, 0); err != nil {
+		return Report{}, err
+	}
+	if report.Previous, err = repository.totals(ctx, 2*days, days); err != nil {
+		return Report{}, err
 	}
 
 	rows, err := repository.pool.Query(ctx, `
@@ -150,4 +128,39 @@ func (repository *Repository) Report(ctx context.Context, days int) (Report, err
 		return Report{}, fmt.Errorf("iterate event rows: %w", err)
 	}
 	return report, nil
+}
+
+// totals считает итоги за окно [NOW() - fromDays, NOW() - toDays).
+func (repository *Repository) totals(ctx context.Context, fromDays, toDays int) (Totals, error) {
+	var totals Totals
+	err := repository.pool.QueryRow(ctx, `
+		WITH period AS (SELECT NOW() - make_interval(days => $1) AS since, NOW() - make_interval(days => $2) AS until),
+		submitted AS (SELECT status FROM submissions.submissions, period WHERE created_at >= since AND created_at < until),
+		viewed AS (SELECT * FROM events.views, period WHERE started_at >= since AND started_at < until),
+		acted AS (SELECT * FROM metrics.actions, period WHERE created_at >= since AND created_at < until)
+		SELECT
+			(SELECT COUNT(*) FROM submitted),
+			(SELECT COUNT(*) FROM submitted WHERE status = 'published'),
+			(SELECT COUNT(*) FROM submitted WHERE status = 'rejected'),
+			(SELECT COUNT(*) FROM events.events, period WHERE created_at >= since AND created_at < until),
+			(SELECT COUNT(*) FROM events.events, period WHERE created_at < until),
+			(SELECT COUNT(*) FROM viewed),
+			(SELECT COUNT(DISTINCT COALESCE(user_id::text, visitor_id::text)) FROM viewed),
+			(SELECT COALESCE(AVG(active_seconds), 0) FROM viewed),
+			(SELECT COUNT(*) FROM events.stars, period WHERE created_at >= since AND created_at < until),
+			(SELECT COUNT(*) FROM events.stars, period WHERE created_at < until),
+			(SELECT COUNT(DISTINCT (visitor_id, event_id)) FROM acted WHERE action = 'card_open'),
+			(SELECT COUNT(DISTINCT (visitor_id, event_id)) FROM acted WHERE action = 'card_click'),
+			(SELECT COALESCE(AVG(scroll_percent), 0) FROM viewed WHERE scroll_percent > 0),
+			(SELECT COUNT(*) FILTER (WHERE scroll_percent >= $3) FROM viewed),
+			(SELECT COUNT(*) FROM viewed WHERE scroll_percent > 0)
+	`, fromDays, toDays, ReadThroughPercent).Scan(
+		&totals.Submissions, &totals.Approved, &totals.Rejected, &totals.Published, &totals.EventsTotal,
+		&totals.Views, &totals.Visitors, &totals.AvgActiveSeconds, &totals.Stars, &totals.StarsTotal,
+		&totals.CardOpens, &totals.CardClicks, &totals.AvgScroll, &totals.ReadThrough, &totals.ScrolledViews,
+	)
+	if err != nil {
+		return Totals{}, fmt.Errorf("metrics totals: %w", err)
+	}
+	return totals, nil
 }
