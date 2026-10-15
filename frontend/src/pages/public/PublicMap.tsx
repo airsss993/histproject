@@ -4,7 +4,7 @@ import { Avatar } from '../../shared/ui/Avatar.tsx'
 import { LoadMark, Splash, SPLASH_DONE_MS, SPLASH_MS, useSettle } from '../../shared/ui/Loader.tsx'
 import { eventPath, profilePath, fetchAllEvents, fetchEvent, fetchMe, logoutUser, type User, formatDate, track, TYPE_LABEL, TYPE_PLURAL, TYPES, yearOf, type EventType, type HistEvent, type StarState } from './api.ts'
 import { StarButton, Views } from './Star.tsx'
-import { MapView, PinShape, TYPE_COLOR, type MapHandle } from './MapView.tsx'
+import { GLYPH, MapView, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { NotFound } from './NotFound.tsx'
 import { ProposeModal } from './Propose.tsx'
 import { Presence } from './presence.tsx'
@@ -108,6 +108,8 @@ export const HeaderNav: React.FC<{
 
 /** Заставка на весь экран - только на первую загрузку карты во вкладке, дальше обычная плашка. */
 let splashSeen = false
+/** События с прошлого показа карты: при возврате на неё рисуем сразу, свежий список догружаем в фоне. */
+let eventsCache: HistEvent[] | undefined
 
 export const PublicMap: React.FC = () => {
   const [params, setParams] = useSearchParams()
@@ -139,7 +141,7 @@ export const PublicMap: React.FC = () => {
 
   const [layer, setLayer] = useState<Layer>('none')
   const [draft, setDraft] = useState<Filter>(applied)
-  const [load, setLoad] = useState<Load>({ status: 'loading' })
+  const [load, setLoad] = useState<Load>(() => eventsCache ? { status: 'ready', events: eventsCache } : { status: 'loading' })
   const [splash] = useState(() => !splashSeen)
   const [attempt, setAttempt] = useState(0)
   const abortRef = useRef<AbortController | undefined>(undefined)
@@ -166,14 +168,17 @@ export const PublicMap: React.FC = () => {
   useEffect(() => {
     const ac = new AbortController()
     abortRef.current = ac
-    setLoad({ status: 'loading' })
+    // С кэшем обновляем молча: без плашки, а ошибка оставляет то, что уже на карте.
+    const quiet = attempt === 0 && !!eventsCache
+    if (!quiet) setLoad({ status: 'loading' })
     // Ответ устаревшего запуска эффекта не должен перетирать текущий; кнопка "Отмена" прерывает текущий.
     fetchAllEvents(ac.signal).then(
       events => { if (abortRef.current === ac) setLoad({ status: 'ready', events }) },
-      () => { if (abortRef.current === ac) setLoad({ status: 'error' }) },
+      () => { if (abortRef.current === ac && !quiet) setLoad({ status: 'error' }) },
     )
     return () => ac.abort()
   }, [attempt])
+  useEffect(() => { if (load.status === 'ready') eventsCache = load.events }, [load])
 
   const events = load.status === 'ready' ? load.events : []
   const phase = useSettle(load.status === 'loading', events.length > 0, splash ? SPLASH_MS : undefined, splash ? SPLASH_DONE_MS : undefined)
@@ -231,7 +236,6 @@ export const PublicMap: React.FC = () => {
   }
 
   const showCard = layer === 'none' && selectedId !== null
-  const counts = Object.fromEntries(TYPES.map(t => [t, filtered.filter(e => e.eventType === t).length])) as Record<EventType, number>
   const overlay = full ? null
     : phase === 'load'
     ? { kind: 'loading', title: 'Загружаем события', text: 'Несколько секунд.', action: 'Отмена', run: () => abortRef.current?.abort() }
@@ -312,14 +316,6 @@ export const PublicMap: React.FC = () => {
         </div>
 
         <Presence>{!mobile && layer === 'filters' && filtersPanel}</Presence>
-
-        <Presence>{!mobile && phase === 'idle' && events.length > 0 && layer !== 'feed' && layer !== 'filters' && !showCard && (
-          <div className="pm-legend pm-glass">
-            {TYPES.map(t => (
-              <span key={t}><i style={{ background: TYPE_COLOR[t] }} />{TYPE_PLURAL[t]} · {counts[t]}</span>
-            ))}
-          </div>
-        )}</Presence>
 
         <div className="pm-centuries" aria-label="Шкала веков">
           {ROMAN.map((n, i) => (
@@ -486,8 +482,10 @@ const Sheet: React.FC<{ event: HistEvent | undefined; onClose: () => void; onSta
   )
 }
 
+// Значок типа без капли: тот же глиф, что внутри метки на карте.
 const TypeGlyph: React.FC<{ t: EventType }> = ({ t }) => (
-  <svg className="pm-type-pin" width={24} height={24} viewBox="0 0 64 64" aria-hidden><PinShape type={t} size={24} /></svg>
+  <svg className="pm-type-pin" width={22} height={22} viewBox="20 8 24 32" fill="none" stroke={TYPE_COLOR[t]} strokeWidth={2.6}
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden>{GLYPH[t].map(d => <path key={d} d={d} />)}</svg>
 )
 
 const Filters: React.FC<{
@@ -516,7 +514,7 @@ const Filters: React.FC<{
             <button type="button" key={t} aria-pressed={draft.types.includes(t)} className={draft.types.includes(t) ? 'on' : ''} onClick={() => toggle(t)}>
               <TypeGlyph t={t} />
               <span>{TYPE_PLURAL[t]}</span>
-              {mobile && <><span className="pm-grow" /><span className="pm-mono">{events.filter(e => e.eventType === t).length}</span></>}
+              <span className="pm-grow" /><span className="pm-mono">{events.filter(e => e.eventType === t).length}</span>
             </button>
           ))}
         </div>

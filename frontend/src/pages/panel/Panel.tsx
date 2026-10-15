@@ -5,7 +5,7 @@ import { MapView, type MapHandle } from '../public/MapView.tsx'
 import { TYPES, TYPE_LABEL, formatDate, type ApiResult, type EventType } from '../public/api.ts'
 import { Field } from '../../shared/ui/Field.tsx'
 import { Loading, useSettle } from '../../shared/ui/Loader.tsx'
-import { fetchMe, logoutUser, profilePath as profileUrl } from '../public/api.ts'
+import { logoutUser } from '../public/api.ts'
 import * as api from './api.ts'
 import type { AuditEntry, Me, Moderator, Page, Role, Status, Submission, TelegramChat } from './api.ts'
 import '../public/public.css'
@@ -51,15 +51,13 @@ export const Panel: React.FC = () => {
 type Tab = 'submissions' | 'history' | 'metrics' | 'moderators' | 'bot' | 'mail'
 
 // Иконки меню: контур 24x24, stroke задаёт .pm-menu-item svg.
-const ICON: Record<Tab | 'map' | 'logout' | 'profile', string> = {
+const ICON: Record<Tab | 'logout', string> = {
   submissions: 'M4 13h4l1.5 3h5L16 13h4 M5.5 5h13L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-5z',
   history: 'M12 7v5l3 2 M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4',
   metrics: 'M4 20V10 M10 20V4 M16 20v-7 M21 20H3',
   moderators: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20a6.5 6.5 0 0 1 13 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18.5 14.5A6.5 6.5 0 0 1 21.5 20',
   bot: 'M21 4 3 11l6.5 2.5L18 7l-6.5 7.5L17 20z',
   mail: 'M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z M3.5 7l8.5 6 8.5-6',
-  profile: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4.5 20a7.5 7.5 0 0 1 15 0',
-  map: 'M15 6l-6 6 6 6',
   logout: 'M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4 M20 12H9 M16 8l4 4-4 4',
 }
 const Icon: React.FC<{ name: keyof typeof ICON }> = ({ name }) => (
@@ -68,8 +66,6 @@ const Icon: React.FC<{ name: keyof typeof ICON }> = ({ name }) => (
 
 const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => {
   const navigate = useNavigate()
-  const [profilePath, setProfilePath] = useState('/map')
-  useEffect(() => { const ac = new AbortController(); fetchMe(ac.signal).then(user => { if (user) setProfilePath(profileUrl(user.publicId)) }).catch(() => {}); return () => ac.abort() }, [])
   const mobile = useIsMobile()
   const [params, setParams] = useSearchParams()
   const superAdmin = me.role === 'super_admin'
@@ -129,8 +125,6 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
           </nav>
         )}
         <div className="pm-grow" />
-        <button type="button" className="mod-side-back" title="Мой профиль" aria-label="Мой профиль"
-          onClick={() => navigate(profilePath)}><Icon name="profile" /></button>
         <button type="button" className="pm-btn-text" onClick={onLogout}>Выйти</button>
       </header>
       {main}
@@ -142,7 +136,6 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
       <aside className="mod-side">
         <div className="mod-side-brand">
           <Logo short onClick={() => navigate('/map')} />
-          <button type="button" className="mod-side-back" title="На карту" aria-label="На карту" onClick={() => navigate('/map')}><Icon name="map" /></button>
         </div>
         <div className="mod-side-hello">
           <h2>Здравствуйте,<br />{me.name || me.login}</h2>
@@ -160,7 +153,6 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
             </React.Fragment>
           ))}
         </nav>
-        <button type="button" className="pm-menu-item" onClick={() => navigate(profilePath)}><Icon name="profile" /><span>Мой профиль</span></button>
         <button type="button" className="pm-menu-item mod-side-out" title="Выйти" onClick={onLogout}><Icon name="logout" /><span>Выйти</span></button>
       </aside>
       <div className="mod-scroll">{main}</div>

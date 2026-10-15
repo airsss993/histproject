@@ -183,9 +183,6 @@
 .pm-result-title { font: 400 15px var(--ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Легенда */
-.pm-legend { animation: pm-in 180ms ease-out; position: absolute; left: 100px; bottom: 28px; display: flex; gap: 18px; padding: 12px 18px; border-radius: 999px; }
-.pm-legend span { display: flex; align-items: center; gap: 8px; font: 400 13px/20px var(--ui); color: var(--text-2); }
-.pm-legend i { width: 12px; height: 12px; border-radius: 999px; }
 
 /* Шкала веков */
 .pm-centuries {
