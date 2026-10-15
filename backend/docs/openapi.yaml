@@ -18,6 +18,7 @@ tags:
   - name: Admins
   - name: Profile
   - name: Audit
+  - name: Metrics
   - name: Bot
   - name: Mail
 paths:
@@ -437,6 +438,13 @@ paths:
                 activeSeconds:
                   type: integer
                   minimum: 0
+                scrollPercent:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                  description: >
+                    Сколько процентов сайта долистано. Присылает скрипт, который worker дописывает в HTML
+                    сайта. Значение только растёт.
       responses:
         "204":
           description: Время записано
@@ -444,6 +452,41 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+  /api/v1/metrics/actions:
+    post:
+      tags: [Metrics]
+      operationId: recordAction
+      description: >
+        Действие посетителя для метрик панели: card_open - открыта карточка события на карте,
+        card_click - из карточки перешли на сайт события (нужен eventId), form_step - посетитель
+        дошёл до шага формы заявки (нужен step: 0 - открыл форму, 1-5 - шаги, 6 - заявка отправлена).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, visitorId]
+              additionalProperties: false
+              properties:
+                action:
+                  type: string
+                  enum: [card_open, card_click, form_step]
+                eventId:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                step:
+                  type: integer
+                  minimum: 0
+                  maximum: 20
+                visitorId:
+                  $ref: "#/components/schemas/VisitorID"
+      responses:
+        "204":
+          description: Записано
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /api/v1/submissions:
     post:
       tags: [Submissions]
@@ -781,6 +824,83 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuditPage"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/v1/admin/metrics:
+    get:
+      tags: [Metrics]
+      operationId: metricsReport
+      description: >
+        Метрики сайта за последние days дней. Уникальный посетитель - аккаунт, у гостя - браузер.
+        Прокрутка считается по просмотрам, где скрипт прокрутки прислал значение (scrolledViews),
+        дочитанным считается просмотр с прокруткой от 90%.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 30
+      responses:
+        "200":
+          description: Отчёт
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  days: { type: integer }
+                  submissions: { type: integer, description: Заявок пришло за период }
+                  approved: { type: integer, description: Из них опубликовано }
+                  rejected: { type: integer, description: Из них отклонено }
+                  published: { type: integer, description: Событий опубликовано за период }
+                  eventsTotal: { type: integer }
+                  views: { type: integer }
+                  visitors: { type: integer }
+                  avgActiveSeconds: { type: number }
+                  stars: { type: integer, description: Звёзд поставлено за период }
+                  starsTotal: { type: integer }
+                  cardOpens: { type: integer, description: Пары посетитель-событие с открытой карточкой }
+                  cardClicks: { type: integer, description: Пары посетитель-событие с переходом на сайт }
+                  avgScroll: { type: number }
+                  readThrough: { type: integer }
+                  scrolledViews: { type: integer }
+                  funnel:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        step: { type: integer }
+                        visitors: { type: integer }
+                  daily:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        views: { type: integer }
+                        visitors: { type: integer }
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer, format: int64 }
+                        title: { type: string }
+                        views: { type: integer }
+                        visitors: { type: integer }
+                        avgActiveSeconds: { type: number }
+                        avgScroll: { type: number }
+                        readThrough: { type: integer }
+                        scrolledViews: { type: integer }
+                        stars: { type: integer }
+                        cardOpens: { type: integer }
+                        cardClicks: { type: integer }
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
   /api/v1/admin/bot:

@@ -119,6 +119,15 @@ func runWorker(ctx context.Context, cfg config.Config, logger *slog.Logger, depe
 	}
 	logger.Info("worker started", "concurrency", 1)
 	go app.NewRetention(dependencies.Database.Pool(), dependencies.Storage, logger).Loop(ctx)
+	// Сайты, опубликованные до скрипта прокрутки, получают его при первом старте. Повтор ничего не меняет.
+	go func() {
+		rewritten, err := dependencies.Storage.RewriteSiteHTML(ctx, sites.IsHTML, sites.InjectScrollScript)
+		if err != nil {
+			logger.Error("inject scroll script failed", "rewritten", rewritten, "error", err)
+		} else if rewritten > 0 {
+			logger.Info("scroll script injected", "files", rewritten)
+		}
+	}()
 	<-ctx.Done()
 	server.Shutdown()
 	if !errors.Is(ctx.Err(), context.Canceled) {

@@ -18,7 +18,7 @@ type HTTPService interface {
 	Delete(context.Context, int64) error
 	Star(context.Context, int64, Viewer, bool) (StarState, error)
 	StartView(context.Context, int64, Viewer, string) (int64, bool, error)
-	TouchView(ctx context.Context, id, viewID int64, visitorID string, seconds int) error
+	TouchView(ctx context.Context, id, viewID int64, visitorID string, seconds, scroll int) error
 }
 
 type Middleware func(http.Handler) http.Handler
@@ -173,6 +173,7 @@ func (handler *Handler) touchView(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		VisitorID     string `json:"visitorId"`
 		ActiveSeconds *int   `json:"activeSeconds"`
+		ScrollPercent int    `json:"scrollPercent"`
 	}
 	if err := httpserver.DecodeJSON(w, r, &request); err != nil {
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "invalid_json", "Некорректный JSON", nil)
@@ -182,7 +183,7 @@ func (handler *Handler) touchView(w http.ResponseWriter, r *http.Request) {
 		_ = httpserver.WriteError(w, http.StatusBadRequest, "validation_failed", "Проверьте поля", map[string]string{"activeSeconds": "Обязательное поле"})
 		return
 	}
-	if err := handler.service.TouchView(r.Context(), id, viewID, request.VisitorID, *request.ActiveSeconds); err != nil {
+	if err := handler.service.TouchView(r.Context(), id, viewID, request.VisitorID, *request.ActiveSeconds, request.ScrollPercent); err != nil {
 		handler.writeError(w, r, err)
 		return
 	}

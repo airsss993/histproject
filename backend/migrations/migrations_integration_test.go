@@ -48,6 +48,7 @@ func TestInitialSchema(t *testing.T) {
 		"events.stars",
 		"events.views",
 		"notifications.deliveries",
+		"metrics.actions",
 	} {
 		var exists bool
 		if err := db.QueryRowContext(ctx, `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
@@ -119,7 +120,7 @@ func assertSchemaConstraints(t *testing.T, ctx context.Context, db *sql.DB) {
 		JOIN pg_class AS parent_table ON parent_table.oid = constraint_info.confrelid
 		JOIN pg_namespace AS parent_schema ON parent_schema.oid = parent_table.relnamespace
 		WHERE constraint_info.contype = 'f'
-			AND child_schema.nspname IN ('auth', 'submissions', 'events', 'notifications')
+			AND child_schema.nspname IN ('auth', 'submissions', 'events', 'notifications', 'metrics')
 			AND child_schema.nspname <> parent_schema.nspname
 			-- Исключение (docs/ai/decisions.md, 2026-09-26): звезда и просмотр ссылаются на аккаунт.
 			AND NOT (child_schema.nspname = 'events' AND child_table.relname IN ('stars', 'views')

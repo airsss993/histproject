@@ -39,7 +39,7 @@ func TestProcessorPublishesValidatedSite(t *testing.T) {
 	if len(storage.uploads) != 3 {
 		t.Fatalf("uploads = %#v", storage.uploads)
 	}
-	if storage.uploads[0].key != "my-event/index.html" || storage.uploads[0].body != "<h1>site</h1>" {
+	if storage.uploads[0].key != "my-event/index.html" || storage.uploads[0].body != "<h1>site</h1>"+scrollScript {
 		t.Fatalf("index upload = %#v", storage.uploads[0])
 	}
 	if storage.uploads[1].key != "my-event/assets/app.js" || storage.uploads[1].body != "console.log('ok')" {

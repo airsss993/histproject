@@ -11,6 +11,7 @@ import (
 	"github.com/airsss993/histproject/backend/internal/modules/admins"
 	"github.com/airsss993/histproject/backend/internal/modules/auth"
 	"github.com/airsss993/histproject/backend/internal/modules/events"
+	"github.com/airsss993/histproject/backend/internal/modules/metrics"
 	"github.com/airsss993/histproject/backend/internal/modules/notifications"
 	"github.com/airsss993/histproject/backend/internal/modules/submissions"
 	"github.com/airsss993/histproject/backend/internal/modules/users"
@@ -26,6 +27,7 @@ type Modules struct {
 	auth        *auth.Handler
 	admins      *admins.Handler
 	events      *events.Handler
+	metrics     *metrics.Handler
 	submissions *submissions.Handler
 	users       *users.Handler
 	bot         *notifications.BotHandler
@@ -72,9 +74,10 @@ func NewModules(cfg config.Config, logger *slog.Logger, databaseClient *database
 		cfg.MaxUploadBytes,
 	)
 	userHandler := users.NewHandler(userService, logger, cfg.CookieDomain)
+	metricsHandler := metrics.NewHandler(metrics.NewRepository(databaseClient.Pool()), logger)
 	botHandler := notifications.NewBotHandler(notifications.NewBot(notificationRepository, cfg.NotificationTimeout), logger)
 	return Modules{
-		auth: authHandler, admins: adminHandler, events: eventHandler, submissions: submissionHandler, users: userHandler,
+		auth: authHandler, admins: adminHandler, events: eventHandler, metrics: metricsHandler, submissions: submissionHandler, users: userHandler,
 		bot: botHandler, mail: NewMailHandler(cfg, logger, notificationRepository), geocoder: NewGeocoder(logger),
 		rateLimit: redisClient.Allow,
 	}
@@ -93,6 +96,9 @@ func (modules Modules) Register(mux *http.ServeMux) {
 	modules.auth.Register(mux)
 	modules.admins.Register(mux, superAdminOnly)
 	modules.events.Register(mux, adminOnly)
+	if modules.metrics != nil {
+		modules.metrics.Register(mux, adminOnly)
+	}
 	modules.submissions.Register(mux, adminOnly, superAdminOnly)
 	if modules.users != nil {
 		modules.users.Register(mux)

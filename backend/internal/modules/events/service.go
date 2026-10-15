@@ -38,7 +38,7 @@ type Store interface {
 	Delete(context.Context, int64) error
 	SetStar(ctx context.Context, eventID, userID int64, on bool) (StarState, error)
 	StartView(ctx context.Context, eventID, userID int64, visitorID string) (int64, error)
-	TouchView(ctx context.Context, eventID, viewID int64, visitorID string, seconds int) error
+	TouchView(ctx context.Context, eventID, viewID int64, visitorID string, seconds, scroll int) error
 	Summaries(ctx context.Context, submissionIDs []int64, viewerID int64) ([]Summary, error)
 }
 
@@ -143,8 +143,9 @@ func (service *Service) StartView(ctx context.Context, id int64, viewer Viewer, 
 	return viewID, err == nil, err
 }
 
-// TouchView дописывает активное время просмотра, seconds - сколько всего с начала просмотра.
-func (service *Service) TouchView(ctx context.Context, id, viewID int64, visitorID string, seconds int) error {
+// TouchView дописывает активное время просмотра, seconds - сколько всего с начала просмотра,
+// scroll - сколько процентов сайта долистано.
+func (service *Service) TouchView(ctx context.Context, id, viewID int64, visitorID string, seconds, scroll int) error {
 	fields := make(map[string]string)
 	if id <= 0 || viewID <= 0 {
 		fields["id"] = "Ожидается положительный ID"
@@ -155,10 +156,13 @@ func (service *Service) TouchView(ctx context.Context, id, viewID int64, visitor
 	if seconds < 0 {
 		fields["activeSeconds"] = "Не меньше 0"
 	}
+	if scroll < 0 || scroll > 100 {
+		fields["scrollPercent"] = "От 0 до 100"
+	}
 	if len(fields) > 0 {
 		return &ValidationError{Fields: fields}
 	}
-	return service.store.TouchView(ctx, id, viewID, visitorID, min(seconds, MaxViewSeconds))
+	return service.store.TouchView(ctx, id, viewID, visitorID, min(seconds, MaxViewSeconds), scroll)
 }
 
 // Summaries - звёзды и просмотры по заявкам, ключ - id заявки. Заявки без события в ответ не попадают.

@@ -48,12 +48,13 @@ export const Panel: React.FC = () => {
   )
 }
 
-type Tab = 'submissions' | 'history' | 'moderators' | 'bot' | 'mail'
+type Tab = 'submissions' | 'history' | 'metrics' | 'moderators' | 'bot' | 'mail'
 
 // Иконки меню: контур 24x24, stroke задаёт .pm-menu-item svg.
 const ICON: Record<Tab | 'map' | 'logout' | 'profile', string> = {
   submissions: 'M4 13h4l1.5 3h5L16 13h4 M5.5 5h13L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-5z',
   history: 'M12 7v5l3 2 M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4',
+  metrics: 'M4 20V10 M10 20V4 M16 20v-7 M21 20H3',
   moderators: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M2.5 20a6.5 6.5 0 0 1 13 0 M16 4.5a3.5 3.5 0 0 1 0 6.5 M18.5 14.5A6.5 6.5 0 0 1 21.5 20',
   bot: 'M21 4 3 11l6.5 2.5L18 7l-6.5 7.5L17 20z',
   mail: 'M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z M3.5 7l8.5 6 8.5-6',
@@ -73,9 +74,9 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
   const [params, setParams] = useSearchParams()
   const superAdmin = me.role === 'super_admin'
   const groups: [string, [Tab, string][]][] = superAdmin
-    ? [['Модерация', [['submissions', 'Заявки'], ['history', 'История']]],
+    ? [['Модерация', [['submissions', 'Заявки'], ['history', 'История'], ['metrics', 'Метрики']]],
         ['Управление', [['moderators', 'Модераторы'], ['bot', 'Бот'], ['mail', 'Почта']]]]
-    : [['Модерация', [['submissions', 'Заявки']]]]
+    : [['Модерация', [['submissions', 'Заявки'], ['metrics', 'Метрики']]]]
   const tabs = groups.flatMap(([, items]) => items)
   const tab = tabs.find(([t]) => t === params.get('tab'))?.[0] ?? 'submissions'
   const open = (t: Tab) => setParams(t === 'submissions' ? {} : { tab: t })
@@ -107,6 +108,7 @@ const Shell: React.FC<{ me: Me; onLogout: () => void }> = ({ me, onLogout }) => 
     <main key={tab} className="mod-main">
       {tab === 'submissions' && <Submissions mobile={mobile} />}
       {tab === 'history' && <History />}
+      {tab === 'metrics' && <MetricsTab />}
       {tab === 'moderators' && <Moderators me={me} />}
       {tab === 'bot' && <Bot />}
       {tab === 'mail' && <Mail />}
@@ -525,6 +527,134 @@ const History: React.FC = () => {
         )}
       </Rows>
     </section>
+  )
+}
+
+const METRIC_PERIODS: [number, string][] = [[7, '7 дней'], [30, '30 дней'], [90, '90 дней'], [365, 'Год']]
+// Шаги воронки формы, как их шлёт track('form_step') в Propose.tsx.
+const FUNNEL_LABEL = ['Открыли форму', 'Тип события', 'О событии', 'Место', 'Сайт', 'Контакты', 'Отправили заявку']
+
+const pct = (part: number, whole: number) => whole > 0 ? `${Math.round(part / whole * 100)}%` : '-'
+const duration = (seconds: number) => {
+  const s = Math.round(seconds)
+  return s < 60 ? `${s} с` : `${Math.floor(s / 60)} мин ${s % 60} с`
+}
+const num = (n: number) => n.toLocaleString('ru-RU')
+const count = (n: number, one: string, few: string, many: string) => {
+  const m10 = n % 10, m100 = n % 100
+  return `${num(n)} ${m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many}`
+}
+
+// Дни без просмотров сервер не отдаёт, а на графике они нужны нулями.
+function fillDays(daily: api.Metrics['daily'], days: number) {
+  const byDate = new Map(daily.map(d => [d.date, d]))
+  const out: api.Metrics['daily'] = []
+  const today = new Date()
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i)
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    out.push(byDate.get(date) ?? { date, views: 0, visitors: 0 })
+  }
+  return out
+}
+
+const MetricsTab: React.FC = () => {
+  const [days, setDays] = useState(30)
+  const state = useLoad(() => api.getMetrics(days), [days])
+  // Rows ждёт items: у отчёта список - это события.
+  const rows = { ...state, data: state.data && { ...state.data, items: [state.data] } }
+  return (
+    <section className="mod-metrics">
+      <div className="mod-tl-head">
+        <h1 className="mod-title">Метрики</h1>
+        <div className="pm-chips" role="tablist" aria-label="Период">
+          {METRIC_PERIODS.map(([d, label]) => (
+            <button key={d} type="button" role="tab" aria-selected={d === days} className={d === days ? 'on' : ''} onClick={() => setDays(d)}>{label}</button>
+          ))}
+        </div>
+      </div>
+      <Rows state={rows} empty="Данных пока нет">{({ items: [m] }) => <MetricsBody m={m} />}</Rows>
+    </section>
+  )
+}
+
+const MetricsBody: React.FC<{ m: api.Metrics }> = ({ m }) => {
+  const decided = m.approved + m.rejected
+  const tiles: [string, string, string][] = [
+    ['Заявки', num(m.submissions), 'пришло за период'],
+    ['Опубликовано событий', num(m.published), `всего на карте ${num(m.eventsTotal)}`],
+    ['Доля одобренных', pct(m.approved, decided), decided ? `${num(m.approved)} из ${count(decided, 'решённой', 'решённых', 'решённых')}` : 'решений пока нет'],
+    ['Уникальные посетители', num(m.visitors), `просмотров сайтов: ${num(m.views)}`],
+    ['Активное время', duration(m.avgActiveSeconds), 'в среднем на просмотр'],
+    ['Звёзды', `+${num(m.stars)}`, `всего ${num(m.starsTotal)}`],
+    ['CTR карточка -> сайт', pct(m.cardClicks, m.cardOpens), `${count(m.cardClicks, 'переход', 'перехода', 'переходов')} из ${count(m.cardOpens, 'показа', 'показов', 'показов')}`],
+    ['Глубина прокрутки', m.scrolledViews ? `${Math.round(m.avgScroll)}%` : '-', 'в среднем по сайту'],
+    ['Дочитываемость', pct(m.readThrough, m.scrolledViews), 'долистали до 90%'],
+  ]
+  const series = fillDays(m.daily, m.days)
+  const peak = Math.max(1, ...series.map(d => d.visitors))
+  const funnel = FUNNEL_LABEL.map((label, step) => ({ label, visitors: m.funnel.find(f => f.step === step)?.visitors ?? 0 }))
+  const opened = funnel[0].visitors
+  return (
+    <div className="mod-metrics-body">
+      <div className="mod-kpis">
+        {tiles.map(([label, value, sub]) => (
+          <div key={label} className="mod-kpi"><span className="mod-dim">{label}</span><b>{value}</b><span className="mod-dim">{sub}</span></div>
+        ))}
+      </div>
+
+      <section className="mod-panel">
+        <h2>Посетители по дням</h2>
+        <div className="mod-bars" role="img" aria-label={`Уникальные посетители по дням, максимум ${peak}`}>
+          {series.map(d => (
+            <span key={d.date} className="mod-bar" data-tip={`${formatDate(d.date)}: ${d.visitors} посет., ${d.views} просм.`}>
+              <i style={{ height: `${d.visitors / peak * 100}%` }} />
+            </span>
+          ))}
+        </div>
+        <div className="mod-bars-axis mod-dim"><span>{formatDate(series[0].date)}</span><span>до {peak} в день</span><span>{formatDate(series[series.length - 1].date)}</span></div>
+      </section>
+
+      <section className="mod-panel">
+        <h2>Конверсия шагов формы</h2>
+        <ol className="mod-funnel">
+          {funnel.map((f, i) => (
+            <li key={f.label}>
+              <span>{f.label}</span>
+              <span className="mod-funnel-track"><i style={{ width: opened ? `${f.visitors / opened * 100}%` : 0 }} /></span>
+              <b>{num(f.visitors)}</b>
+              <span className="mod-dim">{i ? pct(f.visitors, opened) : ''}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="mod-panel">
+        <h2>По событиям</h2>
+        <div className="mod-table-wrap">
+          <table className="mod-table">
+            <thead><tr>
+              <th>Событие</th><th>Посетители</th><th>Просмотры</th><th>Время</th><th>Прокрутка</th>
+              <th>Дочитали</th><th>Звёзды</th><th>CTR</th>
+            </tr></thead>
+            <tbody>
+              {m.events.map(e => (
+                <tr key={e.id}>
+                  <td><a href={`/event/${e.id}`} target="_blank" rel="noreferrer">{e.title}</a></td>
+                  <td>{num(e.visitors)}</td><td>{num(e.views)}</td><td>{e.views ? duration(e.avgActiveSeconds) : '-'}</td>
+                  <td>{e.scrolledViews ? `${Math.round(e.avgScroll)}%` : '-'}</td><td>{pct(e.readThrough, e.scrolledViews)}</td>
+                  <td>{num(e.stars)}</td><td>{pct(e.cardClicks, e.cardOpens)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <p className="mod-dim">
+        Посетитель - аккаунт, у гостя - браузер. Время, прокрутка и CTR считаются с 14 октября 2026, когда начался сбор.
+        CAC, LTV, выручка и ROMI не считаются: на сайте нет платежей и рекламного бюджета.
+      </p>
+    </div>
   )
 }
 

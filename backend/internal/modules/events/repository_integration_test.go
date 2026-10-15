@@ -225,19 +225,19 @@ func TestRepositoryStarsAndViews(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `UPDATE events.views SET started_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, first); err != nil {
 		t.Fatalf("age view: %v", err)
 	}
-	if err := repository.TouchView(ctx, 1, first, guest, 40); err != nil {
+	if err := repository.TouchView(ctx, 1, first, guest, 40, 0); err != nil {
 		t.Fatalf("TouchView() error = %v", err)
 	}
-	if err := repository.TouchView(ctx, 1, first, guest, 30); err != nil {
+	if err := repository.TouchView(ctx, 1, first, guest, 30, 0); err != nil {
 		t.Fatalf("TouchView() smaller error = %v", err)
 	}
-	if err := repository.TouchView(ctx, 1, first, stranger, 50); !errors.Is(err, ErrViewNotFound) {
+	if err := repository.TouchView(ctx, 1, first, stranger, 50, 0); !errors.Is(err, ErrViewNotFound) {
 		t.Fatalf("TouchView() by other visitor error = %v", err)
 	}
-	if err := repository.TouchView(ctx, 2, first, guest, 50); !errors.Is(err, ErrViewNotFound) {
+	if err := repository.TouchView(ctx, 2, first, guest, 50, 0); !errors.Is(err, ErrViewNotFound) {
 		t.Fatalf("TouchView() with other event error = %v", err)
 	}
-	if err := repository.TouchView(ctx, 1, first+1, guest, 3600); err != nil {
+	if err := repository.TouchView(ctx, 1, first+1, guest, 3600, 0); err != nil {
 		t.Fatalf("TouchView() fresh view error = %v", err)
 	}
 

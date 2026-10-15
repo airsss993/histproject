@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { NotFound } from './NotFound.tsx'
 import { StarButton, Views } from './Star.tsx'
 import { Avatar } from '../../shared/ui/Avatar.tsx'
-import { fetchEvent, formatDate, profilePath, startView, touchView, TYPE_LABEL, type HistEvent } from './api.ts'
+import { fetchEvent, formatDate, profilePath, startView, touchView, TYPE_LABEL, visitorId, type HistEvent } from './api.ts'
 import './public.css'
 
 // Через сколько секунд активного просмотра предложить звезду.
@@ -14,16 +14,6 @@ const FLUSH_EVERY_SECONDS = 30
 const storage = {
   get: (key: string) => { try { return localStorage.getItem(key) } catch { return null } },
   set: (key: string, value: string) => { try { localStorage.setItem(key, value) } catch { /* приватное окно */ } },
-}
-
-// Случайный id браузера: по нему считаются уникальные гости. Без localStorage живёт до перезагрузки.
-let memoryVisitor = ''
-function visitorId() {
-  const saved = storage.get('hp-visitor')
-  if (saved) return saved
-  memoryVisitor ||= crypto.randomUUID()
-  storage.set('hp-visitor', memoryVisitor)
-  return memoryVisitor
 }
 
 const dismissedKey = (id: number) => `hp-star-prompt-dismissed:${id}`
@@ -38,6 +28,7 @@ export const Viewer: React.FC = () => {
   // Просмотр записан (не автор) и набрал порог - можно предложить звезду.
   const [promptDue, setPromptDue] = useState(false)
   const [dismissed, setDismissed] = useState(() => id !== null && storage.get(dismissedKey(id)) !== null)
+  const frameRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
     if (id === null) return
@@ -51,12 +42,20 @@ export const Viewer: React.FC = () => {
     if (!ready || id === null) return
     const visitor = visitorId()
     let viewId: number | null = null
-    let active = 0, sent = 0
+    let active = 0, sent = 0, scroll = 0, sentScroll = 0
     const flush = () => {
-      if (viewId === null || active === sent) return
-      touchView(id, viewId, visitor, active)
+      if (viewId === null || (active === sent && scroll === sentScroll)) return
+      touchView(id, viewId, visitor, active, scroll)
       sent = active
+      sentScroll = scroll
     }
+    // Прокрутку присылает скрипт, который worker дописал в HTML сайта (sites/scroll.go).
+    const onMessage = (e: MessageEvent) => {
+      const p = (e.data as { hpScroll?: unknown } | null)?.hpScroll
+      if (e.source !== frameRef.current?.contentWindow || typeof p !== 'number') return
+      scroll = Math.max(scroll, Math.min(100, Math.max(0, Math.round(p))))
+    }
+    window.addEventListener('message', onMessage)
     // Старт через таймер: StrictMode в dev сразу снимает первый эффект, и лишний просмотр не пишется.
     const start = setTimeout(() => {
       void startView(id, visitor).then(v => { viewId = v })
@@ -75,6 +74,7 @@ export const Viewer: React.FC = () => {
       clearInterval(tick)
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('pagehide', flush)
+      window.removeEventListener('message', onMessage)
       flush()
     }
   }, [ready, id])
@@ -93,7 +93,7 @@ export const Viewer: React.FC = () => {
       <div className="sv-screen">
         <div className="sv-window pm-glass">
           {event
-            ? <iframe className="sv-frame" src={event.siteUrl} title={event.title} sandbox="allow-scripts allow-forms allow-popups" />
+            ? <iframe ref={frameRef} className="sv-frame" src={event.siteUrl} title={event.title} sandbox="allow-scripts allow-forms allow-popups" />
             : <div className="sv-frame sv-frame-empty">{failed ? 'Нет связи с сервером' : 'Загружаем...'}</div>}
           <div className="sv-bar">
             <Link className="pm-close-sm sv-back" to={`/map?event=${id}`} aria-label="Назад к карте">
