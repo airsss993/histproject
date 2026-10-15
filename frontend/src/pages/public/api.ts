@@ -93,10 +93,11 @@ export function visitorId() {
 
 // Действие для метрик панели. Через sendBeacon: переход по ссылке не обрывает запрос.
 // step у form_step: 0 - форма открыта, 1..5 - шаги мастера, 6 - заявка отправлена.
+// step у auth_step: гость пришёл на вход из "Предложить событие", 0 - открыл, 1 - запросил код, 2 - вошёл.
 export function track(action: 'card_open' | 'card_click', eventId: number): void
-export function track(action: 'form_step', step: number): void
+export function track(action: 'form_step' | 'auth_step', step: number): void
 export function track(action: string, value: number) {
-  beacon('/metrics/actions', action === 'form_step'
+  beacon('/metrics/actions', action.endsWith('_step')
     ? { action, step: value, visitorId: visitorId() }
     : { action, eventId: value, visitorId: visitorId() })
 }

@@ -127,6 +127,7 @@ export interface Metrics extends MetricsTotals {
   days: number
   previous: MetricsTotals
   funnel: { step: number; visitors: number }[]
+  authFunnel: { step: number; visitors: number }[]
   daily: { date: string; views: number; visitors: number }[]
   events: MetricsEvent[]
 }

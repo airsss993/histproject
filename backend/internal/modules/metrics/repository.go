@@ -31,7 +31,7 @@ func (repository *Repository) Record(ctx context.Context, action Action) error {
 // не нарушает. Уникальный посетитель - аккаунт, а у гостя - браузер, как в счётчике просмотров.
 // Сайты, опубликованные до скрипта прокрутки, присылают 0, поэтому прокрутка считается по scroll_percent > 0.
 func (repository *Repository) Report(ctx context.Context, days int) (Report, error) {
-	report := Report{Days: days, Funnel: []FunnelStep{}, Daily: []Day{}, Events: []EventRow{}}
+	report := Report{Days: days, Daily: []Day{}, Events: []EventRow{}}
 	var err error
 	if report.Totals, err = repository.totals(ctx, days, 0); err != nil {
 		return Report{}, err
@@ -40,30 +40,15 @@ func (repository *Repository) Report(ctx context.Context, days int) (Report, err
 		return Report{}, err
 	}
 
-	rows, err := repository.pool.Query(ctx, `
-		SELECT step, COUNT(DISTINCT visitor_id)
-		FROM metrics.actions
-		WHERE action = 'form_step' AND created_at >= NOW() - make_interval(days => $1)
-		GROUP BY step ORDER BY step
-	`, days)
-	if err != nil {
-		return Report{}, fmt.Errorf("metrics funnel: %w", err)
+	if report.Funnel, err = repository.funnel(ctx, "form_step", days); err != nil {
+		return Report{}, err
 	}
-	for rows.Next() {
-		var step FunnelStep
-		if err := rows.Scan(&step.Step, &step.Visitors); err != nil {
-			rows.Close()
-			return Report{}, fmt.Errorf("scan funnel step: %w", err)
-		}
-		report.Funnel = append(report.Funnel, step)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return Report{}, fmt.Errorf("iterate funnel: %w", err)
+	if report.AuthFunnel, err = repository.funnel(ctx, "auth_step", days); err != nil {
+		return Report{}, err
 	}
 
 	// День по Москве: аудитория и модераторы живут в ней, а сервер в UTC.
-	rows, err = repository.pool.Query(ctx, `
+	rows, err := repository.pool.Query(ctx, `
 		SELECT (started_at AT TIME ZONE 'Europe/Moscow')::date AS day, COUNT(*),
 			COUNT(DISTINCT COALESCE(user_id::text, visitor_id::text))
 		FROM events.views
@@ -163,4 +148,30 @@ func (repository *Repository) totals(ctx context.Context, fromDays, toDays int) 
 		return Totals{}, fmt.Errorf("metrics totals: %w", err)
 	}
 	return totals, nil
+}
+
+// funnel - уникальные посетители на каждом шаге form_step или auth_step за последние days дней.
+func (repository *Repository) funnel(ctx context.Context, action string, days int) ([]FunnelStep, error) {
+	rows, err := repository.pool.Query(ctx, `
+		SELECT step, COUNT(DISTINCT visitor_id)
+		FROM metrics.actions
+		WHERE action = $1 AND created_at >= NOW() - make_interval(days => $2)
+		GROUP BY step ORDER BY step
+	`, action, days)
+	if err != nil {
+		return nil, fmt.Errorf("metrics funnel %s: %w", action, err)
+	}
+	defer rows.Close()
+	steps := []FunnelStep{}
+	for rows.Next() {
+		var step FunnelStep
+		if err := rows.Scan(&step.Step, &step.Visitors); err != nil {
+			return nil, fmt.Errorf("scan funnel step: %w", err)
+		}
+		steps = append(steps, step)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate funnel: %w", err)
+	}
+	return steps, nil
 }
