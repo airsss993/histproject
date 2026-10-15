@@ -118,10 +118,14 @@ export interface MetricsEvent {
   id: number; title: string; views: number; visitors: number; avgActiveSeconds: number
   avgScroll: number; readThrough: number; scrolledViews: number; stars: number; cardOpens: number; cardClicks: number
 }
-export interface Metrics {
-  days: number; submissions: number; approved: number; rejected: number; published: number; eventsTotal: number
+export interface MetricsTotals {
+  submissions: number; approved: number; rejected: number; published: number; eventsTotal: number
   views: number; visitors: number; avgActiveSeconds: number; stars: number; starsTotal: number
   cardOpens: number; cardClicks: number; avgScroll: number; readThrough: number; scrolledViews: number
+}
+export interface Metrics extends MetricsTotals {
+  days: number
+  previous: MetricsTotals
   funnel: { step: number; visitors: number }[]
   daily: { date: string; views: number; visitors: number }[]
   events: MetricsEvent[]

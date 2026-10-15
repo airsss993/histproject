@@ -578,80 +578,291 @@ const MetricsTab: React.FC = () => {
   )
 }
 
-const MetricsBody: React.FC<{ m: api.Metrics }> = ({ m }) => {
-  const decided = m.approved + m.rejected
-  const tiles: [string, string, string][] = [
-    ['Заявки', num(m.submissions), 'пришло за период'],
-    ['Опубликовано событий', num(m.published), `всего на карте ${num(m.eventsTotal)}`],
-    ['Доля одобренных', pct(m.approved, decided), decided ? `${num(m.approved)} из ${count(decided, 'решённой', 'решённых', 'решённых')}` : 'решений пока нет'],
-    ['Уникальные посетители', num(m.visitors), `просмотров сайтов: ${num(m.views)}`],
-    ['Активное время', duration(m.avgActiveSeconds), 'в среднем на просмотр'],
-    ['Звёзды', `+${num(m.stars)}`, `всего ${num(m.starsTotal)}`],
-    ['CTR карточка -> сайт', pct(m.cardClicks, m.cardOpens), `${count(m.cardClicks, 'переход', 'перехода', 'переходов')} из ${count(m.cardOpens, 'показа', 'показов', 'показов')}`],
-    ['Глубина прокрутки', m.scrolledViews ? `${Math.round(m.avgScroll)}%` : '-', 'в среднем по сайту'],
-    ['Дочитываемость', pct(m.readThrough, m.scrolledViews), 'долистали до 90%'],
-  ]
-  const series = fillDays(m.daily, m.days)
+// Изменение к прошлому периоду: у счётчиков в процентах, у долей в процентных пунктах.
+// Без данных за прошлый период сравнивать не с чем, плашки нет.
+type Delta = { text: string; dir: -1 | 0 | 1 } | null
+const sign = (d: number): -1 | 0 | 1 => d > 0 ? 1 : d < 0 ? -1 : 0
+const relDelta = (now: number, before: number): Delta => {
+  if (before <= 0) return null
+  const d = Math.round((now - before) / before * 100)
+  return { text: `${Math.abs(d)}%`, dir: sign(d) }
+}
+const ratio = (part: number, whole: number) => whole > 0 ? part / whole : null
+const ppDelta = (now: number | null, before: number | null): Delta => {
+  if (now === null || before === null) return null
+  const d = Math.round((now - before) * 100)
+  return { text: `${Math.abs(d)} п.п.`, dir: sign(d) }
+}
+
+const DeltaPill: React.FC<{ d: Delta; days: number }> = ({ d, days }) => d && (
+  <span className={`mod-delta ${d.dir > 0 ? 'up' : d.dir < 0 ? 'down' : ''}`} title={`К предыдущим ${days} дн.`}>
+    {d.dir !== 0 && <svg viewBox="0 0 12 12" aria-hidden="true"><path d={d.dir > 0 ? 'M6 9.5V2.5 M2.5 6 6 2.5 9.5 6' : 'M6 2.5v7 M2.5 6 6 9.5 9.5 6'} /></svg>}
+    {d.dir > 0 ? '+' : d.dir < 0 ? '-' : ''}{d.text}
+  </span>
+)
+
+// Иконки плиток: контур 24x24, как в меню.
+const KPI_ICON = {
+  submissions: ICON.submissions,
+  published: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z M12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  approved: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M8 12.5l2.7 2.7L16 9.8',
+  stars: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z',
+  time: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7.5V12l3 2',
+  ctr: 'M6 4l5.5 14 2-5.5 5.5-2z M14 14l5 5',
+  scroll: 'M12 4v16 M8 8l4-4 4 4 M8 16l4 4 4-4',
+  read: 'M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5z M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5z',
+}
+
+interface Kpi { icon: keyof typeof KPI_ICON; label: string; value: string; sub: string; delta: Delta; fill?: number | null }
+
+const KpiTile: React.FC<{ k: Kpi; days: number }> = ({ k, days }) => (
+  <div className="mod-kpi">
+    <div className="mod-kpi-head">
+      <span className="mod-kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={KPI_ICON[k.icon]} /></svg></span>
+      <span className="mod-dim">{k.label}</span>
+    </div>
+    <div className="mod-kpi-value"><b>{k.value}</b><DeltaPill d={k.delta} days={days} /></div>
+    <span className="mod-kpi-fill" hidden={k.fill === undefined}><i style={{ width: `${(k.fill ?? 0) * 100}%` }} /></span>
+    <span className="mod-dim mod-kpi-sub">{k.sub}</span>
+  </div>
+)
+
+// Сглаженная линия через точки: кривые Катмулла-Рома, контрольные точки зажаты по высоте,
+// чтобы линия не уходила ниже нуля между нулевыми днями.
+function smoothPath(points: [number, number][], top: number, bottom: number) {
+  if (points.length === 1) return `M${points[0][0]},${points[0][1]}`
+  const clamp = (y: number) => Math.min(bottom, Math.max(top, y))
+  let d = `M${points[0][0]},${points[0][1]}`
+  for (let i = 0; i < points.length - 1; i++) {
+    const [p0, p1, p2, p3] = [points[i - 1] ?? points[i], points[i], points[i + 1], points[i + 2] ?? points[i + 1]]
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, clamp(p1[1] + (p2[1] - p0[1]) / 6)]
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, clamp(p2[1] - (p3[1] - p1[1]) / 6)]
+    d += ` C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${p2[0]},${p2[1]}`
+  }
+  return d
+}
+
+const CHART_W = 1000, CHART_H = 220, CHART_TOP = 12
+
+const VisitorsChart: React.FC<{ series: api.Metrics['daily'] }> = ({ series }) => {
+  const [hover, setHover] = useState<number | null>(null)
   const peak = Math.max(1, ...series.map(d => d.visitors))
-  const funnel = FUNNEL_LABEL.map((label, step) => ({ label, visitors: m.funnel.find(f => f.step === step)?.visitors ?? 0 }))
-  const opened = funnel[0].visitors
+  const avg = series.reduce((s, d) => s + d.visitors, 0) / series.length
+  const x = (i: number) => series.length > 1 ? i / (series.length - 1) * CHART_W : CHART_W / 2
+  const y = (v: number) => CHART_H - v / peak * (CHART_H - CHART_TOP)
+  const points = series.map((d, i) => [x(i), y(d.visitors)] as [number, number])
+  const line = smoothPath(points, CHART_TOP, CHART_H)
+  const area = `${line} L${x(series.length - 1)},${CHART_H} L${x(0)},${CHART_H} Z`
+  const pick = (e: React.PointerEvent<HTMLDivElement>) => {
+    const box = e.currentTarget.getBoundingClientRect()
+    setHover(Math.round(Math.min(1, Math.max(0, (e.clientX - box.left) / box.width)) * (series.length - 1)))
+  }
+  const h = hover === null ? null : series[hover]
+  const left = (i: number) => `${x(i) / CHART_W * 100}%`
+  const mid = series[Math.floor(series.length / 2)]
   return (
-    <div className="mod-metrics-body">
-      <div className="mod-kpis">
-        {tiles.map(([label, value, sub]) => (
-          <div key={label} className="mod-kpi"><span className="mod-dim">{label}</span><b>{value}</b><span className="mod-dim">{sub}</span></div>
+    <div className="mod-chart">
+      <div className="mod-chart-plot" onPointerMove={pick} onPointerDown={pick} onPointerLeave={() => setHover(null)}
+        role="img" aria-label={`Уникальные посетители по дням, максимум ${peak}, в среднем ${avg.toFixed(1)}`}>
+        <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="mod-chart-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="var(--gold)" stopOpacity="0.32" />
+              <stop offset="1" stopColor="var(--gold)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[0, 0.5, 1].map(f => <line key={f} className="mod-chart-grid" x1="0" x2={CHART_W} y1={y(peak * f)} y2={y(peak * f)} />)}
+          <path d={area} fill="url(#mod-chart-fill)" />
+          <path d={line} className="mod-chart-line" />
+          {avg > 0 && <line className="mod-chart-avg" x1="0" x2={CHART_W} y1={y(avg)} y2={y(avg)} />}
+        </svg>
+        <span className="mod-chart-tick" style={{ top: `${y(peak) / CHART_H * 100}%` }}>{num(peak)}</span>
+        <span className="mod-chart-tick" style={{ top: `${y(peak / 2) / CHART_H * 100}%` }}>{num(Math.round(peak / 2))}</span>
+        {avg > 0 && <span className="mod-chart-tick avg" style={{ top: `${y(avg) / CHART_H * 100}%` }}>ср. {avg.toFixed(1).replace('.', ',')}</span>}
+        {h && hover !== null && <>
+          <span className="mod-chart-cross" style={{ left: left(hover) }} />
+          <span className="mod-chart-dot" style={{ left: left(hover), top: `${y(h.visitors) / CHART_H * 100}%` }} />
+          <span className={`mod-chart-tip ${hover > series.length * 0.7 ? 'flip' : ''}`} style={{ left: left(hover) }}>
+            <span className="mod-dim">{formatDate(h.date)}</span>
+            <b>{count(h.visitors, 'посетитель', 'посетителя', 'посетителей')}</b>
+            <span className="mod-dim">{count(h.views, 'просмотр', 'просмотра', 'просмотров')}</span>
+          </span>
+        </>}
+      </div>
+      <div className="mod-chart-axis mod-dim">
+        <span>{formatDate(series[0].date)}</span><span>{formatDate(mid.date)}</span><span>{formatDate(series[series.length - 1].date)}</span>
+      </div>
+    </div>
+  )
+}
+
+// Воронка "трубой": высота полосы - доля от открывших форму, между шагами плавный переход.
+const FLOW_W = 100, FLOW_H = 120
+function flowPath(shares: number[]) {
+  const n = shares.length
+  const half = shares.map(v => Math.max(1.5, v * (FLOW_H - 8) / 2))
+  const top = half.map(h => FLOW_H / 2 - h), bottom = half.map(h => FLOW_H / 2 + h)
+  const flatEnd = (i: number) => i * FLOW_W + FLOW_W * 0.7, flatStart = (i: number) => i * FLOW_W + FLOW_W * 0.3
+  let d = `M0,${top[0]}`
+  for (let i = 0; i < n; i++) {
+    d += ` L${flatEnd(i)},${top[i]}`
+    if (i < n - 1) {
+      const m = (flatEnd(i) + flatStart(i + 1)) / 2
+      d += ` C${m},${top[i]} ${m},${top[i + 1]} ${flatStart(i + 1)},${top[i + 1]}`
+    }
+  }
+  d += ` L${n * FLOW_W},${top[n - 1]} L${n * FLOW_W},${bottom[n - 1]}`
+  for (let i = n - 1; i >= 0; i--) {
+    d += ` L${flatStart(i)},${bottom[i]}`
+    if (i > 0) {
+      const m = (flatStart(i) + flatEnd(i - 1)) / 2
+      d += ` C${m},${bottom[i]} ${m},${bottom[i - 1]} ${flatEnd(i - 1)},${bottom[i - 1]}`
+    }
+  }
+  return `${d} L0,${bottom[0]} Z`
+}
+
+const Funnel: React.FC<{ steps: { label: string; visitors: number }[] }> = ({ steps }) => {
+  const base = Math.max(1, ...steps.map(s => s.visitors))
+  const n = steps.length
+  return (
+    <div className="mod-flow-wrap">
+      <div className="mod-flow" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+        {steps.map(s => <span key={s.label} className="mod-flow-label">{s.label}</span>)}
+        <div className="mod-flow-band" style={{ gridColumn: `1 / span ${n}` }}>
+          <svg viewBox={`0 0 ${n * FLOW_W} ${FLOW_H}`} preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="mod-flow-fill" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="var(--gold)" stopOpacity="0.5" />
+                <stop offset="1" stopColor="var(--gold)" stopOpacity="0.18" />
+              </linearGradient>
+            </defs>
+            <path d={flowPath(steps.map(s => s.visitors / base))} fill="url(#mod-flow-fill)" />
+          </svg>
+          {steps.map((s, i) => (
+            <span key={s.label} className="mod-flow-pill" style={{ left: `${(i + 0.5) / n * 100}%` }}>{pct(s.visitors, steps[0].visitors)}</span>
+          ))}
+        </div>
+        {steps.map((s, i) => (
+          <span key={s.label} className="mod-flow-foot">
+            <b>{num(s.visitors)}</b>
+            {i > 0 && steps[i - 1].visitors > s.visitors && (
+              <span className="mod-flow-drop" title="Отвал от предыдущего шага">-{pct(steps[i - 1].visitors - s.visitors, steps[i - 1].visitors)}</span>
+            )}
+          </span>
         ))}
       </div>
+    </div>
+  )
+}
 
-      <section className="mod-panel">
-        <h2>Посетители по дням</h2>
-        <div className="mod-bars" role="img" aria-label={`Уникальные посетители по дням, максимум ${peak}`}>
-          {series.map(d => (
-            <span key={d.date} className="mod-bar" data-tip={`${formatDate(d.date)}: ${d.visitors} посет., ${d.views} просм.`}>
-              <i style={{ height: `${d.visitors / peak * 100}%` }} />
-            </span>
-          ))}
+const hasData = (e: api.MetricsEvent) => e.views + e.visitors + e.stars + e.cardOpens > 0
+
+const EventsRating: React.FC<{ events: api.MetricsEvent[] }> = ({ events }) => {
+  const [all, setAll] = useState(false)
+  const active = events.filter(hasData)
+  const shown = all ? events : active
+  const peak = Math.max(1, ...events.map(e => e.visitors))
+  return (
+    <>
+      <div className="mod-table-wrap">
+        <table className="mod-table">
+          <thead><tr>
+            <th>#</th><th>Событие</th><th>Посетители</th><th>Просмотры</th><th>Время</th><th>Прокрутка</th>
+            <th>Дочитали</th><th>Звёзды</th><th>CTR</th>
+          </tr></thead>
+          <tbody>
+            {shown.map((e, i) => (
+              <tr key={e.id}>
+                <td className="mod-dim">{i + 1}</td>
+                <td>
+                  <a href={`/event/${e.id}`} target="_blank" rel="noreferrer">{e.title}</a>
+                  <span className="mod-rank-bar"><i style={{ width: `${e.visitors / peak * 100}%` }} /></span>
+                </td>
+                <td><b>{num(e.visitors)}</b></td><td>{num(e.views)}</td><td>{e.views ? duration(e.avgActiveSeconds) : '-'}</td>
+                <td>{e.scrolledViews ? `${Math.round(e.avgScroll)}%` : '-'}</td><td>{pct(e.readThrough, e.scrolledViews)}</td>
+                <td>{num(e.stars)}</td><td>{pct(e.cardClicks, e.cardOpens)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {!active.length && !all && <p className="mod-dim">За период у событий нет просмотров и звёзд.</p>}
+      {events.length > active.length && (
+        <button type="button" className="pm-btn-text mod-more" onClick={() => setAll(v => !v)}>
+          {all ? 'Скрыть события без данных' : `Показать ещё ${count(events.length - active.length, 'событие', 'события', 'событий')} без данных`}
+        </button>
+      )}
+    </>
+  )
+}
+
+const MetricsBody: React.FC<{ m: api.Metrics }> = ({ m }) => {
+  const p = m.previous
+  const decided = m.approved + m.rejected, decidedBefore = p.approved + p.rejected
+  const approval = ratio(m.approved, decided), ctr = ratio(m.cardClicks, m.cardOpens)
+  const read = ratio(m.readThrough, m.scrolledViews)
+  const tiles: Kpi[] = [
+    { icon: 'submissions', label: 'Заявки', value: num(m.submissions), sub: 'пришло за период', delta: relDelta(m.submissions, p.submissions) },
+    { icon: 'published', label: 'Опубликовано событий', value: num(m.published), sub: `всего на карте ${num(m.eventsTotal)}`, delta: relDelta(m.published, p.published) },
+    {
+      icon: 'approved', label: 'Доля одобренных', value: pct(m.approved, decided), fill: approval,
+      sub: decided ? `${num(m.approved)} из ${count(decided, 'решённой', 'решённых', 'решённых')}` : 'решений пока нет',
+      delta: ppDelta(approval, ratio(p.approved, decidedBefore)),
+    },
+    { icon: 'stars', label: 'Звёзды', value: `+${num(m.stars)}`, sub: `всего ${num(m.starsTotal)}`, delta: relDelta(m.stars, p.stars) },
+    { icon: 'time', label: 'Активное время', value: duration(m.avgActiveSeconds), sub: 'в среднем на просмотр', delta: relDelta(m.avgActiveSeconds, p.avgActiveSeconds) },
+    {
+      icon: 'ctr', label: 'CTR карточка -> сайт', value: pct(m.cardClicks, m.cardOpens), fill: ctr,
+      sub: `${count(m.cardClicks, 'переход', 'перехода', 'переходов')} из ${count(m.cardOpens, 'показа', 'показов', 'показов')}`,
+      delta: ppDelta(ctr, ratio(p.cardClicks, p.cardOpens)),
+    },
+    {
+      icon: 'scroll', label: 'Глубина прокрутки', value: m.scrolledViews ? `${Math.round(m.avgScroll)}%` : '-',
+      fill: m.scrolledViews ? m.avgScroll / 100 : null, sub: 'в среднем по сайту',
+      delta: ppDelta(m.scrolledViews ? m.avgScroll / 100 : null, p.scrolledViews ? p.avgScroll / 100 : null),
+    },
+    {
+      icon: 'read', label: 'Дочитываемость', value: pct(m.readThrough, m.scrolledViews), fill: read, sub: 'долистали до 90%',
+      delta: ppDelta(read, ratio(p.readThrough, p.scrolledViews)),
+    },
+  ]
+  const funnel = FUNNEL_LABEL.map((label, step) => ({ label, visitors: m.funnel.find(f => f.step === step)?.visitors ?? 0 }))
+  const sent = funnel[funnel.length - 1].visitors
+  return (
+    <div className="mod-metrics-body">
+      <section className="mod-panel mod-hero">
+        <div className="mod-hero-head">
+          <div>
+            <span className="mod-dim">Уникальные посетители сайтов</span>
+            <div className="mod-hero-value"><b>{num(m.visitors)}</b><DeltaPill d={relDelta(m.visitors, p.visitors)} days={m.days} /></div>
+            <span className="mod-dim">{p.visitors ? `к предыдущим ${count(m.days, 'дню', 'дням', 'дням')}` : 'за прошлый период данных нет'}</span>
+          </div>
+          <dl className="mod-hero-side">
+            <div><dt className="mod-dim">Просмотры сайтов</dt><dd><b>{num(m.views)}</b><DeltaPill d={relDelta(m.views, p.views)} days={m.days} /></dd></div>
+            <div><dt className="mod-dim">Открыли карточку</dt><dd><b>{num(m.cardOpens)}</b><DeltaPill d={relDelta(m.cardOpens, p.cardOpens)} days={m.days} /></dd></div>
+          </dl>
         </div>
-        <div className="mod-bars-axis mod-dim"><span>{formatDate(series[0].date)}</span><span>до {peak} в день</span><span>{formatDate(series[series.length - 1].date)}</span></div>
+        <VisitorsChart series={fillDays(m.daily, m.days)} />
       </section>
 
-      <section className="mod-panel">
-        <h2>Конверсия шагов формы</h2>
-        <ol className="mod-funnel">
-          {funnel.map((f, i) => (
-            <li key={f.label}>
-              <span>{f.label}</span>
-              <span className="mod-funnel-track"><i style={{ width: opened ? `${f.visitors / opened * 100}%` : 0 }} /></span>
-              <b>{num(f.visitors)}</b>
-              <span className="mod-dim">{i ? pct(f.visitors, opened) : ''}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <div className="mod-kpis">{tiles.map(k => <KpiTile key={k.label} k={k} days={m.days} />)}</div>
 
       <section className="mod-panel">
-        <h2>По событиям</h2>
-        <div className="mod-table-wrap">
-          <table className="mod-table">
-            <thead><tr>
-              <th>Событие</th><th>Посетители</th><th>Просмотры</th><th>Время</th><th>Прокрутка</th>
-              <th>Дочитали</th><th>Звёзды</th><th>CTR</th>
-            </tr></thead>
-            <tbody>
-              {m.events.map(e => (
-                <tr key={e.id}>
-                  <td><a href={`/event/${e.id}`} target="_blank" rel="noreferrer">{e.title}</a></td>
-                  <td>{num(e.visitors)}</td><td>{num(e.views)}</td><td>{e.views ? duration(e.avgActiveSeconds) : '-'}</td>
-                  <td>{e.scrolledViews ? `${Math.round(e.avgScroll)}%` : '-'}</td><td>{pct(e.readThrough, e.scrolledViews)}</td>
-                  <td>{num(e.stars)}</td><td>{pct(e.cardClicks, e.cardOpens)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mod-panel-head">
+          <h2>Конверсия шагов формы</h2>
+          <span className="mod-dim">{funnel[0].visitors ? `до отправки дошли ${pct(sent, funnel[0].visitors)}` : 'форму за период не открывали'}</span>
         </div>
+        <Funnel steps={funnel} />
       </section>
-      <p className="mod-dim">
-        Посетитель - аккаунт, у гостя - браузер. Время, прокрутка и CTR считаются с 14 октября 2026, когда начался сбор.
+
+      <section className="mod-panel">
+        <div className="mod-panel-head"><h2>Рейтинг событий</h2><span className="mod-dim">по уникальным посетителям</span></div>
+        <EventsRating events={m.events} />
+      </section>
+      <p className="mod-dim mod-metrics-note">
+        Посетитель - аккаунт, у гостя - браузер. Изменение считается к такому же числу дней перед периодом.
+        Время, прокрутка и CTR считаются с 14 октября 2026, когда начался сбор.
         CAC, LTV, выручка и ROMI не считаются: на сайте нет платежей и рекламного бюджета.
       </p>
     </div>
