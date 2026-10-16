@@ -141,8 +141,10 @@
   .card.shot .cap { position: absolute; left: 16px; bottom: 16px; padding: 10px 16px; border-radius: 14px; font-size: 14px; color: var(--text-2); }
 
   .steps-bg {
-    position: absolute; inset: 0; z-index: -2; opacity: .8;
-    background: url(site/bg-smoke.webp) 50% 50% / cover no-repeat;
+    position: absolute; inset: 0; z-index: -2; opacity: .7;
+    background:
+      linear-gradient(180deg, rgba(1,0,17,.9) 10%, rgba(1,0,17,.6) 40%, rgba(1,0,17,.15) 70%),
+      url(site/bg-smoke.webp) 50% 50% / cover no-repeat;
     -webkit-mask: linear-gradient(transparent, #000 25%, #000 75%, transparent); mask: linear-gradient(transparent, #000 25%, #000 75%, transparent);
   }
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; list-style: none; margin: 0; padding: 0; counter-reset: s; }
