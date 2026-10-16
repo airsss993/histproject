@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Россия - страна Героев - карта исторических событий</title>
+<meta name="description" content="Интерактивная карта исторических событий России. Каждое событие на карте - отдельный сайт, который сделал участник проекта.">
+<meta property="og:title" content="Россия - страна Героев">
+<meta property="og:description" content="Карта исторических событий России. Каждое событие - сайт, который сделал участник проекта.">
+<meta property="og:image" content="https://airsss993.github.io/histproject/docs/banners/hero.jpg">
+<meta name="theme-color" content="#010011">
+<link rel="icon" href="frontend/public/logo.svg">
+<style>
+  @font-face { font-family: 'Tenor Sans'; font-display: swap; src: url(frontend/public/fonts/tenor-sans-cyrillic.woff2) format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: 'Tenor Sans'; font-display: swap; src: url(frontend/public/fonts/tenor-sans-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2212; }
+  :root {
+    --bg: #010011;
+    --fg: #EDE8DC;
+    --muted: #8194AE;
+    --line: #31355C;
+    --surface: #0C1023;
+    --gold: #C7AE7F;
+    --gold-soft: #D8C9A2;
+    --gold-line: #7D7151;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 17px/1.6 'Tenor Sans', system-ui, sans-serif;
+    font-variant-numeric: lining-nums;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; }
+  img { display: block; max-width: 100%; }
+  .wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding-top: 24px; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; letter-spacing: .02em; }
+  .brand img { width: 26px; height: 42px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border: 1px solid var(--line); border-radius: 999px;
+    font-size: 14px; text-decoration: none; transition: border-color .2s;
+  }
+  .pill:hover { border-color: var(--gold-line); }
+  .pill svg { width: 16px; height: 16px; }
+
+  .hero {
+    position: relative;
+    min-height: 100svh;
+    display: flex; flex-direction: column;
+    background: radial-gradient(55% 60% at 78% 40%, #121a45 0%, var(--bg) 70%);
+  }
+  .hero-body {
+    flex: 1;
+    display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 32px;
+    padding: 48px 0 80px;
+  }
+  .kicker { color: var(--gold); font-size: 14px; letter-spacing: .18em; text-transform: uppercase; margin-bottom: 20px; }
+  h1 { margin: 0 0 24px; font-weight: 400; font-size: clamp(44px, 7vw, 84px); line-height: 1.02; letter-spacing: -.01em; }
+  h1 em { font-style: normal; color: var(--gold); }
+  .lead { margin: 0 0 36px; max-width: 30em; color: var(--muted); font-size: 19px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; padding: 14px 26px; border-radius: 999px;
+    text-decoration: none; font-size: 16px; border: 1px solid var(--gold-line); transition: background .2s, color .2s;
+  }
+  .btn.main { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+  .btn.main:hover { background: var(--gold-soft); }
+  .btn:not(.main):hover { background: #C7AE7F14; }
+  .hero-art { position: relative; aspect-ratio: 1; }
+  .hero-art img { mix-blend-mode: lighten; width: 100%; height: 100%; object-fit: contain; }
+
+  section { padding: 96px 0; }
+  h2 { margin: 0 0 16px; font-weight: 400; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.1; }
+  .sub { margin: 0 0 48px; max-width: 34em; color: var(--muted); }
+
+  .shot {
+    border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--surface);
+  }
+  .shot img { width: 100%; height: auto; }
+
+  .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .card {
+    position: relative; overflow: hidden;
+    padding: 32px; min-height: 260px;
+    border: 1px solid var(--line); border-radius: 20px; background: var(--surface);
+  }
+  .card img.obj { mix-blend-mode: lighten; position: absolute; right: -24px; bottom: -24px; width: 190px; opacity: .95; }
+  .card h3 { margin: 0 0 10px; font-weight: 400; font-size: 24px; color: var(--gold-soft); }
+  .card p { margin: 0; max-width: 20em; color: var(--muted); font-size: 16px; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+  .steps li { counter-increment: s; display: grid; grid-template-columns: 48px 1fr; gap: 16px; padding: 20px 0; border-top: 1px solid var(--line); }
+  .steps li:last-child { border-bottom: 1px solid var(--line); }
+  .steps li::before { content: counter(s, upper-roman); color: var(--gold); font-size: 22px; }
+  .steps b { display: block; font-weight: 400; font-size: 19px; margin-bottom: 4px; }
+  .steps span { color: var(--muted); font-size: 16px; }
+
+  .phone { display: flex; justify-content: center; }
+  .phone .shot { width: 280px; border-radius: 32px; }
+
+  .stack { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .stack .card { min-height: 0; }
+  .stack code { font: 14px/1.6 ui-monospace, Menlo, monospace; color: var(--gold-soft); }
+  .stack a { color: var(--gold); text-decoration: none; }
+  .stack a:hover { text-decoration: underline; }
+
+  .final { text-align: center; }
+  .final img { mix-blend-mode: lighten; width: 240px; margin: 0 auto 8px; }
+  .final .cta { justify-content: center; }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+  footer a { text-decoration: none; }
+  footer a:hover { color: var(--fg); }
+
+  @media (max-width: 860px) {
+    .hero-body, .split { grid-template-columns: 1fr; }
+    .hero-art { order: -1; width: min(320px, 80%); margin: 0 auto; }
+    .features, .stack { grid-template-columns: 1fr; }
+    .card img.obj { width: 140px; }
+    section { padding: 64px 0; }
+  }
+  @media (max-width: 480px) {
+    .wrap { padding: 0 16px; }
+    .pill span { display: none; }
+    .card { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="https://russia-heroes.ru"><img src="frontend/public/logo.svg" alt="">Россия - страна Героев</a>
+      <a class="pill" href="https://github.com/airsss993/histproject">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.34.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </nav>
+  </div>
+  <div class="wrap hero-body">
+    <div>
+      <div class="kicker">Карта исторических событий</div>
+      <h1>Россия -<br>страна <em>Героев</em></h1>
+      <p class="lead">Битвы, реформы и люди на одной карте. За каждой меткой стоит отдельный сайт, который сделал и прислал участник проекта.</p>
+      <div class="cta">
+        <a class="btn main" href="https://russia-heroes.ru">Открыть карту</a>
+        <a class="btn" href="#join">Предложить событие</a>
+      </div>
+    </div>
+    <div class="hero-art"><img src="site/globe.webp" alt=""></div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="wrap">
+      <div class="shot"><img src="site/map.webp" alt="Карта событий" width="1600" height="1000" loading="lazy"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Что на карте</h2>
+      <p class="sub">Метки трёх типов: политические события, военные события и личности. Фильтр по типу и шкала веков оставляют только нужное.</p>
+      <div class="features">
+        <div class="card">
+          <h3>Метка на карте</h3>
+          <p>Событие стоит там, где оно произошло. Границы регионов из OSM, подложка OpenFreeMap.</p>
+          <img class="obj" src="site/map-pin.webp" alt="" loading="lazy">
+        </div>
+        <div class="card">
+          <h3>Сайт события</h3>
+          <p>Сайт автора открывается в рамке на весь экран. Под ним дата, тип, автор и описание.</p>
+          <img class="obj" src="site/scroll.webp" alt="" loading="lazy">
+        </div>
+        <div class="card">
+          <h3>Звёзды и просмотры</h3>
+          <p>Посетители ставят звёзды. Просмотры считаются по активному времени на странице, а не по открытию.</p>
+          <img class="obj" src="site/laurel.webp" alt="" loading="lazy">
+        </div>
+        <div class="card">
+          <h3>Профиль автора</h3>
+          <p>У каждого участника своя страница со всеми его событиями на карте.</p>
+          <img class="obj" src="site/helmet.webp" alt="" loading="lazy">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="shot"><img src="site/event.webp" alt="Страница события с сайтом автора" width="1600" height="1000" loading="lazy"></div>
+    </div>
+  </section>
+
+  <section id="join">
+    <div class="wrap split">
+      <div>
+        <h2>Как добавить событие</h2>
+        <p class="sub">Подойдёт любой статический сайт: HTML, стили, картинки. Инструкция для авторов есть на самом сайте.</p>
+        <ol class="steps">
+          <li><div><b>Сделать сайт</b><span>Одна тема, одно событие или один человек.</span></div></li>
+          <li><div><b>Прислать ZIP</b><span>Войти, загрузить архив и поставить точку на карте. Место ищется по названию.</span></div></li>
+          <li><div><b>Дождаться проверки</b><span>Модератор смотрит сайт и публикует его или пишет, что поправить.</span></div></li>
+        </ol>
+        <div class="cta" style="margin-top: 32px">
+          <a class="btn main" href="https://russia-heroes.ru">Перейти на сайт</a>
+        </div>
+      </div>
+      <div class="phone"><div class="shot"><img src="site/mobile-map.webp" alt="Карта на телефоне" width="390" height="844" loading="lazy"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Для разработчиков</h2>
+      <p class="sub">Код открыт под Apache 2.0. Push в main собирает и выкатывает прод.</p>
+      <div class="stack">
+        <div class="card">
+          <h3>Frontend</h3>
+          <p><code>Vite, React 19, TypeScript, MapLibre GL</code></p>
+          <p style="margin-top:12px"><a href="https://github.com/airsss993/histproject/tree/main/frontend">frontend/</a></p>
+        </div>
+        <div class="card">
+          <h3>Backend</h3>
+          <p><code>Go, PostgreSQL, Redis, MinIO, Asynq, headless Chrome</code></p>
+          <p style="margin-top:12px"><a href="https://github.com/airsss993/histproject/blob/main/backend/docs/openapi.yaml">OpenAPI</a></p>
+        </div>
+        <div class="card">
+          <h3>Дизайн</h3>
+          <p><code>Tenor Sans, золото на тёмно-синем</code></p>
+          <p style="margin-top:12px"><a href="docs/design-system.html">Дизайн-система</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="wrap">
+      <img src="site/laurel.webp" alt="" loading="lazy">
+      <h2>Карта ждёт новых героев</h2>
+      <p class="sub" style="margin: 0 auto 32px">Звезда на GitHub помогает проекту найти авторов.</p>
+      <div class="cta">
+        <a class="btn main" href="https://github.com/airsss993/histproject">Поставить звезду</a>
+        <a class="btn" href="https://russia-heroes.ru">russia-heroes.ru</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Россия - страна Героев</span>
+    <span><a href="https://github.com/airsss993/histproject">GitHub</a> · <a href="LICENSE">Apache 2.0</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
