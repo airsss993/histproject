@@ -7,7 +7,7 @@
 Интерактивная карта исторических событий России. Каждое событие на карте - отдельный
 сайт, который сделал и прислал участник проекта.
 
-[russia-heroes.ru](https://russia-heroes.ru) · [API](backend/docs/openapi.yaml) · [Дизайн-система](docs/design-system.html)
+[russia-heroes.ru](https://russia-heroes.ru) · [О проекте](https://airsss993.github.io/histproject/) · [API](backend/docs/openapi.yaml) · [Дизайн-система](docs/design-system.html)
 
 </div>
 

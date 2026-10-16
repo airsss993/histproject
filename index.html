@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Россия - страна Героев - карта исторических событий</title>
+<meta name="description" content="Интерактивная карта исторических событий России. Каждое событие на карте - отдельный сайт, который сделал участник проекта.">
+<meta property="og:title" content="Россия - страна Героев">
+<meta property="og:description" content="Карта исторических событий России. Каждое событие - сайт, который сделал участник проекта.">
+<meta property="og:image" content="https://airsss993.github.io/histproject/docs/banners/hero.jpg">
+<meta name="theme-color" content="#010011">
+<link rel="icon" href="frontend/public/logo.svg">
+<style>
+  @font-face { font-family: 'Tenor Sans'; font-display: swap; src: url(frontend/public/fonts/tenor-sans-cyrillic.woff2) format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: 'Tenor Sans'; font-display: swap; src: url(frontend/public/fonts/tenor-sans-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2212; }
+  :root {
+    --bg: #010011;
+    --fg: #F1ECE0;
+    --muted: #8194AE;
+    --text-2: #B7C0D4;
+    --gold: #C7AE7F;
+    --gold-soft: #D8C9A2;
+    --rim: rgba(255, 255, 255, .17) rgba(129, 148, 174, .16) rgba(129, 148, 174, .1);
+    --hair: rgba(129, 148, 174, .14);
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 17px/1.6 'Tenor Sans', system-ui, sans-serif; font-variant-numeric: lining-nums;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  /* Сетка и зерно на весь сайт, как на баннере: фон не плоский, стеклу есть что размывать. */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      var(--grain),
+      linear-gradient(rgba(129, 148, 174, .06) 1px, transparent 1px) 0 0 / 64px 64px,
+      linear-gradient(90deg, rgba(129, 148, 174, .06) 1px, transparent 1px) 0 0 / 64px 64px;
+    -webkit-mask: radial-gradient(120% 90% at 50% 0%, #000 30%, transparent 85%);
+            mask: radial-gradient(120% 90% at 50% 0%, #000 30%, transparent 85%);
+  }
+  a { color: inherit; }
+  img { display: block; max-width: 100%; }
+  .wrap { position: relative; width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+
+  /* Свечение под стеклом: размытые пятна золота и синевы. */
+  .glow { position: absolute; z-index: -1; pointer-events: none; border-radius: 50%; filter: blur(90px); opacity: .55; }
+  .glow.gold { background: radial-gradient(circle, rgba(199, 174, 127, .55), transparent 70%); }
+  .glow.blue { background: radial-gradient(circle, rgba(46, 72, 190, .6), transparent 70%); }
+  .glow.teal { background: radial-gradient(circle, rgba(60, 140, 150, .4), transparent 70%); }
+
+  /* Стекло как во фронтенде (.pm-glass): блюр с насыщением, светлая верхняя кромка, зерно. */
+  .glass {
+    position: relative; isolation: isolate; overflow: hidden;
+    border: 1px solid; border-color: var(--rim); border-radius: 24px;
+    background: linear-gradient(180deg, rgba(129, 148, 174, .1), rgba(129, 148, 174, .02) 45%), rgba(12, 16, 35, .5);
+    -webkit-backdrop-filter: blur(24px) saturate(150%); backdrop-filter: blur(24px) saturate(150%);
+    box-shadow: 0 20px 60px rgba(0, 0, 20, .5), inset 0 1px 0 rgba(255, 255, 255, .12);
+  }
+  .glass::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: var(--grain); opacity: .6; }
+
+  .hero { position: relative; overflow: hidden; padding-bottom: 40px; }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: -2; opacity: .9;
+    background: url(site/bg-hero.webp) 50% 0 / cover no-repeat;
+    -webkit-mask: linear-gradient(#000 55%, transparent); mask: linear-gradient(#000 55%, transparent);
+  }
+  nav {
+    position: sticky; top: 16px; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 16px; padding: 8px 8px 8px 18px; border-radius: 999px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-size: 13px; letter-spacing: .22em; text-transform: uppercase; color: var(--gold-soft); white-space: nowrap; }
+  .brand img { width: 18px; height: 29px; }
+  .nav-links { display: flex; align-items: center; gap: 4px; }
+  .nav-links a { padding: 9px 14px; font-size: 14px; color: var(--text-2); text-decoration: none; border-radius: 999px; transition: color .15s; }
+  .nav-links a:hover { color: #fff; }
+  .nav-links .pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .04); }
+  .pill svg { width: 16px; height: 16px; }
+
+  .hero-head { text-align: center; padding: 96px 0 64px; }
+  .kicker { display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px; margin-bottom: 28px; border-radius: 999px; font-size: 13px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-soft); }
+  .kicker i { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+  h1 {
+    margin: 0 auto 24px; max-width: 14em; font-weight: 400; text-transform: uppercase; letter-spacing: .04em;
+    font-size: clamp(38px, 7vw, 92px); line-height: 1.02;
+  }
+  .gold-text {
+    background: linear-gradient(180deg, #F3E6C4 0%, var(--gold) 55%, #8E7A52 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lead { margin: 0 auto 40px; max-width: 32em; color: var(--text-2); font-size: 19px; }
+  .cta { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; padding: 15px 28px; border-radius: 999px;
+    text-decoration: none; font-size: 16px; transition: filter .2s, background .2s;
+  }
+  .btn.main {
+    color: #1a1406;
+    background: linear-gradient(180deg, #E9D9B0, var(--gold) 60%, #A88F5F);
+    box-shadow: 0 10px 40px rgba(199, 174, 127, .35), inset 0 1px 0 rgba(255, 255, 255, .6);
+  }
+  .btn.main:hover { filter: brightness(1.08); }
+  .btn.ghost { border: 1px solid; border-color: var(--rim); background: rgba(255, 255, 255, .05); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1); }
+  .btn.ghost:hover { background: rgba(255, 255, 255, .1); }
+
+  /* Макет как на баннере: браузер в перспективе и телефон поверх. */
+  .stage { position: relative; perspective: 1800px; padding-bottom: 40px; }
+  .stage .glow.gold { width: 60%; height: 50%; left: 20%; top: -10%; }
+  .browser { transform: rotateX(14deg); transform-origin: 50% 0; border-radius: 18px; }
+  .browser-bar { display: flex; align-items: center; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--hair); }
+  .browser-bar i { width: 10px; height: 10px; border-radius: 50%; background: rgba(129, 148, 174, .35); }
+  .browser-bar span { margin: 0 auto; padding: 3px 60px; border-radius: 8px; background: rgba(255, 255, 255, .05); font-size: 12px; color: var(--muted); }
+  .browser img { width: 100%; height: auto; }
+  .phone { position: absolute; right: 2%; bottom: 0; width: 22%; min-width: 150px; padding: 8px; border-radius: 36px; transform: rotate(4deg); }
+  .phone img { border-radius: 28px; width: 100%; height: auto; }
+
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 56px; border-radius: 20px; }
+  .facts div { padding: 22px 24px; border-left: 1px solid var(--hair); }
+  .facts div:first-child { border-left: 0; }
+  .facts b { display: block; font-weight: 400; font-size: 28px; line-height: 1.2; }
+  .facts span { color: var(--muted); font-size: 14px; }
+
+  section { position: relative; padding: 120px 0; overflow-x: clip; }
+  .eyebrow { margin-bottom: 14px; color: var(--gold); font-size: 13px; letter-spacing: .22em; text-transform: uppercase; }
+  h2 { margin: 0 0 16px; font-weight: 400; text-transform: uppercase; letter-spacing: .04em; font-size: clamp(28px, 4.2vw, 50px); line-height: 1.08; }
+  .sub { margin: 0 0 56px; max-width: 34em; color: var(--text-2); }
+
+  .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+  .card { padding: 32px; min-height: 280px; }
+  .card.w2 { grid-column: span 2; }
+  .card.w4 { grid-column: span 4; }
+  .card h3 { margin: 0 0 10px; font-weight: 400; font-size: 23px; color: var(--gold-soft); }
+  .card p { margin: 0; max-width: 22em; color: var(--text-2); font-size: 16px; }
+  .card .obj { position: absolute; z-index: -1; right: -20px; bottom: -28px; width: 210px; }
+  .card .obj-glow { position: absolute; z-index: -1; right: 10px; bottom: 0; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(199, 174, 127, .28), transparent 70%); filter: blur(20px); }
+  .card.shot { padding: 0; min-height: 0; }
+  .card.shot img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; }
+  .card.shot .cap { position: absolute; left: 16px; bottom: 16px; padding: 10px 16px; border-radius: 14px; font-size: 14px; color: var(--text-2); }
+
+  .steps-bg {
+    position: absolute; inset: 0; z-index: -2; opacity: .7;
+    background:
+      linear-gradient(180deg, rgba(1,0,17,.9) 10%, rgba(1,0,17,.6) 40%, rgba(1,0,17,.15) 70%),
+      url(site/bg-smoke.webp) 50% 50% / cover no-repeat;
+    -webkit-mask: linear-gradient(transparent, #000 25%, #000 75%, transparent); mask: linear-gradient(transparent, #000 25%, #000 75%, transparent);
+  }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; list-style: none; margin: 0; padding: 0; counter-reset: s; }
+  .steps li { counter-increment: s; padding: 32px; }
+  .steps li::after {
+    content: counter(s, upper-roman); position: absolute; right: 24px; top: 8px; z-index: -1;
+    font-size: 96px; line-height: 1; color: transparent; -webkit-text-stroke: 1px rgba(199, 174, 127, .4);
+  }
+  .steps b { display: block; font-weight: 400; font-size: 21px; margin: 56px 0 8px; }
+  .steps span { color: var(--text-2); font-size: 16px; }
+
+
+  .final { text-align: center; overflow: hidden; padding-top: 80px; }
+  .final-bg {
+    position: absolute; inset: 0; z-index: -2; opacity: .9;
+    background: url(site/bg-map.webp) 50% 50% / cover no-repeat;
+    -webkit-mask: linear-gradient(transparent, #000 30%, #000 80%, transparent); mask: linear-gradient(transparent, #000 30%, #000 80%, transparent);
+  }
+  .final .emblem { position: relative; width: min(340px, 70%); margin: 0 auto; }
+  .final .emblem img { }
+  .final .sub { margin: 0 auto 36px; }
+
+  footer { border-top: 1px solid var(--hair); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+  footer a { text-decoration: none; }
+  footer a:hover { color: var(--fg); }
+
+  @media (max-width: 900px) {
+    .bento { grid-template-columns: 1fr 1fr; }
+    .card.w2 { grid-column: span 1; }
+    .card.w4 { grid-column: span 2; }
+    .steps { grid-template-columns: 1fr; }
+    .facts { grid-template-columns: 1fr; }
+    .facts div { border-left: 0; border-top: 1px solid var(--hair); }
+    .facts div:first-child { border-top: 0; }
+    section { padding: 80px 0; }
+    .nav-links a:not(.pill) { display: none; }
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 0 16px; }
+    .hero-head { padding: 64px 0 40px; }
+    .browser { transform: none; }
+    .browser-bar span { padding: 3px 24px; }
+    .phone { position: relative; right: auto; width: 62%; margin: -40px 0 0 auto; transform: rotate(3deg); }
+    .bento { grid-template-columns: 1fr; }
+    .card.w2, .card.w4 { grid-column: span 1; }
+    .card { padding: 24px; min-height: 220px; }
+    .card .obj { width: 160px; }
+    .facts b { font-size: 22px; }
+    .pill span { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="wrap">
+    <nav class="glass">
+      <a class="brand" href="https://russia-heroes.ru"><img src="frontend/public/logo.svg" alt="">Страна Героев</a>
+      <div class="nav-links">
+        <a href="#features">Что внутри</a>
+        <a href="#join">Как добавить</a>
+        <a class="pill" href="https://github.com/airsss993/histproject">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.34.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="hero-head">
+      <div class="kicker glass"><i></i>Карта исторических событий</div>
+      <h1>История России <span class="gold-text">на карте</span></h1>
+      <p class="lead">События IX-XXI веков в местах, где они произошли. У каждого свой сайт, сделанный участником проекта.</p>
+      <div class="cta">
+        <a class="btn main" href="https://russia-heroes.ru">Открыть карту</a>
+        <a class="btn ghost" href="#join">Предложить событие</a>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="glow gold"></div>
+      <div class="browser glass">
+        <div class="browser-bar"><i></i><i></i><i></i><span>russia-heroes.ru</span></div>
+        <img src="site/map.webp" alt="Карта событий" width="1600" height="1000">
+      </div>
+      <div class="phone glass"><img src="site/mobile-map.webp" alt="Карта на телефоне" width="390" height="844"></div>
+    </div>
+
+    <div class="facts glass">
+      <div><b>IX-XXI</b><span>века на шкале</span></div>
+      <div><b>3 типа</b><span>политика, война, личности</span></div>
+      <div><b>1 = 1</b><span>одно событие, один сайт</span></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="features">
+    <div class="glow blue" style="width: 520px; height: 520px; left: -160px; top: 120px"></div>
+    <div class="glow gold" style="width: 420px; height: 420px; right: -120px; top: 380px"></div>
+    <div class="glow teal" style="width: 380px; height: 380px; left: 35%; bottom: 0"></div>
+    <div class="wrap">
+      <div class="eyebrow">Что внутри</div>
+      <h2>Карта, где история <span class="gold-text">живая</span></h2>
+      <p class="sub">Метки трёх типов, фильтр и шкала веков. Нажал на метку - открылся сайт, который сделал автор.</p>
+      <div class="bento">
+        <div class="card glass w4 shot">
+          <img src="site/event.webp" alt="Страница события с сайтом автора" width="1600" height="1000" loading="lazy">
+          <div class="cap glass">Сайт события в рамке на весь экран</div>
+        </div>
+        <div class="card glass w2">
+          <h3>Метка на карте</h3>
+          <p>Событие стоит там, где произошло. Границы регионов из OSM.</p>
+          <div class="obj-glow"></div><img class="obj" src="site/map-pin.webp" alt="">
+        </div>
+        <div class="card glass w2">
+          <h3>Сайт автора</h3>
+          <p>Любой статический сайт: текст, картинки, свои стили.</p>
+          <div class="obj-glow"></div><img class="obj" src="site/scroll.webp" alt="">
+        </div>
+        <div class="card glass w2">
+          <h3>Звёзды</h3>
+          <p>Посетители ставят звёзды. Просмотры считаются по времени на странице.</p>
+          <div class="obj-glow"></div><img class="obj" src="site/laurel.webp" alt="">
+        </div>
+        <div class="card glass w2">
+          <h3>Профиль автора</h3>
+          <p>Все события участника на одной странице.</p>
+          <div class="obj-glow"></div><img class="obj" src="site/helmet.webp" alt="">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="join">
+    <div class="steps-bg"></div>
+    <div class="wrap">
+      <div class="eyebrow">Для авторов</div>
+      <h2>Как добавить <span class="gold-text">событие</span></h2>
+      <p class="sub">Сайт собирается как угодно, на сервер уходит ZIP. Инструкция для авторов есть на самом сайте.</p>
+      <ol class="steps">
+        <li class="glass"><b>Сделать сайт</b><span>Одна тема: событие или человек.</span></li>
+        <li class="glass"><b>Прислать ZIP</b><span>Войти, загрузить архив и поставить точку на карте.</span></li>
+        <li class="glass"><b>Пройти проверку</b><span>Модератор публикует сайт или пишет, что поправить.</span></li>
+      </ol>
+      <div class="cta" style="justify-content: flex-start; margin-top: 40px">
+        <a class="btn main" href="https://russia-heroes.ru">Перейти на сайт</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="final-bg"></div>
+    <div class="wrap">
+      <div class="emblem"><div class="glow gold" style="inset: 15%"></div><img src="site/globe.webp" alt=""></div>
+      <h2>Карта ждёт <span class="gold-text">новых героев</span></h2>
+      <p class="sub">Сделайте сайт о событии или человеке, и он появится на карте.</p>
+      <div class="cta">
+        <a class="btn main" href="https://russia-heroes.ru">Открыть карту</a>
+        <a class="btn ghost" href="https://russia-heroes.ru/guide">Как сделать сайт</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Россия - страна Героев</span>
+    <span><a href="https://github.com/airsss993/histproject">GitHub</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
