@@ -194,6 +194,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ../frontend/dist:/srv:ro
+      - /var/lib/acme-webroot:/acme-webroot:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:

@@ -10,6 +10,17 @@
 	}
 }
 
+# IP-сертификат 3x-ui продлевает acme.sh через общий webroot на хосте.
+http://185.113.11.122 {
+	handle /.well-known/acme-challenge/* {
+		root * /acme-webroot
+		file_server
+	}
+	handle {
+		respond 404
+	}
+}
+
 # MinIO answers a missing object with English S3 XML, and with 403 once anonymous listing is off.
 (minio_missing) {
 	@missing status 403 404
