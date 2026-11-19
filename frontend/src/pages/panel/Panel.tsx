@@ -525,7 +525,7 @@ const History: React.FC = () => {
 const METRIC_PERIODS: [number, string][] = [[7, '7 дней'], [30, '30 дней'], [90, '90 дней'], [365, 'Год']]
 // Шаги воронки формы, как их шлёт track('form_step') в Propose.tsx.
 const AUTH_FUNNEL_LABEL = ['Открыли вход', 'Запросили код', 'Вошли']
-const FUNNEL_LABEL = ['Открыли форму', 'Тип события', 'О событии', 'Место', 'Сайт', 'Контакты', 'Отправили заявку']
+const FUNNEL_LABEL = ['Открыли форму', 'Тип события', 'О событии', 'Место', 'Шаг сайта', 'Приложили архив', 'Контакты', 'Нажали отправить', 'Заявка принята']
 
 const pct = (part: number, whole: number) => whole > 0 ? `${Math.round(part / whole * 100)}%` : '-'
 const duration = (seconds: number) => {
@@ -720,7 +720,7 @@ const Funnel: React.FC<{ steps: { label: string; visitors: number }[] }> = ({ st
   const n = steps.length
   return (
     <div className="mod-flow-wrap">
-      <div className="mod-flow" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+      <div className="mod-flow" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, minWidth: n * 96 }}>
         {steps.map(s => <span key={s.label} className="mod-flow-label">{s.label}</span>)}
         <div className="mod-flow-band" style={{ gridColumn: `1 / span ${n}` }}>
           <svg viewBox={`0 0 ${n * FLOW_W} ${FLOW_H}`} preserveAspectRatio="none" aria-hidden="true">

@@ -125,8 +125,9 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
   const leaving = useLeaving(open)
   // Отправленную заявку сбрасываем после анимации ухода, иначе окно гаснет уже с пустой формой.
   const resetOnHide = useRef(false)
-  // Воронка формы для панели: 0 - открыта, 1..5 - шаги мастера, 6 - заявка отправлена.
-  const funnelStep = !open ? -1 : phase.k === 'done' ? STEPS.length + 1 : ready ? step + 1 : 0
+  // Воронка формы для панели: 0 - открыта, 1..4 - шаги мастера до сайта, 5 - архив прошёл проверку,
+  // 6 - контакты, 7 - нажали "Отправить", 8 - заявка принята. 5 и 7 - события, а не шаги, их шлют pickFile и send.
+  const funnelStep = !open ? -1 : phase.k === 'done' ? 8 : !ready ? 0 : step < stepOf('telegram') ? step + 1 : 6
   useEffect(() => { if (funnelStep >= 0) track('form_step', funnelStep) }, [funnelStep])
   useEffect(() => {
     if (open || leaving || !resetOnHide.current) return
@@ -191,6 +192,7 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
       () => 'Не удалось прочитать архив. Соберите ZIP заново',
     )
     setD(p => (p.file === file ? { ...p, zip } : p))
+    if (zip === 'ok') track('form_step', 5)
   }
   const clearFile = () => { set('file', null, 'archive'); set('zip', 'none'); if (fileRef.current) fileRef.current.value = '' }
 
@@ -210,6 +212,7 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
   const send = async () => {
     const bad = FIELDS.filter(f => errors[f])
     if (bad.length) return complain(bad)
+    track('form_step', 7)
     const body = new FormData()
     body.set('title', d.title.trim())
     body.set('description', d.description.trim())
