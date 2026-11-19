@@ -10,6 +10,9 @@ import './public.css'
 const STAR_PROMPT_SECONDS = 45
 // Длительность дописывается и по ходу просмотра: мобильный браузер может убить вкладку без pagehide.
 const FLUSH_EVERY_SECONDS = 30
+// Без движения мыши, клавиш, касаний и прокрутки сайта столько секунд счёт стоит: открытая и забытая
+// вкладка иначе набирает часы (на проде был просмотр в 7200 с - половина всего времени).
+const IDLE_SECONDS = 120
 
 const storage = {
   get: (key: string) => { try { return localStorage.getItem(key) } catch { return null } },
@@ -19,7 +22,7 @@ const storage = {
 const dismissedKey = (id: number) => `hp-star-prompt-dismissed:${id}`
 
 // Сайт события на весь первый экран, под ним строка с названием и звездой, ниже - о событии. Считает активное время просмотра: секунда
-// идёт, только пока вкладка видна и окно в фокусе. Фокус внутри iframe - тоже фокус документа.
+// идёт, только пока вкладка видна, окно в фокусе и человек не бездействует IDLE_SECONDS. Фокус внутри iframe - тоже фокус документа.
 export const Viewer: React.FC = () => {
   const { id: param } = useParams()
   const id = param && /^\d+$/.test(param) ? Number(param) : null
@@ -42,7 +45,11 @@ export const Viewer: React.FC = () => {
     if (!ready || id === null) return
     const visitor = visitorId()
     let viewId: number | null = null
-    let active = 0, sent = 0, scroll = 0, sentScroll = 0
+    let active = 0, sent = 0, scroll = 0, sentScroll = 0, lastInput = Date.now()
+    const onInput = () => { lastInput = Date.now() }
+    // Мышь над iframe родителю не видна: изнутри сайта сигнал - сообщение о прокрутке, а клик в него - blur окна.
+    const inputs = ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll', 'focus', 'blur'] as const
+    inputs.forEach(type => window.addEventListener(type, onInput, { passive: true, capture: true }))
     const flush = () => {
       if (viewId === null || (active === sent && scroll === sentScroll)) return
       touchView(id, viewId, visitor, active, scroll)
@@ -53,6 +60,7 @@ export const Viewer: React.FC = () => {
     const onMessage = (e: MessageEvent) => {
       const p = (e.data as { hpScroll?: unknown } | null)?.hpScroll
       if (e.source !== frameRef.current?.contentWindow || typeof p !== 'number') return
+      onInput()
       scroll = Math.max(scroll, Math.min(100, Math.max(0, Math.round(p))))
     }
     window.addEventListener('message', onMessage)
@@ -61,7 +69,7 @@ export const Viewer: React.FC = () => {
       void startView(id, visitor).then(v => { viewId = v })
     }, 0)
     const tick = setInterval(() => {
-      if (document.visibilityState !== 'visible' || !document.hasFocus()) return
+      if (document.visibilityState !== 'visible' || !document.hasFocus() || Date.now() - lastInput > IDLE_SECONDS * 1000) return
       active++
       if (active === STAR_PROMPT_SECONDS && viewId !== null) setPromptDue(true)
       if (active % FLUSH_EVERY_SECONDS === 0) flush()
@@ -75,6 +83,7 @@ export const Viewer: React.FC = () => {
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('pagehide', flush)
       window.removeEventListener('message', onMessage)
+      inputs.forEach(type => window.removeEventListener(type, onInput, { capture: true }))
       flush()
     }
   }, [ready, id])
