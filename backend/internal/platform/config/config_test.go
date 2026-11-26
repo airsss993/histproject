@@ -45,8 +45,8 @@ func TestLoadFromUsesDevelopmentDefaults(t *testing.T) {
 	if cfg.MinIOUseSSL {
 		t.Error("MinIOUseSSL = true, want false")
 	}
-	if cfg.MaxUploadBytes != 20_971_520 {
-		t.Errorf("MaxUploadBytes = %d, want 20971520", cfg.MaxUploadBytes)
+	if cfg.MaxUploadBytes != 104_857_600 {
+		t.Errorf("MaxUploadBytes = %d, want 104857600", cfg.MaxUploadBytes)
 	}
 	if cfg.MaxExtractedBytes != 209_715_200 {
 		t.Errorf("MaxExtractedBytes = %d, want 209715200", cfg.MaxExtractedBytes)

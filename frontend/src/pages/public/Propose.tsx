@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { GLYPH, MapView, TYPE_COLOR, type MapHandle } from './MapView.tsx'
 import { Presence, useLeaving } from './presence.tsx'
-import { geocode, submitProposal, track, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType, type Place } from './api.ts'
+import { geocode, MAX_ARCHIVE_MB, submitProposal, track, TYPE_LABEL, TYPES, zipHasRootIndex, type EventType, type Place } from './api.ts'
 import { Check } from '../../shared/ui/Field.tsx'
 import { useNavigate } from 'react-router-dom'
 import './propose.css'
 
 // Раскладка по форме создания метки из trudovaya-slava, значения из валидации POST /api/v1/submissions.
-const MAX_MB = 20
 const MIN_YEAR = 862
 
 interface Draft {
@@ -185,7 +184,7 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
     setServer(({ archive: _, ...rest }) => rest)
     show('archive')
     if (!/\.zip$/i.test(file.name)) return setD(p => ({ ...p, file, zip: 'Нужен ZIP с index.html в корне - не RAR и не папка' }))
-    if (file.size > MAX_MB * 1048576) return setD(p => ({ ...p, file, zip: `${mb(file.size)} МБ - архив больше ${MAX_MB} МБ. Уберите видео и соберите заново` }))
+    if (file.size > MAX_ARCHIVE_MB * 1048576) return setD(p => ({ ...p, file, zip: `${mb(file.size)} МБ - архив больше ${MAX_ARCHIVE_MB} МБ. Уберите видео и соберите заново` }))
     setD(p => ({ ...p, file, zip: 'checking' }))
     const zip = await zipHasRootIndex(file).then(
       ok => (ok ? 'ok' : 'В корне архива нет index.html. Заархивируйте содержимое папки сайта, а не саму папку'),
@@ -280,8 +279,8 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
     )
   } else if (phase.k === 'fail') {
     const f = phase.status === 413
-      ? { tone: 'bad' as const, title: `Архив больше ${MAX_MB} МБ`,
-          text: `Сервер не принял файл: ${mb(d.file?.size ?? 0)} МБ при лимите ${MAX_MB}. Уберите видео и крупные изображения, соберите ZIP заново - остальные поля заявки сохранены.`,
+      ? { tone: 'bad' as const, title: `Архив больше ${MAX_ARCHIVE_MB} МБ`,
+          text: `Сервер не принял файл: ${mb(d.file?.size ?? 0)} МБ при лимите ${MAX_ARCHIVE_MB}. Уберите видео и крупные изображения, соберите ZIP заново - остальные поля заявки сохранены.`,
           primary: ['Выбрать другой архив', () => { clearFile(); setPhase({ k: 'form' }); setStep(stepOf('archive')); fileRef.current?.click() }] }
       : phase.status === 429
         ? { tone: 'warn' as const, title: 'Слишком много заявок',
@@ -413,7 +412,7 @@ export const ProposeModal: React.FC<{ open: boolean; email: string; mobile: bool
                 onDragLeave={() => setDrag(false)}
                 onDrop={e => { e.preventDefault(); setDrag(false); pickFile(e.dataTransfer.files[0]) }}>
                 <span className="pp-drop-title">{drag ? 'Отпустите файл' : mobile ? 'Выбрать ZIP-архив сайта' : 'Перетащите архив или выберите файл'}</span>
-                <span className="pm-dim-text">ZIP до {MAX_MB} МБ · index.html в корне архива</span>
+                <span className="pm-dim-text">ZIP до {MAX_ARCHIVE_MB} МБ · index.html в корне архива</span>
               </button>
             )}
           </Text>

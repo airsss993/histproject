@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Logo, useIsMobile } from './PublicMap.tsx'
 import { MapView } from './MapView.tsx'
-import { fetchAllEvents, yearOf, type HistEvent } from './api.ts'
+import { fetchAllEvents, MAX_ARCHIVE_MB, yearOf, type HistEvent } from './api.ts'
 import './public.css'
 import './about.css'
 
@@ -29,7 +29,7 @@ const FAQ = [
   },
   {
     q: 'Как добавить событие?',
-    a: 'Войдите или зарегистрируйтесь, затем нажмите "Предложить событие" на карте. В форме нужны тип события, название, дата не раньше 862 года, описание до 450 символов и точка на карте. Страницу события прикладывают ZIP-архивом сайта до 20 МБ с index.html в корне. Для вопросов модератора укажите Telegram.',
+    a: `Войдите или зарегистрируйтесь, затем нажмите "Предложить событие" на карте. В форме нужны тип события, название, дата не раньше 862 года, описание до 450 символов и точка на карте. Страницу события прикладывают ZIP-архивом сайта до ${MAX_ARCHIVE_MB} МБ с index.html в корне. Для вопросов модератора укажите Telegram.`,
   },
   {
     q: 'Что происходит после отправки заявки?',

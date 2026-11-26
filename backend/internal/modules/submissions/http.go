@@ -14,8 +14,8 @@ import (
 
 const multipartOverheadBytes int64 = 1 << 20
 
-// uploadTimeout replaces the server-wide read and write timeouts for archive uploads: 20 MB over a 1 Mbit/s uplink takes under 3 minutes.
-const uploadTimeout = 10 * time.Minute
+// Allow 100 MiB uploads over a 1 Mbit/s uplink to finish in about 14 minutes.
+const uploadTimeout = 20 * time.Minute
 
 type HTTPService interface {
 	Create(context.Context, CreateInput) (Submission, error)

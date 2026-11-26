@@ -5,6 +5,8 @@ x-app: &app
   build: .
   env_file:
     - .env
+  environment:
+    MAX_UPLOAD_BYTES: "104857600"
   networks:
     - app_internal
   restart: always
